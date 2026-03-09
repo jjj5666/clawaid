@@ -1,10 +1,17 @@
 import express, { Request, Response } from 'express';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as https from 'https';
 import { DoctorLoop, LoopEvent } from './loop';
 
 const app = express();
 app.use(express.json());
+
+// In-memory token store (per server process)
+let verifiedToken: string | undefined;
+
+// ClawAid backend base URL
+const CLAWAID_API = process.env.CLAWAID_API || 'https://api.clawaid.app';
 
 // Serve the web UI
 app.get('/', (_req: Request, res: Response) => {
@@ -37,6 +44,11 @@ app.get('/api/diagnose', (req: Request, res: Response) => {
   const loop = new DoctorLoop((event: LoopEvent) => {
     sendEvent(event.type, event.data);
   });
+
+  // Restore verified token if available
+  if (verifiedToken) {
+    loop.setToken(verifiedToken);
+  }
 
   activeSessions.set(sessionId, { res, loop });
 
@@ -88,6 +100,59 @@ app.post('/api/fix', (req: Request, res: Response) => {
   });
   
   res.json({ ok: true });
+});
+
+// Redeem token — calls backend /redeem and caches validated token
+app.post('/api/redeem', (req: Request, res: Response) => {
+  const { token } = req.body as { token: string };
+  if (!token || typeof token !== 'string' || !token.trim()) {
+    res.status(400).json({ valid: false, error: 'token required' });
+    return;
+  }
+
+  const body = JSON.stringify({ token: token.trim() });
+  const url = new URL(`${CLAWAID_API}/redeem`);
+  const options = {
+    hostname: url.hostname,
+    port: url.port ? parseInt(url.port) : 443,
+    path: url.pathname,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(body),
+    },
+  };
+
+  const request = https.request(options, (backendRes) => {
+    let data = '';
+    backendRes.on('data', (chunk) => { data += chunk; });
+    backendRes.on('end', () => {
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed.valid) {
+          // Cache the token for this server process
+          verifiedToken = token.trim();
+          // Also propagate to any active sessions
+          activeSessions.forEach(({ loop }) => {
+            loop.setToken(token.trim());
+          });
+        }
+        res.json({ valid: Boolean(parsed.valid), credits: parsed.credits || 0 });
+      } catch {
+        res.status(500).json({ valid: false, error: 'Failed to parse backend response' });
+      }
+    });
+  });
+
+  request.on('error', (err) => {
+    res.status(500).json({ valid: false, error: err.message });
+  });
+  request.setTimeout(15000, () => {
+    request.destroy();
+    res.status(504).json({ valid: false, error: 'Redeem request timed out' });
+  });
+  request.write(body);
+  request.end();
 });
 
 // Health check

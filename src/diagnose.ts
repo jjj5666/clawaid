@@ -3,14 +3,42 @@ import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import * as crypto from 'crypto';
 
 // ClawAid backend API URL — set CLAWAID_API to override (e.g. for local dev)
-const CLAWAID_API = process.env.CLAWAID_API || 'https://clawaid-backend.vercel.app';
+const CLAWAID_API = process.env.CLAWAID_API || 'https://api.clawaid.app';
 
-async function callClawAidAPI(observationData: string, previousAttempts?: string[], round?: number): Promise<DiagnosisResult> {
+/**
+ * Generate a stable machine fingerprint using hostname + platform + arch.
+ * Falls back to a hash so we never expose raw machine names.
+ */
+export function getMachineFingerprint(): string {
+  const raw = `${os.hostname()}::${os.platform()}::${os.arch()}`;
+  return crypto.createHash('sha256').update(raw).digest('hex').slice(0, 32);
+}
+
+export class PaywallError extends Error {
+  readonly price: string;
+  readonly currency: string;
+  readonly isChinese: boolean;
+  readonly credits: number;
+
+  constructor(opts: { price: string; currency: string; isChinese: boolean; credits: number }) {
+    super('PaywallError');
+    this.name = 'PaywallError';
+    this.price = opts.price;
+    this.currency = opts.currency;
+    this.isChinese = opts.isChinese;
+    this.credits = opts.credits;
+  }
+}
+
+async function callClawAidAPI(observationData: string, previousAttempts?: string[], round?: number, token?: string): Promise<DiagnosisResult> {
   return new Promise((resolve, reject) => {
-    const body = JSON.stringify({ observationData, previousAttempts, round });
-    const url = new URL(`${CLAWAID_API}/api/diagnose`);
+    const fingerprint = getMachineFingerprint();
+    const body = JSON.stringify({ observationData, previousAttempts, round, fingerprint, ...(token ? { token } : {}) });
+    // Worker path is /diagnose (no /api prefix)
+    const url = new URL(`${CLAWAID_API}/diagnose`);
     const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
     const lib = isLocal ? http : https;
 
@@ -31,6 +59,15 @@ async function callClawAidAPI(observationData: string, previousAttempts?: string
       res.on('end', () => {
         try {
           const parsed = JSON.parse(data);
+          if (parsed.paywall) {
+            reject(new PaywallError({
+              price: parsed.price || (parsed.isChinese ? '¥9.9' : '$1.99'),
+              currency: parsed.currency || (parsed.isChinese ? 'CNY' : 'USD'),
+              isChinese: Boolean(parsed.isChinese),
+              credits: parsed.credits || 0,
+            }));
+            return;
+          }
           if (parsed.error) reject(new Error(parsed.error));
           else resolve(parsed as DiagnosisResult);
         } catch {
@@ -81,6 +118,7 @@ export interface DiagnoseOptions {
   observationData: string;
   previousAttempts?: string[];
   round?: number;
+  token?: string;
 }
 
 const SYSTEM_PROMPT = `You are a top-tier OpenClaw diagnostics engineer. OpenClaw is a local AI gateway/assistant platform that runs on macOS. Your tool is called ClawAid 🩺.
@@ -321,7 +359,7 @@ function loadContextDocs(): string {
 }
 
 export async function diagnose(options: DiagnoseOptions): Promise<DiagnosisResult> {
-  const { apiKey, observationData, previousAttempts, round } = options;
+  const { apiKey, observationData, previousAttempts, round, token } = options;
   
   let userMessage: string;
   
@@ -359,8 +397,10 @@ IMPORTANT: You MUST respond with valid JSON only. No prose, no markdown, no expl
   }
 
   try {
-    return await callClawAidAPI(observationData, previousAttempts, round);
+    return await callClawAidAPI(observationData, previousAttempts, round, token);
   } catch (err) {
+    // Re-throw PaywallError — don't fall back for paywalled responses
+    if (err instanceof PaywallError) throw err;
     const msg = (err as Error).message || String(err);
     // Fallback: try with user's own key if available
     if (apiKey) {

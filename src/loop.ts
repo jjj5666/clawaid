@@ -1,5 +1,5 @@
 import { observe, loadMockObservation, formatObservation, ObservationResult } from './observe';
-import { diagnose, DiagnosisResult, RepairOption, extractApiKey } from './diagnose';
+import { diagnose, DiagnosisResult, RepairOption, extractApiKey, PaywallError } from './diagnose';
 import { executeActions, formatExecuteResults } from './execute';
 import { verify } from './verify';
 
@@ -15,6 +15,7 @@ export type LoopState =
   | 'not_fixed'
   | 'healthy'
   | 'needs_api_key'
+  | 'paywall'
   | 'error';
 
 export interface LoopEvent {
@@ -26,6 +27,7 @@ export interface LoopEvent {
     | 'verify_result'
     | 'request_input'
     | 'complete'
+    | 'paywall'
     | 'error';
   data: unknown;
 }
@@ -34,6 +36,7 @@ export type EventCallback = (event: LoopEvent) => void;
 
 export interface LoopContext {
   apiKey: string;
+  token?: string;
   originalObservation?: ObservationResult;
   originalObservationText?: string;
   currentDiagnosis?: DiagnosisResult;
@@ -58,6 +61,10 @@ export class DoctorLoop {
 
   setApiKey(key: string) {
     this.context.apiKey = key;
+  }
+
+  setToken(token: string) {
+    this.context.token = token;
   }
 
   stop() {
@@ -131,6 +138,7 @@ export class DoctorLoop {
       const diagnosis = await diagnose({
         apiKey: this.context.apiKey,
         observationData: this.context.originalObservationText,
+        token: this.context.token,
       });
 
       this.context.currentDiagnosis = diagnosis;
@@ -164,6 +172,19 @@ export class DoctorLoop {
       this.setState('showing_options');
       return; // Resumes via startFix(optionId)
     } catch (err) {
+      if (err instanceof PaywallError) {
+        this.setState('paywall');
+        this.emit({
+          type: 'paywall',
+          data: {
+            price: err.price,
+            currency: err.currency,
+            isChinese: err.isChinese,
+            credits: err.credits,
+          },
+        });
+        return;
+      }
       this.progress(`❌ AI analysis failed: ${(err as Error).message}`);
       this.setState('error');
       this.emit({ type: 'error', data: { message: (err as Error).message } });
@@ -259,6 +280,7 @@ export class DoctorLoop {
         observationData: currentObsText,
         previousAttempts: this.context.attemptHistory,
         round,
+        token: this.context.token,
       });
 
       this.context.currentDiagnosis = newDiagnosis;
@@ -301,6 +323,19 @@ export class DoctorLoop {
       this.setState('showing_options');
       this.context.roundNumber = round;
     } catch (err) {
+      if (err instanceof PaywallError) {
+        this.setState('paywall');
+        this.emit({
+          type: 'paywall',
+          data: {
+            price: err.price,
+            currency: err.currency,
+            isChinese: err.isChinese,
+            credits: err.credits,
+          },
+        });
+        return;
+      }
       this.progress(`❌ AI analysis failed: ${(err as Error).message}`);
       this.setState('error');
       this.emit({ type: 'error', data: { message: (err as Error).message } });

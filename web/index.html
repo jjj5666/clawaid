@@ -748,6 +748,43 @@
     </button>
   </div>
 
+  <!-- ===== SECTION: Paywall ===== -->
+  <div id="section-paywall" class="section card fade-in">
+    <div style="text-align:center; font-size:40px; margin-bottom:12px;">🔐</div>
+    <div style="font-size:18px; font-weight:500; text-align:center; margin-bottom:8px;">Use credits to continue</div>
+    <p style="font-size:13px; color:#5f6368; text-align:center; line-height:1.6; margin-bottom:20px;">
+      You've used your free diagnostic scans. Purchase credits to keep diagnosing.
+    </p>
+
+    <!-- Price display -->
+    <div id="paywall-price-box" style="background:#e8f0fe; border-radius:10px; padding:16px; text-align:center; margin-bottom:20px;">
+      <div id="paywall-price" style="font-size:28px; font-weight:700; color:#1a73e8;">$1.99</div>
+      <div id="paywall-credits" style="font-size:13px; color:#5f6368; margin-top:4px;">Credits for more scans</div>
+    </div>
+
+    <!-- Buy button -->
+    <a id="paywall-buy-btn" href="https://clawaid.app/#buy" target="_blank"
+       style="display:flex; align-items:center; justify-content:center; gap:8px;
+              padding:12px 24px; font-size:15px; font-weight:500; text-decoration:none;
+              background:#1a73e8; color:#fff; border-radius:8px; margin-bottom:20px;">
+      💳 Buy Credits
+    </a>
+
+    <hr class="divider">
+
+    <!-- Redeem token -->
+    <div style="font-size:13px; font-weight:500; color:#3c4043; margin-bottom:8px;">Already have a token?</div>
+    <div class="input-group" style="margin-bottom:8px;">
+      <input class="input-field" id="paywall-token-input" type="text"
+             placeholder="Paste your activation token..."
+             autocomplete="off" spellcheck="false" />
+    </div>
+    <button class="btn btn-secondary" id="paywall-activate-btn" style="margin-bottom:8px;">
+      🔑 Activate Token
+    </button>
+    <div id="paywall-activate-msg" style="font-size:12px; color:#5f6368; min-height:18px; text-align:center;"></div>
+  </div>
+
   <div class="footer">
     <p>ClawAid v1.0.0 · <a href="https://github.com/jjj5666/clawaid" target="_blank">GitHub</a></p>
   </div>
@@ -778,6 +815,7 @@
     fixed: $('section-fixed'),
     healthy: $('section-healthy'),
     notfixed: $('section-notfixed'),
+    paywall: $('section-paywall'),
   };
 
   function showOnly(name) {
@@ -900,6 +938,10 @@
           if (data.field === 'apiKey') showApiKeyInput(data);
           break;
 
+        case 'paywall':
+          showPaywall(data);
+          break;
+
         case 'complete':
           handleComplete(data);
           break;
@@ -957,6 +999,8 @@
         break;
       case 'needs_api_key':
         break; // handled by request_input event
+      case 'paywall':
+        break; // handled by 'paywall' event
       case 'error':
         $('scan-status-text').textContent = 'Error occurred';
         break;
@@ -1164,6 +1208,66 @@
       showOnly('notfixed');
     }
   }
+
+  function showPaywall(data) {
+    const isChinese = Boolean(data.isChinese);
+    const price = data.price || (isChinese ? '¥9.9' : '$1.99');
+    const credits = data.credits || 0;
+
+    $('paywall-price').textContent = price;
+    $('paywall-credits').textContent = credits > 0
+      ? `Includes ${credits} credits`
+      : 'Credits for more scans';
+
+    showOnly('paywall');
+  }
+
+  // Paywall activate button
+  $('paywall-activate-btn').addEventListener('click', async function() {
+    const token = $('paywall-token-input').value.trim();
+    if (!token) {
+      $('paywall-activate-msg').style.color = '#c5221f';
+      $('paywall-activate-msg').textContent = 'Please enter your activation token.';
+      return;
+    }
+
+    this.disabled = true;
+    this.textContent = 'Activating...';
+    $('paywall-activate-msg').style.color = '#5f6368';
+    $('paywall-activate-msg').textContent = 'Verifying token...';
+
+    try {
+      const resp = await fetch('/api/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const result = await resp.json();
+
+      if (result.valid) {
+        $('paywall-activate-msg').style.color = '#137333';
+        $('paywall-activate-msg').textContent = `✅ Activated! Credits: ${result.credits || 0}. Restarting scan...`;
+        // Re-start the diagnosis after a brief delay
+        setTimeout(() => {
+          startDiagnosis();
+        }, 1500);
+      } else {
+        $('paywall-activate-msg').style.color = '#c5221f';
+        $('paywall-activate-msg').textContent = '❌ Invalid or expired token. Please try again.';
+        this.disabled = false;
+        this.textContent = '🔑 Activate Token';
+      }
+    } catch (e) {
+      $('paywall-activate-msg').style.color = '#c5221f';
+      $('paywall-activate-msg').textContent = '❌ Network error. Please check your connection.';
+      this.disabled = false;
+      this.textContent = '🔑 Activate Token';
+    }
+  });
+
+  $('paywall-token-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') $('paywall-activate-btn').click();
+  });
 
   function escHtml(str) {
     return String(str)
