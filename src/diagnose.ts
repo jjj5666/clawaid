@@ -59,7 +59,8 @@ async function callClawAidAPI(observationData: string, previousAttempts?: string
       res.on('end', () => {
         try {
           const parsed = JSON.parse(data);
-          if (parsed.paywall) {
+          // paywallOnFix = diagnosis visible, fix blocked — don't throw, just flag
+          if (parsed.paywall && !parsed.paywallOnFix) {
             reject(new PaywallError({
               price: parsed.price || (parsed.isChinese ? '¥9.9' : '$1.99'),
               currency: parsed.currency || (parsed.isChinese ? 'CNY' : 'USD'),
@@ -111,6 +112,8 @@ export interface DiagnosisResult {
   options: RepairOption[];
   alternativeHypotheses: string[];
   rawResponse?: string;
+  paywallOnFix?: boolean;
+  price?: unknown;
 }
 
 export interface DiagnoseOptions {

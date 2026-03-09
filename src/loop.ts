@@ -42,6 +42,8 @@ export interface LoopContext {
   currentDiagnosis?: DiagnosisResult;
   attemptHistory: string[];
   roundNumber: number;
+  paywallOnFix?: boolean;
+  paywallPrice?: unknown;
 }
 
 export class DoctorLoop {
@@ -165,8 +167,16 @@ export class DoctorLoop {
           options: diagnosis.options,
           alternativeHypotheses: diagnosis.alternativeHypotheses,
           round: 1,
+          paywallOnFix: diagnosis.paywallOnFix || false,
+          price: diagnosis.price,
         }
       });
+
+      // Store paywall flag so startFix can check it
+      if (diagnosis.paywallOnFix) {
+        this.context.paywallOnFix = true;
+        this.context.paywallPrice = diagnosis.price;
+      }
 
       // Always show options to user and wait for their choice
       this.setState('showing_options');
@@ -202,6 +212,16 @@ export class DoctorLoop {
   async startFix(optionId?: string) {
     if (!this.context.currentDiagnosis) {
       this.progress('No diagnosis available. Please restart.');
+      return;
+    }
+
+    // Check paywall before allowing fix
+    if (this.context.paywallOnFix) {
+      this.setState('paywall');
+      this.emit({
+        type: 'paywall',
+        data: { price: this.context.paywallPrice },
+      });
       return;
     }
 
