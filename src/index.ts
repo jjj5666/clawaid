@@ -42,7 +42,18 @@ async function openBrowser(url: string): Promise<void> {
 
 async function main() {
   const dryRun = process.argv.includes('--dry-run');
-  
+  const noOpen = process.argv.includes('--no-open');
+
+  const mockIdx = process.argv.indexOf('--mock');
+  const mockScenario = mockIdx !== -1 ? process.argv[mockIdx + 1] : undefined;
+
+  const portIdx = process.argv.indexOf('--port');
+  const requestedPort = portIdx !== -1 ? parseInt(process.argv[portIdx + 1], 10) : undefined;
+  if (mockScenario) {
+    console.log(`🧪 MOCK mode: using scenario "${mockScenario}"\n`);
+    (global as any).__clawaid_mock = mockScenario;
+  }
+
   console.log('\n🩺 ClawAid\n');
   if (dryRun) console.log('⚠️  DRY-RUN mode: fixes will NOT be executed\n');
   console.log('Finding available port...');
@@ -50,18 +61,20 @@ async function main() {
   // Export dry-run flag so server can access it
   (global as Record<string, unknown>).__clawaid_dry_run = dryRun;
   
-  const port = await findFreePort(7357);
+  const port = requestedPort || await findFreePort(7357);
   const url = `http://127.0.0.1:${port}`;
   
   console.log('Starting diagnostic server...');
   await createServer(port);
   
   console.log(`\n✓ Server running at ${url}`);
-  console.log('Opening browser...\n');
-  
-  // Small delay to ensure server is ready
-  await new Promise(resolve => setTimeout(resolve, 300));
-  await openBrowser(url);
+  if (!noOpen) {
+    console.log('Opening browser...\n');
+    await new Promise(resolve => setTimeout(resolve, 300));
+    await openBrowser(url);
+  } else {
+    console.log('Browser auto-open disabled (--no-open)\n');
+  }
   
   console.log('ClawAid is running. Press Ctrl+C to stop.\n');
   

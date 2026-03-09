@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-03-09T02:12:00.000Z",
+  "homeDir": "/Users/testuser",
+  "configPath": "~/.openclaw/openclaw.json",
+  "plistPath": "~/Library/LaunchAgents/ai.openclaw.gateway.plist",
+  "logPath": "/tmp/openclaw/openclaw-2026-03-09.log",
+  "nodeVersion": "v25.6.1",
+  "npmVersion": "11.4.2",
+  "openclawVersion": "2026.3.2",
+  "systemInfo": "ProductName: macOS\nProductVersion: 26.3.1",
+  "desktopAppVersion": "2026.2.22",
+  "desktopAppRunning": "57372",
+  "openclawStatus": "OpenClaw v2026.3.2\nGateway: running (pid 12345)\nWarning: RPC probe timed out",
+  "gatewayStatus": "Runtime: running (pid 12345, state active)\nRPC probe: failed (timeout after 5000ms)",
+  "gatewayStatusJson": "{\"runtime\":\"running\",\"pid\":12345,\"status\":\"active\",\"rpc\":\"failed\",\"rpcError\":\"timeout after 5000ms\"}",
+  "configContent": "{\n  \"gateway\": {\n    \"mode\": \"local\",\n    \"port\": 18789\n  },\n  \"providers\": {\n    \"openrouter\": {\n      \"apiKey\": \"sk-or-v1-abcdef1234567890\"\n    }\n  },\n  \"models\": {\n    \"default\": \"anthropic/claude-sonnet-4-6\"\n  }\n}",
+  "portCheck": "COMMAND   PID      USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME\nnode    12345  testuser   23u  IPv4 0xdeadbeef      0t0  TCP 127.0.0.1:18789 (LISTEN)",
+  "processCheck": "testuser 12345   99.8  2.4 910000  196608 ??  R    0:02AM   8:45.02 node /opt/homebrew/lib/node_modules/openclaw/dist/gateway.js\ntestuser 12346    0.0  0.0 402456   1024 ??  Z    0:02AM   0:00.00 (node) <defunct>",
+  "plistContent": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n  <key>Label</key>\n  <string>ai.openclaw.gateway</string>\n  <key>ProgramArguments</key>\n  <array>\n    <string>/opt/homebrew/bin/node</string>\n    <string>/opt/homebrew/lib/node_modules/openclaw/dist/gateway.js</string>\n  </array>\n  <key>RunAtLoad</key>\n  <true/>\n  <key>KeepAlive</key>\n  <true/>\n</dict>\n</plist>",
+  "recentLogs": "[2026-03-09T00:02:00.000Z] INFO  Gateway started on 127.0.0.1:18789\n[2026-03-09T00:02:01.000Z] INFO  RPC server ready\n[2026-03-09T02:00:00.000Z] WARN  Event loop blocked for 823ms\n[2026-03-09T02:05:00.000Z] WARN  Event loop blocked for 12041ms\n[2026-03-09T02:10:00.000Z] ERROR RPC heartbeat missed (3 consecutive)\n[2026-03-09T02:11:00.000Z] WARN  Gateway process appears unresponsive",
+  "officialDoctorOutput": "⚠ Gateway process running but RPC probe timed out\n  Gateway PID 12345 is alive but not responding to RPC calls.\n  Recommend: openclaw gateway restart\n\nIssues found: 1",
+  "errors": []
+}

@@ -1,7 +1,50 @@
 import * as https from 'https';
+import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+
+// ClawAid backend API URL — set CLAWAID_API to override (e.g. for local dev)
+const CLAWAID_API = process.env.CLAWAID_API || 'https://clawaid-backend.vercel.app';
+
+async function callClawAidAPI(observationData: string, previousAttempts?: string[], round?: number): Promise<DiagnosisResult> {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({ observationData, previousAttempts, round });
+    const url = new URL(`${CLAWAID_API}/api/diagnose`);
+    const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+    const lib = isLocal ? http : https;
+
+    const options = {
+      hostname: url.hostname,
+      port: parseInt(url.port) || (isLocal ? 3001 : 443),
+      path: url.pathname,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body),
+      },
+    };
+
+    const req = lib.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.error) reject(new Error(parsed.error));
+          else resolve(parsed as DiagnosisResult);
+        } catch {
+          reject(new Error(`Failed to parse backend response: ${data.slice(0, 200)}`));
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.setTimeout(90000, () => { req.destroy(); reject(new Error('Backend request timeout')); });
+    req.write(body);
+    req.end();
+  });
+}
 
 export interface DiagnosticAction {
   description: string;
@@ -26,6 +69,7 @@ export interface DiagnosisResult {
   diagnosis: string;
   confidence: number;
   rootCause: string;
+  reasoning: string[];
   warnings: string[];
   options: RepairOption[];
   alternativeHypotheses: string[];
@@ -40,6 +84,12 @@ export interface DiagnoseOptions {
 }
 
 const SYSTEM_PROMPT = `You are a top-tier OpenClaw diagnostics engineer. OpenClaw is a local AI gateway/assistant platform that runs on macOS. Your tool is called ClawAid 🩺.
+
+IMPORTANT: The observation data starts with "AUTOMATED RULE CHECKS" — these are deterministic findings verified by code, NOT guesses. If any CRITICAL rules are flagged:
+1. They MUST be your primary diagnosis (highest priority)
+2. Use the suggested fix command in your repair options
+3. Do NOT downgrade them to warnings or secondary issues
+4. The rule check is authoritative — trust it over other signals
 
 Key facts about OpenClaw:
 - Default gateway port: 18789
@@ -85,6 +135,11 @@ Output ONLY valid JSON (no markdown, no code fences):
   "diagnosis": "plain language description of what's wrong (2-3 sentences max). If healthy, describe the overall status briefly.",
   "confidence": 0.0-1.0,
   "rootCause": "technical root cause (one sentence). If healthy, say 'No critical issues found'",
+  "reasoning": [
+    "Checked gateway status → running normally on port 18789",
+    "Read LaunchAgent plist → found proxy configuration pointing to localhost:9999",
+    "This proxy will cause failures on next gateway restart — treat as critical"
+  ],
   "warnings": [
     "Non-critical: WhatsApp groupPolicy set to allowlist but allowFrom is empty — messages in groups would be dropped if WhatsApp were enabled. Safe to ignore for now.",
     "Non-critical: Desktop app version (2026.2.22) is older than gateway (2026.3.2). Consider updating."
@@ -109,7 +164,8 @@ Output ONLY valid JSON (no markdown, no code fences):
     }
   ],
   "alternativeHypotheses": ["other possible causes if this doesn't work"]
-}`;
+}
+reasoning: 3-6 plain language sentences summarizing your diagnostic thinking, written for non-technical users.`;
 
 function extractApiKey(): string | null {
   const configPath = path.join(os.homedir(), '.openclaw', 'openclaw.json');
@@ -240,6 +296,7 @@ function parseJsonResponse(response: string): DiagnosisResult {
     diagnosis: parsed.diagnosis || 'Unable to determine diagnosis',
     confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.5,
     rootCause: parsed.rootCause || 'Unknown root cause',
+    reasoning: Array.isArray(parsed.reasoning) ? parsed.reasoning : [],
     warnings: Array.isArray(parsed.warnings) ? parsed.warnings : [],
     options,
     alternativeHypotheses: Array.isArray(parsed.alternativeHypotheses) ? parsed.alternativeHypotheses : [],
@@ -283,6 +340,8 @@ ${observationData}
 ${previousAttempts.join('\n\n---\n\n')}
 
 Based on the failure of previous attempts, please provide a revised diagnosis and a new approach.
+
+IMPORTANT: You MUST respond with valid JSON only. No prose, no markdown, no explanation outside the JSON object. Start your response with { and end with }.
 `.trim();
   } else {
     userMessage = `
@@ -294,29 +353,25 @@ ${contextDocs}
 ${observationData}
 
 Please diagnose any OpenClaw issues and provide a repair plan.
+
+IMPORTANT: You MUST respond with valid JSON only. No prose, no markdown, no explanation outside the JSON object. Start your response with { and end with }.
 `.trim();
   }
 
-  let response: string;
   try {
-    response = await callOpenRouter(apiKey, SYSTEM_PROMPT, userMessage);
+    return await callClawAidAPI(observationData, previousAttempts, round);
   } catch (err) {
     const msg = (err as Error).message || String(err);
-    throw new Error(`AI API call failed: ${msg}`);
-  }
-  
-  try {
-    return parseJsonResponse(response);
-  } catch (e) {
-    return {
-      diagnosis: `AI analysis completed but response format was unexpected. Raw response: ${response.slice(0, 500)}`,
-      confidence: 0.1,
-      rootCause: 'Unable to parse AI response as JSON',
-      warnings: [],
-      options: [],
-      alternativeHypotheses: ['Manual inspection required', 'Try again — the AI may return valid JSON on the next attempt'],
-      rawResponse: response,
-    };
+    // Fallback: try with user's own key if available
+    if (apiKey) {
+      try {
+        const response = await callOpenRouter(apiKey, SYSTEM_PROMPT, userMessage);
+        return parseJsonResponse(response);
+      } catch {
+        // ignore fallback error, throw original
+      }
+    }
+    throw new Error(`Diagnosis failed: ${msg}`);
   }
 }
 

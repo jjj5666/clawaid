@@ -4,16 +4,33 @@
   "description": "AI-powered diagnostic and repair tool for OpenClaw",
   "main": "dist/index.js",
   "bin": {
-    "clawaid": "./dist/index.js"
+    "clawaid": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts"
   },
-  "keywords": ["openclaw", "diagnostics", "repair", "ai", "clawaid"],
-  "author": "",
+  "keywords": [
+    "openclaw",
+    "diagnostics",
+    "repair",
+    "ai",
+    "clawaid"
+  ],
+  "author": "clawaid",
   "license": "MIT",
+  "files": [
+    "dist",
+    "web"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jjj5666/clawaid.git"
+  },
   "dependencies": {
     "express": "^4.18.2",
     "axios": "^1.6.2",

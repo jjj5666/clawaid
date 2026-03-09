@@ -3,6 +3,7 @@ import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { RuleFinding, runRules, formatRuleFindings } from './rules';
 
 const execAsync = promisify(exec);
 
@@ -28,6 +29,7 @@ export interface ObservationResult {
   desktopAppVersion: string;
   desktopAppRunning: string;
   errors: string[];
+  ruleFindings?: RuleFinding[];
 }
 
 async function runCommand(cmd: string, timeout = 10000): Promise<string> {
@@ -147,6 +149,12 @@ async function readConfig(): Promise<{ content: string; configPath: string }> {
   }
   
   return { content: '[config file not found - OpenClaw may not be configured]', configPath };
+}
+
+export function loadMockObservation(scenario: string): ObservationResult {
+  const scenarioPath = path.join(__dirname, '..', 'test-scenarios', scenario + '.json');
+  const content = fs.readFileSync(scenarioPath, 'utf-8');
+  return JSON.parse(content) as ObservationResult;
 }
 
 export async function observe(onProgress?: (msg: string) => void): Promise<ObservationResult> {
@@ -279,7 +287,14 @@ function extractConfigEssentials(configContent: string): string {
 }
 
 export function formatObservation(obs: ObservationResult): string {
+  // Run deterministic rules engine
+  const findings = runRules(obs);
+  obs.ruleFindings = findings;
+  const ruleSection = formatRuleFindings(findings);
+
   return `
+${ruleSection}
+
 === CLAWAID OBSERVATION ===
 Timestamp: ${obs.timestamp}
 Home: ${obs.homeDir}

@@ -1,4 +1,4 @@
-import { observe, formatObservation, ObservationResult } from './observe';
+import { observe, loadMockObservation, formatObservation, ObservationResult } from './observe';
 import { diagnose, DiagnosisResult, RepairOption, extractApiKey } from './diagnose';
 import { executeActions, formatExecuteResults } from './execute';
 import { verify } from './verify';
@@ -113,8 +113,11 @@ export class DoctorLoop {
     // ── Round 1: Observe + Diagnose ──────────────────────────────────────────
     this.setState('observing');
     this.progress('🔍 Gathering system information...');
-    
-    const observation = await observe((msg) => this.progress(msg));
+
+    const mockScenario = (global as any).__clawaid_mock as string | undefined;
+    const observation = mockScenario
+      ? loadMockObservation(mockScenario)
+      : await observe((msg) => this.progress(msg));
     this.context.originalObservation = observation;
     this.context.originalObservationText = formatObservation(observation);
     
@@ -138,7 +141,7 @@ export class DoctorLoop {
         this.setState('healthy');
         this.emit({
           type: 'complete',
-          data: { fixed: false, healthy: true, explanation: diagnosis.diagnosis, warnings: diagnosis.warnings || [] },
+          data: { fixed: false, healthy: true, explanation: diagnosis.diagnosis, warnings: diagnosis.warnings || [], reasoning: diagnosis.reasoning || [] },
         });
         return;
       }
@@ -149,6 +152,7 @@ export class DoctorLoop {
           diagnosis: diagnosis.diagnosis,
           confidence: diagnosis.confidence,
           rootCause: diagnosis.rootCause,
+          reasoning: diagnosis.reasoning || [],
           warnings: diagnosis.warnings || [],
           options: diagnosis.options,
           alternativeHypotheses: diagnosis.alternativeHypotheses,
@@ -233,9 +237,12 @@ export class DoctorLoop {
     this.setState('observing');
     this.progress(`\n🔄 Round ${round}: Re-scanning system...`);
 
+    const mockScenario = (global as any).__clawaid_mock as string | undefined;
     let currentObsText: string;
     try {
-      const currentObs = await observe((msg) => this.progress(msg));
+      const currentObs = mockScenario
+        ? loadMockObservation(mockScenario)
+        : await observe((msg) => this.progress(msg));
       currentObsText = formatObservation(currentObs);
     } catch (err) {
       this.progress(`Observation error: ${(err as Error).message}`);
@@ -259,7 +266,7 @@ export class DoctorLoop {
       if (newDiagnosis.healthy && newDiagnosis.options.length === 0) {
         this.progress('✅ ' + (newDiagnosis.diagnosis || 'OpenClaw is running normally. No issues detected.'));
         this.setState('healthy');
-        this.emit({ type: 'complete', data: { fixed: false, healthy: true, explanation: newDiagnosis.diagnosis, warnings: newDiagnosis.warnings || [] } });
+        this.emit({ type: 'complete', data: { fixed: false, healthy: true, explanation: newDiagnosis.diagnosis, warnings: newDiagnosis.warnings || [], reasoning: newDiagnosis.reasoning || [] } });
         return;
       }
 
@@ -269,6 +276,7 @@ export class DoctorLoop {
           diagnosis: newDiagnosis.diagnosis,
           confidence: newDiagnosis.confidence,
           rootCause: newDiagnosis.rootCause,
+          reasoning: newDiagnosis.reasoning || [],
           options: newDiagnosis.options,
           alternativeHypotheses: newDiagnosis.alternativeHypotheses,
           round,

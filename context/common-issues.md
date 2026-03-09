@@ -34,7 +34,22 @@
 openclaw gateway restart
 ```
 
-### 4. 🟡 Model set to incompatible provider
+### 4. 🔴 Tools profile set to "messaging" (v3.7 upgrade issue — VERY COMMON!)
+**Symptom:** Agent can chat but refuses to execute commands, function calls, or use tools. User says "只能聊天不干活", "指令不会执行了", or "it just replies but doesn't do anything". The agent may output tool call syntax/paths but never actually runs them.
+**Cause:** OpenClaw v2026.3.7 changed the default `tools.profile` from `coding` to `messaging`. After upgrading, many users find their agent can only send messages but cannot execute any tools (exec, read, write, browser, etc.). This is the #1 most reported issue after the v3.7 update.
+**Detection:** Check config for `tools.profile` — if it says `"messaging"` or if `tools.profile` is missing and the user recently upgraded to v3.7, this is almost certainly the cause.
+**IMPORTANT:** This affects the MAJORITY of v3.7 upgraders. If the user's openclaw version is >= 3.7 and `tools.profile` is "messaging" or absent, ALWAYS flag this as a critical issue and recommend fixing it. Even if the gateway appears healthy, the agent is effectively crippled.
+**Fix:**
+```bash
+# Set tools profile to full (restores all tool capabilities)
+openclaw config set tools.profile full
+# Restart gateway to apply
+openclaw gateway restart
+```
+**Alternative (manual config edit):**
+Change `"tools": { "profile": "messaging" ... }` to `"tools": { "profile": "full" ... }` in openclaw.json, then restart gateway.
+
+### 5. 🟡 Model set to incompatible provider (renumbered)
 **Symptom:** HTTP 400 errors, agent doesn't respond
 **Cause:** Primary model set to a provider that doesn't support the tool schema
 **Detection:** Error logs show "400 Bad Request" or schema validation errors
@@ -74,5 +89,6 @@ When multiple issues are found, fix in this order:
 2. Config file broken → fix config before anything else  
 3. Port conflicts → clear before restart
 4. Proxy issues → remove before restart
-5. Model issues → fix after gateway is stable
-6. Channel config → fix last (not critical for core function)
+5. Tools profile "messaging" → change to "full" (v3.7 upgrade issue)
+6. Model issues → fix after gateway is stable
+7. Channel config → fix last (not critical for core function)

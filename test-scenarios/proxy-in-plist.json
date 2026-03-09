@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-03-09T02:12:00.000Z",
+  "homeDir": "/Users/testuser",
+  "configPath": "~/.openclaw/openclaw.json",
+  "plistPath": "~/Library/LaunchAgents/ai.openclaw.gateway.plist",
+  "logPath": "/tmp/openclaw/openclaw-2026-03-09.log",
+  "nodeVersion": "v25.6.1",
+  "npmVersion": "11.4.2",
+  "openclawVersion": "2026.3.2",
+  "systemInfo": "ProductName: macOS\nProductVersion: 26.3.1",
+  "desktopAppVersion": "2026.2.22",
+  "desktopAppRunning": "57372",
+  "openclawStatus": "OpenClaw v2026.3.2\nGateway: running (pid 37224)\nChannels: 0 active\nUptime: 2h 14m",
+  "gatewayStatus": "Runtime: running (pid 37224, state active)\nRPC probe: ok\nListening: 127.0.0.1:18789",
+  "gatewayStatusJson": "{\"runtime\":\"running\",\"pid\":37224,\"status\":\"active\",\"gateway\":{\"port\":18789,\"host\":\"127.0.0.1\"},\"rpc\":\"ok\"}",
+  "configContent": "{\n  \"gateway\": {\n    \"mode\": \"local\",\n    \"port\": 18789\n  },\n  \"providers\": {\n    \"openrouter\": {\n      \"apiKey\": \"sk-or-v1-abcdef1234567890\"\n    }\n  },\n  \"models\": {\n    \"default\": \"anthropic/claude-sonnet-4-6\"\n  }\n}",
+  "portCheck": "COMMAND   PID      USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME\nnode    37224  testuser   23u  IPv4 0xabcdef      0t0  TCP 127.0.0.1:18789 (LISTEN)",
+  "processCheck": "testuser 37224   0.1  0.5 420312  42156 ??  S    2:14AM   0:03.21 node /opt/homebrew/lib/node_modules/openclaw/dist/gateway.js",
+  "plistContent": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n  <key>Label</key>\n  <string>ai.openclaw.gateway</string>\n  <key>ProgramArguments</key>\n  <array>\n    <string>/opt/homebrew/bin/node</string>\n    <string>/opt/homebrew/lib/node_modules/openclaw/dist/gateway.js</string>\n  </array>\n  <key>EnvironmentVariables</key>\n  <dict>\n    <key>HTTP_PROXY</key>\n    <string>http://127.0.0.1:9999</string>\n    <key>HTTPS_PROXY</key>\n    <string>http://127.0.0.1:9999</string>\n  </dict>\n  <key>RunAtLoad</key>\n  <true/>\n  <key>KeepAlive</key>\n  <true/>\n</dict>\n</plist>",
+  "recentLogs": "[2026-03-09T02:10:01.123Z] INFO  Gateway started on 127.0.0.1:18789\n[2026-03-09T02:10:01.456Z] INFO  RPC server ready\n[2026-03-09T02:10:02.000Z] INFO  Loaded config from ~/.openclaw/openclaw.json\n[2026-03-09T02:11:00.000Z] INFO  Heartbeat ok\n[2026-03-09T02:12:00.000Z] INFO  Heartbeat ok",
+  "officialDoctorOutput": "✓ Gateway is running (pid 37224)\n✓ RPC probe: ok\n✓ Config file found\n✓ LaunchAgent installed\nNo issues found.",
+  "errors": []
+}

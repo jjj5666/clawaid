@@ -9,7 +9,7 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
-      background: #fff;
+      background: #fafafa;
       color: #202124;
       min-height: 100vh;
       display: flex;
@@ -49,9 +49,9 @@
     /* Status card */
     .card {
       background: #fff;
-      border: 1px solid #e0e0e0;
+      border: 1px solid #e8eaed;
       border-radius: 12px;
-      padding: 24px;
+      padding: 32px;
       margin-bottom: 16px;
     }
 
@@ -135,10 +135,10 @@
 
     /* Phase label */
     .phase-label {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
+      letter-spacing: 1px;
       color: #9aa0a6;
       margin-bottom: 16px;
     }
@@ -535,11 +535,28 @@
   <div class="header">
     <div class="logo" style="font-size:48px; line-height:1;">🦞🩹</div>
     <h1>ClawAid</h1>
-    <p>AI-powered diagnostics and repair for OpenClaw</p>
+    <p>Automatic diagnostics and repair for OpenClaw</p>
+  </div>
+
+  <!-- ===== SECTION: Privacy ===== -->
+  <div id="section-privacy" class="section visible card fade-in">
+    <div style="text-align:center; font-size:32px; margin-bottom:12px;">🔒</div>
+    <div style="font-size:16px; font-weight:500; text-align:center; margin-bottom:12px;">Before we start</div>
+    <div style="font-size:13px; color:#5f6368; line-height:1.6; margin-bottom:16px;">
+      ClawAid will collect your OpenClaw config, gateway status, and recent logs to diagnose issues.
+      <ul style="margin-top:8px; padding-left:20px;">
+        <li>API keys are partially redacted before sending</li>
+        <li>Data is sent to <strong>our diagnostic service</strong> for analysis only</li>
+        <li>Nothing is stored or shared beyond this session</li>
+      </ul>
+    </div>
+    <button class="btn btn-primary" id="btn-start-scan">
+      🩺 Start Scan
+    </button>
   </div>
 
   <!-- ===== SECTION: Scanning ===== -->
-  <div id="section-scanning" class="section visible card fade-in">
+  <div id="section-scanning" class="section card fade-in">
     <div class="phase-label">Phase 1 — Scanning</div>
     <div class="status-row">
       <span class="spinner"></span>
@@ -561,7 +578,7 @@
     <div class="diagnosis-section">
       <div class="section-label">API Key Required</div>
       <p class="diagnosis-text" id="apikey-instructions">
-        ClawAid needs an OpenRouter API key to call Claude for AI-powered diagnosis.
+        ClawAid needs an OpenRouter API key to run diagnostics.
       </p>
     </div>
     <hr class="divider">
@@ -607,7 +624,7 @@
     </div>
 
     <button class="collapsible-toggle" id="toggle-reasoning" onclick="toggleReasoning()">
-      <span class="arrow">▶</span> AI reasoning details
+      <span class="arrow">▶</span> Diagnostic details
     </button>
     <div class="collapsible-panel" id="reasoning-panel">
       <div class="log-area" id="reasoning-log" style="max-height:180px;"></div>
@@ -656,13 +673,32 @@
   <div id="section-fixed" class="section card fade-in">
     <div class="result-icon">✅</div>
     <div class="result-title">OpenClaw is fixed!</div>
-    <p class="result-desc" id="fixed-explanation">The issue has been resolved successfully.</p>
 
-    <button class="btn btn-coffee" onclick="window.open('https://buymeacoffee.com/openclaw','_blank')">
+    <div id="fixed-summary" style="text-align:left; margin: 20px 0;">
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1px; color:#9aa0a6; margin-bottom:6px;">What was wrong</div>
+        <div id="fixed-what-wrong" style="font-size:14px; color:#3c4043; line-height:1.6;"></div>
+      </div>
+      <div style="border-top:1px solid #e8eaed; padding-top:16px;">
+        <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1px; color:#9aa0a6; margin-bottom:6px;">What we fixed</div>
+        <div id="fixed-what-fixed" style="font-size:14px; color:#3c4043; line-height:1.6;"></div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <button class="details-toggle" id="btn-fixed-details" onclick="toggleFixedDetails()">
+        <span class="toggle-arrow">▶</span> Show technical details
+      </button>
+      <div class="details-panel" id="fixed-details-panel" style="margin-top:8px;">
+        <p id="fixed-explanation" style="font-size:13px; color:#5f6368;"></p>
+      </div>
+    </div>
+
+    <button class="btn btn-coffee" onclick="window.open('https://buymeacoffee.com/clawaid','_blank')">
       ☕ Buy me a coffee
     </button>
     <div style="margin-top: 8px; text-align: center; font-size: 12px; color: #9aa0a6;">
-      ClawAid is free and open source. If it saved your day, a coffee helps keep it alive!
+      ClawAid is free. If it saved your day, a coffee helps keep it alive!
     </div>
   </div>
 
@@ -671,6 +707,13 @@
     <div class="result-icon">💚</div>
     <div class="result-title">OpenClaw is healthy!</div>
     <p class="result-desc" id="healthy-explanation">Your system is running normally. No issues detected.</p>
+
+    <div id="healthy-reasoning" style="display:none; text-align:left; margin-bottom:12px;">
+      <button class="details-toggle" onclick="this.nextElementSibling.classList.toggle('open'); this.querySelector('.toggle-arrow').textContent = this.nextElementSibling.classList.contains('open') ? '▼' : '▶'">
+        <span class="toggle-arrow">▶</span> How we diagnosed this
+      </button>
+      <div class="details-panel" id="healthy-reasoning-list" style="margin-top:8px;"></div>
+    </div>
 
     <div id="healthy-warnings" style="display:none; text-align:left; margin-bottom:16px;">
       <div style="font-size:13px; font-weight:600; color:#e37400; margin-bottom:8px;">⚠️ Non-critical notes</div>
@@ -720,11 +763,13 @@
   let currentState = 'idle';
   let eventSource = null;
   let diagnosisData = null; // last diagnosis received
+  let chosenOption = null; // option selected for fix
 
   // Elements
   const $ = id => document.getElementById(id);
 
   const sections = {
+    privacy: $('section-privacy'),
     scanning: $('section-scanning'),
     apikey: $('section-apikey'),
     diagnosis: $('section-diagnosis'),
@@ -773,6 +818,15 @@
     btn.childNodes[1].textContent = isOpen ? ' Hide details' : ' Show details';
   };
 
+  // Fixed details toggle
+  window.toggleFixedDetails = function() {
+    const btn = $('btn-fixed-details');
+    const panel = $('fixed-details-panel');
+    const isOpen = panel.classList.toggle('open');
+    btn.querySelector('.toggle-arrow').textContent = isOpen ? '▼' : '▶';
+    btn.childNodes[1].textContent = isOpen ? ' Hide technical details' : ' Show technical details';
+  };
+
   // Reasoning toggle
   window.toggleReasoning = function() {
     const btn = $('toggle-reasoning');
@@ -780,7 +834,7 @@
     const isOpen = panel.classList.toggle('open');
     btn.classList.toggle('open', isOpen);
     btn.querySelector('.arrow').textContent = isOpen ? '▼' : '▶';
-    btn.childNodes[1].textContent = isOpen ? ' Hide AI reasoning details' : ' AI reasoning details';
+    btn.childNodes[1].textContent = isOpen ? ' Hide diagnostic details' : ' Diagnostic details';
   };
 
   // Start SSE connection
@@ -880,7 +934,7 @@
         break;
       case 'diagnosing':
         showOnly('scanning');
-        $('scan-status-text').textContent = 'AI is analyzing your system...';
+        $('scan-status-text').textContent = 'Analyzing your system...';
         $('scan-sub-text').textContent = 'This may take a few seconds';
         appendLog('log-area', '─────────────────────────────────────', '');
         appendLog('log-area', '🤖 Sending data to AI for diagnosis...', 'meta');
@@ -924,19 +978,20 @@
     const options = data.options || [];
     const round = data.round || 1;
 
-    // Log to reasoning panel
-    appendLog('reasoning-log', '─────────────────────────────────────', '');
-    appendLog('reasoning-log', '🧠 AI Diagnosis (Round ' + round + '):', 'meta');
-    appendLog('reasoning-log', '  ' + (data.diagnosis || ''), '');
-    appendLog('reasoning-log', '🎯 Root cause: ' + (data.rootCause || 'Unknown'), 'warn');
-    appendLog('reasoning-log', '📊 Confidence: ' + confidence + '%', '');
-    options.forEach((opt, i) => {
-      appendLog('reasoning-log', `  Option ${opt.id}: ${opt.title} [${opt.risk}]${opt.recommended ? ' ← recommended' : ''}`, 'meta');
-      (opt.steps || []).forEach((s, j) => {
-        appendLog('reasoning-log', `    ${j+1}. ${s.description}`, '');
-        appendLog('reasoning-log', `       $ ${s.command}`, 'meta');
+    // Render reasoning as clean list
+    const reasoningLog = $('reasoning-log');
+    reasoningLog.innerHTML = '';
+    const reasoning = data.reasoning || [];
+    if (reasoning.length > 0) {
+      reasoning.forEach(function(r, i) {
+        const line = document.createElement('div');
+        line.style.cssText = 'padding:6px 0; font-size:13px; color:#3c4043; border-bottom:1px solid #f1f3f4;';
+        line.textContent = (i+1) + '. ' + r;
+        reasoningLog.appendChild(line);
       });
-    });
+    } else {
+      reasoningLog.textContent = 'No reasoning details available.';
+    }
 
     // Update diagnosis card
     $('diag-text').textContent = data.diagnosis || '';
@@ -977,11 +1032,22 @@
     const recommended = options.filter(o => o.recommended);
     const canAutoExecute = recommended.length > 0 && recommended.every(o => o.autoExecute);
 
-    if (!canAutoExecute && options.length > 0) {
+    if (canAutoExecute) {
+      // Store recommended option for result page
+      chosenOption = recommended[0] || null;
+      // Auto-execute: show diagnosis briefly, then trigger fix
+      setTimeout(function() {
+        fetch('/api/fix', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: sessionId }),
+        });
+      }, 1200);
+    } else if (options.length > 0) {
       // Render option cards and switch to options section
       renderOptions(options);
       // Show diagnosis briefly then switch to options after 1s
-      setTimeout(() => showOnly('options'), 800);
+      setTimeout(() => showOnly('options'), 3000);
     }
   }
 
@@ -1017,6 +1083,8 @@
     list.querySelectorAll('.option-fix-btn').forEach(btn => {
       btn.addEventListener('click', async function() {
         const optionId = this.dataset.optionId;
+        // Store chosen option for result page
+        chosenOption = (diagnosisData && diagnosisData.options) ? diagnosisData.options.find(o => o.id === optionId) || diagnosisData.options.find(o => o.recommended) : null;
         // Disable all buttons
         list.querySelectorAll('.option-fix-btn').forEach(b => { b.disabled = true; });
 
@@ -1051,6 +1119,19 @@
 
     if (data.healthy) {
       $('healthy-explanation').textContent = data.explanation || 'Your system is running normally. No issues detected.';
+      // Show reasoning if any
+      const reasoning = data.reasoning || [];
+      if (reasoning.length > 0) {
+        $('healthy-reasoning').style.display = 'block';
+        const list = $('healthy-reasoning-list');
+        list.innerHTML = '';
+        reasoning.forEach(function(r, i) {
+          const div = document.createElement('div');
+          div.style.cssText = 'padding:4px 0; font-size:13px; color:#5f6368;';
+          div.textContent = (i+1) + '. ' + r;
+          list.appendChild(div);
+        });
+      }
       // Show warnings if any
       const warnings = data.warnings || [];
       if (warnings.length > 0) {
@@ -1066,6 +1147,15 @@
       }
       showOnly('healthy');
     } else if (data.fixed) {
+      // Populate result summary
+      const wrongEl = $('fixed-what-wrong');
+      const fixedEl = $('fixed-what-fixed');
+      if (wrongEl) wrongEl.textContent = (diagnosisData && diagnosisData.diagnosis) || data.explanation || 'An issue was detected and resolved.';
+      if (fixedEl && chosenOption) {
+        fixedEl.innerHTML = '<strong>' + chosenOption.title + '</strong><br><span style="color:#5f6368">' + (chosenOption.description || '') + '</span>';
+      } else if (fixedEl) {
+        fixedEl.textContent = data.explanation || 'OpenClaw has been repaired!';
+      }
       $('fixed-explanation').textContent = data.explanation || 'OpenClaw has been repaired!';
       showOnly('fixed');
     } else {
@@ -1125,8 +1215,10 @@
     });
   });
 
-  // Start on load
-  startDiagnosis();
+  // Privacy notice — start scan on button click
+  $('btn-start-scan').addEventListener('click', function() {
+    startDiagnosis();
+  });
 
 })();
 </script>

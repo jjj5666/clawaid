@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-03-09T02:12:00.000Z",
+  "homeDir": "/Users/testuser",
+  "configPath": "~/.openclaw/openclaw.json",
+  "plistPath": "~/Library/LaunchAgents/ai.openclaw.gateway.plist",
+  "logPath": "/tmp/openclaw/openclaw-2026-03-09.log",
+  "nodeVersion": "v25.6.1",
+  "npmVersion": "11.4.2",
+  "openclawVersion": "2026.3.2",
+  "systemInfo": "ProductName: macOS\nProductVersion: 26.3.1",
+  "desktopAppVersion": "2026.2.22",
+  "desktopAppRunning": "57372",
+  "openclawStatus": "OpenClaw v2026.3.2\nGateway: not running\nError: listen EADDRINUSE :::18789",
+  "gatewayStatus": "Runtime: not running\nError: listen EADDRINUSE :::18789",
+  "gatewayStatusJson": "{\"runtime\":\"not running\",\"error\":\"EADDRINUSE :::18789\"}",
+  "configContent": "{\n  \"gateway\": {\n    \"mode\": \"local\",\n    \"port\": 18789\n  },\n  \"providers\": {\n    \"openrouter\": {\n      \"apiKey\": \"sk-or-v1-abcdef1234567890\"\n    }\n  },\n  \"models\": {\n    \"default\": \"anthropic/claude-sonnet-4-6\"\n  }\n}",
+  "portCheck": "node    99999 testuser   23u  IPv6 0xabcdef  TCP *:18789 (LISTEN)",
+  "processCheck": "testuser 99999   0.0  0.1 410000  10240 ??  S    1:00AM   0:00.50 node /usr/local/bin/some-other-server --port 18789",
+  "plistContent": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n  <key>Label</key>\n  <string>ai.openclaw.gateway</string>\n  <key>ProgramArguments</key>\n  <array>\n    <string>/opt/homebrew/bin/node</string>\n    <string>/opt/homebrew/lib/node_modules/openclaw/dist/gateway.js</string>\n  </array>\n  <key>RunAtLoad</key>\n  <true/>\n  <key>KeepAlive</key>\n  <true/>\n</dict>\n</plist>",
+  "recentLogs": "[2026-03-09T02:09:00.000Z] INFO  Starting gateway...\n[2026-03-09T02:09:00.512Z] ERROR Error: listen EADDRINUSE :::18789\n    at Server.setupListenHandle [as _listen2] (node:net:1855:21)\n    at listenInCluster (node:net:1919:12)\n[2026-03-09T02:09:00.600Z] ERROR Gateway failed to start: port 18789 already in use",
+  "officialDoctorOutput": "✗ Gateway failed to start: port 18789 already in use\n  Another process (PID 99999) is using port 18789.\n  Kill the conflicting process or change OpenClaw gateway port.\n\nIssues found: 1",
+  "errors": []
+}
