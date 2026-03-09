@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ClawAid</title>
+  <!-- Mixpanel -->
+  <script>(function(f,b){if(!b.__SV){var e,g,i,h;window.mixpanel=b;b._i=[];b.init=function(e,f,c){function g(a,d){var b=d.split(".");2==b.length&&(a=a[b[0]],d=b[1]);a[d]=function(){a.push([d].concat(Array.prototype.slice.call(arguments,0)))}}var a=b;"undefined"!==typeof c?a=b[c]=[]:c="mixpanel";a.people=a.people||[];a.toString=function(a){var d="mixpanel";"mixpanel"!==c&&(d+="."+c);a||(d+=" (stub)");return d};a.people.toString=function(){return a.toString(1)+".people (stub)"};i="disable time_event track track_pageview track_links track_forms track_with_groups add_group set_group remove_group register register_once alias unregister identify name_tag set_config reset init people.set people.set_once people.unset people.increment people.append people.union people.track_charge people.clear_charges people.delete_user people.remove".split(" ");for(h=0;h<i.length;h++)g(a,i[h]);var j="set set_once union unset remove delete".split(" ");a.get_group=function(){function b(c){d[c]=function(){call2_args=arguments;call2=[c].concat(Array.prototype.slice.call(call2_args,0));a.push([e,call2])}}for(var d={},e=["get_group"].concat(Array.prototype.slice.call(arguments,0)),c=0;c<j.length;c++)b(j[c]);return d};b._i.push([e,f,c])};b.__SV=1.2;e=f.createElement("script");e.type="text/javascript";e.async=!0;e.src="https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";g=f.getElementsByTagName("script")[0];g.parentNode.insertBefore(e,g)}})(document,window.mixpanel||[]);
+  mixpanel.init('fb6af7e76538',{track_pageview:"full-url"});</script>
+  <!-- Clarity -->
+  <script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script","vt5wimnmsf");</script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -297,7 +302,13 @@
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  // ─── Mixpanel helper ────────────────────────────────────────────────────
+  function mp(event, props) {
+    if (typeof mixpanel !== 'undefined') mixpanel.track(event, props);
+  }
+
   function sendFeedback(value, btn) {
+    mp('feedback', { value: value });
     const container = btn.parentElement.parentElement;
     if (value === 'yes') {
       container.innerHTML = '<div style="text-align:center;padding:12px;"><div style="font-size:32px;margin-bottom:8px;">🎉</div><div style="color:#34a853;font-size:15px;font-weight:600;">' + T.thanksYes + '</div></div>';
@@ -390,10 +401,12 @@
     card.classList.add('open'); // auto-expand so user sees what's about to run
 
     document.getElementById('btn-yes-' + index).addEventListener('click', () => {
+      mp('fix_confirm', { step_index: index });
       bar.remove();
       fetch('/api/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId, confirmed: true }) });
     });
     document.getElementById('btn-no-' + index).addEventListener('click', () => {
+      mp('fix_skip', { step_index: index });
       bar.remove();
       fetch('/api/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId, confirmed: false }) });
     });
@@ -557,6 +570,7 @@
       case 'step_start': {
         currentStepIndex = data.index;
         const step = data.step;
+        mp('diagnosis_step', { step_index: data.index, type: step.type, risk: step.risk || 'low' });
         if (step.type === 'done') {
           // Show result, don't add a step card
         } else {
@@ -578,12 +592,14 @@
       case 'complete': {
         if (eventSource) { eventSource.close(); eventSource = null; }
         finishScanBlock();
+        mp('scan_complete', { outcome: data.healthy ? 'healthy' : data.fixed ? 'fixed' : 'not_fixed', steps: currentStepIndex + 1 });
         showResult(data);
         break;
       }
 
       case 'paywall': {
         if (eventSource) { eventSource.close(); eventSource = null; }
+        mp('paywall_hit');
         showPaywall(data);
         break;
       }
@@ -638,11 +654,12 @@
       const token = document.getElementById('pw-token').value.trim();
       const msg = document.getElementById('pw-msg');
       if (!token) { msg.style.color = 'var(--red)'; msg.textContent = 'Enter your token.'; return; }
+      mp('token_redeem_attempt');
       msg.style.color = 'var(--muted)'; msg.textContent = 'Checking...';
       try {
         const r = await (await fetch('/api/redeem', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })).json();
-        if (r.valid) { msg.style.color = 'var(--green)'; msg.textContent = '✅ Activated! Restarting...'; setTimeout(() => location.reload(), 1500); }
-        else { msg.style.color = 'var(--red)'; msg.textContent = '❌ Invalid token.'; }
+        if (r.valid) { mp('token_redeem_success'); msg.style.color = 'var(--green)'; msg.textContent = '✅ Activated! Restarting...'; setTimeout(() => location.reload(), 1500); }
+        else { mp('token_redeem_fail'); msg.style.color = 'var(--red)'; msg.textContent = '❌ Invalid token.'; }
       } catch { msg.style.color = 'var(--red)'; msg.textContent = '❌ Network error.'; }
     });
   }
@@ -763,9 +780,11 @@
     }
 
     submitBtn.addEventListener('click', function() {
+      mp('user_input', { type: 'description', has_screenshot: !!screenshotData });
       submit(textarea.value.trim());
     });
     document.getElementById('btn-desc-skip').addEventListener('click', function() {
+      mp('user_input', { type: 'skip' });
       submit('');
     });
     textarea.addEventListener('keydown', function(e) {
@@ -800,7 +819,10 @@
 
   // ─── Start ────────────────────────────────────────────────────────────────
 
-  document.getElementById('btn-start').addEventListener('click', startDiagnosis);
+  document.getElementById('btn-start').addEventListener('click', function() {
+    mp('scan_start');
+    startDiagnosis();
+  });
 
 })();
 </script>

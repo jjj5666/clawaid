@@ -339,15 +339,18 @@ export function formatObservation(obs: ObservationResult): string {
 
   const platformWarning = isWindows ? `
 ## ⚠️ PLATFORM: WINDOWS
-This is a Windows system. CRITICAL rules for Windows:
-1. **DO NOT use openclaw CLI commands** like \`openclaw gateway restart\`, \`openclaw gateway install --force\`, or \`openclaw doctor --repair\` — they will fail with \`spawnSync /bin/zsh ENOENT\` because OpenClaw CLI hardcodes /bin/zsh on Windows.
-2. **Use direct Windows commands instead:**
-   - Start gateway: Find node.exe and openclaw dist/index.js paths, then run: \`node "path\\to\\openclaw\\dist\\index.js" gateway start\`
-   - Or use Scheduled Tasks: \`schtasks /run /tn "OpenClaw Gateway"\`
-   - Create directories: \`mkdir "path"\` (not \`mkdir -p\`)
-   - Process check: \`tasklist | findstr openclaw\` (not \`ps aux | grep\`)
-3. **Config file edits are OK** — editing openclaw.json directly works on all platforms.
-4. **Tell the user** this is a known OpenClaw CLI bug on Windows, and provide manual workaround commands.
+This is a Windows system. OpenClaw CLI commands like \`openclaw gateway restart\` often fail on Windows with \`spawnSync /bin/zsh ENOENT\`. Use Windows-native equivalents instead — **ClawAid's executor runs commands via cmd.exe so they WILL work**:
+
+| Instead of (fails on Windows) | Use this (works) |
+|-------------------------------|------------------|
+| \`openclaw gateway restart\` | \`schtasks /run /tn "OpenClaw Gateway"\` or \`node "path\\to\\openclaw\\dist\\index.js" gateway start\` |
+| \`openclaw gateway install --force\` | Create Scheduled Task manually or use \`schtasks\` |
+| \`openclaw doctor --repair\` | Fix config/directories manually via \`mkdir\`, file edits |
+| \`ps aux | grep openclaw\` | \`tasklist /FI "IMAGENAME eq node.exe"\` |
+| \`mkdir -p\` | \`mkdir "path"\` (Windows mkdir creates parents by default) |
+
+**You CAN and SHOULD execute fix commands** — they run through cmd.exe, not /bin/zsh. Do NOT just tell the user to run commands manually. Try the fix yourself first.
+Config file edits also work on all platforms.
 ` : '';
 
   return `
