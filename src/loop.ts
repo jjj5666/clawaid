@@ -75,6 +75,7 @@ export class DoctorLoop {
   private fixAttempts = 0;
   private pendingConfirm?: { step: AgentStep; resolve: (confirmed: boolean) => void };
   private pendingDescription?: { resolve: (value: { description: string; screenshot?: string }) => void };
+  private sbSessionId?: string;
 
   constructor(callback: EventCallback) {
     this.callback = callback;
@@ -305,7 +306,8 @@ export class DoctorLoop {
       history: this.history.map(h => ({ step: h.step, output: h.output, skipped: h.skipped })),
       fingerprint,
       ...(this.token ? { token: this.token } : {}),
-      ...(isFirst ? { sessionStart: true } : {}),
+      ...(isFirst ? { sessionStart: true, userDescription: this.userDescription || undefined } : {}),
+      ...(this.sbSessionId ? { supabaseSessionId: this.sbSessionId } : {}),
     });
 
     const url = new URL(`${CLAWAID_API}/step`);
@@ -337,6 +339,8 @@ export class DoctorLoop {
               return;
             }
             if (parsed.error) { reject(new Error(parsed.error)); return; }
+            // Capture Supabase session ID for subsequent requests
+            if (parsed._sbSessionId) this.sbSessionId = parsed._sbSessionId;
             resolve(parsed as AgentStep);
           } catch {
             reject(new Error(`Parse error: ${data.slice(0, 100)}`));

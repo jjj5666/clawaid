@@ -298,10 +298,12 @@
   }
 
   function sendFeedback(value, btn) {
-    const container = btn.parentElement;
-    container.innerHTML = value === 'yes'
-      ? '<span style="color:#34a853;font-size:13px;">' + T.thanksYes + '</span>'
-      : '<span style="color:#ea4335;font-size:13px;">' + T.thanksNo + '</span>';
+    const container = btn.parentElement.parentElement;
+    if (value === 'yes') {
+      container.innerHTML = '<div style="text-align:center;padding:12px;"><div style="font-size:32px;margin-bottom:8px;">🎉</div><div style="color:#34a853;font-size:15px;font-weight:600;">' + T.thanksYes + '</div></div>';
+    } else {
+      container.innerHTML = '<div style="text-align:center;padding:12px;"><div style="font-size:32px;margin-bottom:8px;">🙏</div><div style="color:#ea4335;font-size:15px;font-weight:600;margin-bottom:8px;">' + T.thanksNo + '</div><div style="font-size:12px;color:#888;line-height:1.5;">' + T.contact + '<br>WeChat: <b>oliver56666</b> · <a href="https://github.com/jjj5666/clawaid/issues" target="_blank" style="color:#1a73e8;">GitHub Issues</a></div></div>';
+    }
     fetch('/api/feedback', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
