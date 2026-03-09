@@ -41,7 +41,7 @@ async function openBrowser(url: string): Promise<void> {
 }
 
 async function main() {
-  console.log('\n🩺 OpenClaw Doctor\n');
+  console.log('\n🩺 ClawAid\n');
   console.log('Finding available port...');
   
   const port = await findFreePort(7357);
@@ -57,16 +57,16 @@ async function main() {
   await new Promise(resolve => setTimeout(resolve, 300));
   await openBrowser(url);
   
-  console.log('OpenClaw Doctor is running. Press Ctrl+C to stop.\n');
+  console.log('ClawAid is running. Press Ctrl+C to stop.\n');
   
   // Keep process alive
   process.on('SIGINT', () => {
-    console.log('\nShutting down OpenClaw Doctor...');
+    console.log('\nShutting down ClawAid...');
     process.exit(0);
   });
 }
 
 main().catch((err) => {
-  console.error('Failed to start OpenClaw Doctor:', err);
+  console.error('Failed to start ClawAid:', err);
   process.exit(1);
 });

@@ -1,17 +1,17 @@
 {
-  "name": "openclaw-doctor",
+  "name": "clawaid",
   "version": "1.0.0",
   "description": "AI-powered diagnostic and repair tool for OpenClaw",
   "main": "dist/index.js",
   "bin": {
-    "openclaw-doctor": "./dist/index.js"
+    "clawaid": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts"
   },
-  "keywords": ["openclaw", "diagnostics", "repair", "ai"],
+  "keywords": ["openclaw", "diagnostics", "repair", "ai", "clawaid"],
   "author": "",
   "license": "MIT",
   "dependencies": {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OpenClaw Doctor</title>
+  <title>ClawAid</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -65,7 +65,7 @@
       font-size: 12px;
       color: #3c4043;
       line-height: 1.6;
-      max-height: 300px;
+      max-height: 280px;
       overflow-y: auto;
       white-space: pre-wrap;
       word-break: break-word;
@@ -77,48 +77,70 @@
     .log-area .log-line.warn { color: #e37400; }
     .log-area .log-line.meta { color: #1a73e8; font-weight: 600; }
 
+    /* Show details toggle */
+    .details-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #1a73e8;
+      cursor: pointer;
+      margin-top: 12px;
+      user-select: none;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+    .details-toggle:hover { text-decoration: underline; }
+    .details-toggle .toggle-arrow { transition: transform 0.2s; display: inline-block; }
+    .details-toggle.open .toggle-arrow { transform: rotate(90deg); }
+
+    .details-panel {
+      margin-top: 8px;
+      display: none;
+    }
+    .details-panel.open { display: block; }
+
     /* Spinner */
     .spinner {
       display: inline-block;
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       border: 2px solid #e0e0e0;
       border-top-color: #1a73e8;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
-      vertical-align: middle;
-      margin-right: 8px;
+      flex-shrink: 0;
     }
 
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
 
-    /* Status indicator */
+    /* Status row */
     .status-row {
       display: flex;
       align-items: center;
       gap: 10px;
-      font-size: 14px;
-      color: #5f6368;
+      font-size: 15px;
+      color: #202124;
+      margin-bottom: 4px;
+    }
+
+    .status-sub {
+      font-size: 12px;
+      color: #9aa0a6;
+      margin-left: 28px;
+    }
+
+    /* Phase label */
+    .phase-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #9aa0a6;
       margin-bottom: 16px;
-    }
-
-    .status-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    .status-dot.blue { background: #1a73e8; animation: pulse 1.5s ease-in-out infinite; }
-    .status-dot.green { background: #137333; }
-    .status-dot.red { background: #c5221f; }
-    .status-dot.orange { background: #e37400; }
-    .status-dot.gray { background: #9aa0a6; }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
     }
 
     /* Diagnosis card */
@@ -126,10 +148,10 @@
       margin-bottom: 20px;
     }
 
-    .diagnosis-section h3 {
-      font-size: 13px;
+    .section-label {
+      font-size: 11px;
       font-weight: 600;
-      color: #5f6368;
+      color: #9aa0a6;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 8px;
@@ -145,17 +167,17 @@
       background: #fef7e0;
       border: 1px solid #f9ab00;
       border-radius: 8px;
-      padding: 12px 16px;
+      padding: 10px 14px;
       font-size: 13px;
       color: #7a4f00;
-      margin-top: 8px;
+      margin-top: 10px;
     }
 
     .confidence-bar {
       height: 4px;
       background: #e8f0fe;
       border-radius: 2px;
-      margin-top: 8px;
+      margin-top: 12px;
       overflow: hidden;
     }
 
@@ -172,38 +194,102 @@
       margin-top: 4px;
     }
 
-    /* Actions list */
-    .actions-list {
-      list-style: none;
+    /* Collapsible reasoning */
+    .collapsible-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #5f6368;
+      cursor: pointer;
+      margin-top: 12px;
+      background: none;
+      border: none;
+      padding: 0;
+      user-select: none;
+    }
+    .collapsible-toggle:hover { color: #202124; }
+    .collapsible-toggle .arrow { transition: transform 0.2s; display: inline-block; }
+    .collapsible-toggle.open .arrow { transform: rotate(90deg); }
+    .collapsible-panel { display: none; margin-top: 8px; }
+    .collapsible-panel.open { display: block; }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid #f1f3f4;
+      margin: 16px 0;
+    }
+
+    /* Option cards */
+    .options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
       margin-top: 8px;
     }
 
-    .action-item {
+    .option-card {
+      border: 1.5px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 16px;
+      transition: border-color 0.15s;
+      position: relative;
+    }
+
+    .option-card.recommended {
+      border-color: #1a73e8;
+      background: #f8fbff;
+    }
+
+    .option-card-header {
       display: flex;
+      align-items: flex-start;
       gap: 10px;
-      padding: 8px 0;
-      border-bottom: 1px solid #f1f3f4;
+      margin-bottom: 8px;
+    }
+
+    .option-letter {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #e8eaed;
+      color: #3c4043;
       font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
 
-    .action-item:last-child { border-bottom: none; }
+    .option-card.recommended .option-letter {
+      background: #1a73e8;
+      color: #fff;
+    }
 
-    .action-num {
-      color: #1a73e8;
+    .option-title-row {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .option-title {
+      font-size: 14px;
       font-weight: 600;
-      min-width: 20px;
+      color: #202124;
     }
 
-    .action-desc { color: #202124; flex: 1; }
-
-    .action-cmd {
-      font-family: monospace;
-      font-size: 11px;
-      color: #5f6368;
-      background: #f8f9fa;
-      padding: 2px 6px;
+    .recommended-badge {
+      font-size: 10px;
+      background: #e8f0fe;
+      color: #1a73e8;
+      border: 1px solid #c5d9f7;
       border-radius: 4px;
-      word-break: break-all;
+      padding: 2px 6px;
+      font-weight: 600;
     }
 
     .risk-badge {
@@ -211,11 +297,66 @@
       padding: 2px 6px;
       border-radius: 4px;
       font-weight: 600;
-      flex-shrink: 0;
     }
     .risk-low { background: #e6f4ea; color: #137333; }
     .risk-medium { background: #fef7e0; color: #7a4f00; }
     .risk-high { background: #fce8e6; color: #c5221f; }
+
+    .option-description {
+      font-size: 13px;
+      color: #5f6368;
+      line-height: 1.5;
+      margin-left: 36px;
+    }
+
+    .option-fix-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      margin-left: 36px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      background: #f1f3f4;
+      color: #3c4043;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .option-card.recommended .option-fix-btn {
+      background: #1a73e8;
+      color: #fff;
+    }
+
+    .option-fix-btn:hover { opacity: 0.85; }
+    .option-fix-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Auto-fix progress */
+    .auto-fix-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+    }
+
+    .auto-fix-icon {
+      font-size: 20px;
+    }
+
+    .auto-fix-text {
+      font-size: 15px;
+      font-weight: 500;
+      color: #202124;
+    }
+
+    .auto-fix-sub {
+      font-size: 12px;
+      color: #9aa0a6;
+      margin-top: 2px;
+    }
 
     /* Buttons */
     .btn {
@@ -229,6 +370,8 @@
       border-radius: 8px;
       cursor: pointer;
       transition: background 0.15s, transform 0.1s;
+      width: 100%;
+      justify-content: center;
     }
 
     .btn:active { transform: scale(0.98); }
@@ -237,35 +380,24 @@
     .btn-primary {
       background: #1a73e8;
       color: #fff;
-      width: 100%;
-      justify-content: center;
     }
-
     .btn-primary:hover:not(:disabled) { background: #1557b0; }
 
     .btn-secondary {
       background: #f1f3f4;
       color: #3c4043;
-      width: 100%;
-      justify-content: center;
     }
-
     .btn-secondary:hover:not(:disabled) { background: #e8eaed; }
 
     .btn-coffee {
       background: #FFDD00;
       color: #000;
-      width: 100%;
-      justify-content: center;
       font-size: 14px;
     }
-
     .btn-coffee:hover:not(:disabled) { background: #f0cf00; }
 
     /* Input field */
-    .input-group {
-      margin-bottom: 16px;
-    }
+    .input-group { margin-bottom: 16px; }
 
     .input-label {
       display: block;
@@ -273,10 +405,6 @@
       font-weight: 500;
       color: #3c4043;
       margin-bottom: 6px;
-    }
-
-    .input-wrapper {
-      position: relative;
     }
 
     .input-field {
@@ -290,7 +418,6 @@
       font-family: monospace;
       color: #202124;
     }
-
     .input-field:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.2); }
 
     .trust-badge {
@@ -305,7 +432,7 @@
       border-radius: 6px;
     }
 
-    /* Success / Failure screens */
+    /* Result screens */
     .result-icon {
       font-size: 48px;
       text-align: center;
@@ -343,11 +470,7 @@
     }
 
     /* Alternatives */
-    .alt-list {
-      list-style: none;
-      margin-top: 6px;
-    }
-
+    .alt-list { list-style: none; margin-top: 6px; }
     .alt-list li {
       font-size: 13px;
       color: #5f6368;
@@ -355,26 +478,16 @@
       display: flex;
       gap: 6px;
     }
-
     .alt-list li::before { content: '→'; color: #9aa0a6; flex-shrink: 0; }
 
-    /* Section divider */
-    .divider {
-      border: none;
-      border-top: 1px solid #f1f3f4;
-      margin: 16px 0;
-    }
-
-    /* Section hidden by default */
+    /* Sections */
     .section { display: none; }
     .section.visible { display: block; }
 
-    /* Fade in animation */
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
     }
-
     .fade-in { animation: fadeIn 0.25s ease; }
 
     /* Footer */
@@ -384,7 +497,6 @@
       color: #9aa0a6;
       margin-top: 32px;
     }
-
     .footer a { color: #1a73e8; text-decoration: none; }
     .footer a:hover { text-decoration: underline; }
 
@@ -401,18 +513,18 @@
     }
     .copy-btn:hover { background: #f1f3f4; }
 
-    /* Meta-think banner */
-    .meta-banner {
-      background: #e8f0fe;
-      border: 1px solid #c5d9f7;
-      border-radius: 8px;
-      padding: 12px 16px;
-      font-size: 13px;
-      color: #1a73e8;
-      margin-bottom: 16px;
-      display: flex;
+    /* Round badge */
+    .round-badge {
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      background: #e8f0fe;
+      color: #1a73e8;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 12px;
     }
   </style>
 </head>
@@ -422,42 +534,49 @@
   <!-- Header -->
   <div class="header">
     <div class="logo">🩺</div>
-    <h1>OpenClaw Doctor</h1>
+    <h1>ClawAid</h1>
     <p>AI-powered diagnostics and repair for OpenClaw</p>
   </div>
 
-  <!-- ===== SECTION: Initial / Observing ===== -->
-  <div id="section-observing" class="section visible card fade-in">
+  <!-- ===== SECTION: Scanning ===== -->
+  <div id="section-scanning" class="section visible card fade-in">
+    <div class="phase-label">Phase 1 — Scanning</div>
     <div class="status-row">
       <span class="spinner"></span>
-      <span id="status-text">Starting diagnosis...</span>
+      <span id="scan-status-text">Starting scan...</span>
     </div>
-    <div class="log-area" id="log-area">Connecting to diagnostic engine...</div>
+    <div class="status-sub" id="scan-sub-text"></div>
+
+    <button class="details-toggle" id="btn-toggle-scan-log" onclick="toggleDetails('scan-log')">
+      <span class="toggle-arrow">▶</span> Show details
+    </button>
+    <div class="details-panel" id="details-scan-log">
+      <div class="log-area" id="log-area">Connecting to diagnostic engine...</div>
+    </div>
   </div>
 
   <!-- ===== SECTION: API Key Input ===== -->
   <div id="section-apikey" class="section card fade-in">
+    <div class="phase-label">Action Required</div>
     <div class="diagnosis-section">
-      <h3>API Key Required</h3>
+      <div class="section-label">API Key Required</div>
       <p class="diagnosis-text" id="apikey-instructions">
-        OpenClaw Doctor needs an OpenRouter API key to call Claude Opus for AI-powered diagnosis.
+        ClawAid needs an OpenRouter API key to call Claude for AI-powered diagnosis.
       </p>
     </div>
     <hr class="divider">
     <div class="input-group">
       <label class="input-label" for="apikey-input">OpenRouter API Key</label>
-      <div class="input-wrapper">
-        <input
-          class="input-field"
-          id="apikey-input"
-          type="password"
-          placeholder="sk-or-..."
-          autocomplete="off"
-          spellcheck="false"
-        />
-      </div>
+      <input
+        class="input-field"
+        id="apikey-input"
+        type="password"
+        placeholder="sk-or-..."
+        autocomplete="off"
+        spellcheck="false"
+      />
       <div class="trust-badge">
-        🔒 Local only. Not stored anywhere. Only sent to OpenRouter for AI diagnosis.
+        🔒 Local only. Not stored. Only sent to OpenRouter for AI diagnosis.
       </div>
       <div style="margin-top: 6px;">
         <a href="https://openrouter.ai/keys" target="_blank" style="font-size: 12px; color: #1a73e8;">
@@ -470,15 +589,15 @@
     </button>
   </div>
 
-  <!-- ===== SECTION: Diagnosis / Plan ===== -->
+  <!-- ===== SECTION: Diagnosis ===== -->
   <div id="section-diagnosis" class="section card fade-in">
-    <div id="meta-banner" class="meta-banner" style="display:none;">
-      <span>💭</span>
-      <span id="meta-banner-text">Reconsidering approach based on previous attempts...</span>
+    <div class="phase-label">Phase 2 — Diagnosis</div>
+    <div id="round-badge-diag" class="round-badge" style="display:none;">
+      <span>🔄</span><span id="round-badge-text">Round 2</span>
     </div>
 
     <div class="diagnosis-section">
-      <h3>Diagnosis</h3>
+      <div class="section-label">What's wrong</div>
       <p class="diagnosis-text" id="diag-text">Analyzing...</p>
       <div class="root-cause" id="root-cause-box"></div>
       <div class="confidence-bar">
@@ -487,33 +606,50 @@
       <div class="confidence-label" id="confidence-label">Confidence: —</div>
     </div>
 
-    <hr class="divider">
-
-    <div class="diagnosis-section">
-      <h3>Repair Plan</h3>
-      <ul class="actions-list" id="actions-list"></ul>
-    </div>
-
-    <div id="alternatives-section" style="display:none;">
-      <hr class="divider">
-      <div class="diagnosis-section">
-        <h3>Other Possibilities</h3>
-        <ul class="alt-list" id="alt-list"></ul>
-      </div>
-    </div>
-
-    <button class="btn btn-primary" id="btn-fix" style="margin-top: 16px;">
-      🔧 Fix It
+    <button class="collapsible-toggle" id="toggle-reasoning" onclick="toggleReasoning()">
+      <span class="arrow">▶</span> AI reasoning details
     </button>
+    <div class="collapsible-panel" id="reasoning-panel">
+      <div class="log-area" id="reasoning-log" style="max-height:180px;"></div>
+    </div>
+
+    <div id="alternatives-section" style="display:none; margin-top:12px;">
+      <hr class="divider">
+      <div class="section-label">Other possibilities</div>
+      <ul class="alt-list" id="alt-list"></ul>
+    </div>
   </div>
 
-  <!-- ===== SECTION: Executing ===== -->
-  <div id="section-executing" class="section card fade-in">
-    <div class="status-row">
-      <span class="spinner"></span>
-      <span id="exec-status-text">Applying fixes...</span>
+  <!-- ===== SECTION: Options (user choice) ===== -->
+  <div id="section-options" class="section card fade-in">
+    <div class="phase-label">Phase 3 — Choose a Fix</div>
+    <div id="round-badge-opts" class="round-badge" style="display:none;">
+      <span>🔄</span><span id="round-opts-text">Round 2</span>
     </div>
-    <div class="log-area" id="exec-log"></div>
+    <p style="font-size:14px; color:#5f6368; margin-bottom:16px;">
+      Select a repair option below. The recommended fix is highlighted.
+    </p>
+    <div class="options-list" id="options-list"></div>
+  </div>
+
+  <!-- ===== SECTION: Auto-executing ===== -->
+  <div id="section-auto-fix" class="section card fade-in">
+    <div class="phase-label">Phase 3 — Auto-fixing</div>
+    <div class="auto-fix-row">
+      <div class="auto-fix-icon">🔧</div>
+      <div>
+        <div class="auto-fix-text">Auto-fixing...</div>
+        <div class="auto-fix-sub" id="auto-fix-sub">Applying recommended fix</div>
+      </div>
+      <span class="spinner" style="margin-left:auto;"></span>
+    </div>
+
+    <button class="details-toggle" id="btn-toggle-fix-log" onclick="toggleDetails('fix-log')">
+      <span class="toggle-arrow">▶</span> Show details
+    </button>
+    <div class="details-panel" id="details-fix-log">
+      <div class="log-area" id="exec-log"></div>
+    </div>
   </div>
 
   <!-- ===== SECTION: Fixed ===== -->
@@ -526,7 +662,7 @@
       ☕ Buy me a coffee
     </button>
     <div style="margin-top: 8px; text-align: center; font-size: 12px; color: #9aa0a6;">
-      OpenClaw Doctor is free and open source. If it saved your day, a coffee helps keep it maintained!
+      ClawAid is free and open source. If it saved your day, a coffee helps keep it alive!
     </div>
   </div>
 
@@ -565,7 +701,7 @@
   </div>
 
   <div class="footer">
-    <p>OpenClaw Doctor v1.0.0 · <a href="https://github.com/openclaw" target="_blank">GitHub</a></p>
+    <p>ClawAid v1.0.0 · <a href="https://github.com/openclaw" target="_blank">GitHub</a></p>
   </div>
 
 </div>
@@ -578,15 +714,17 @@
   let sessionId = null;
   let currentState = 'idle';
   let eventSource = null;
+  let diagnosisData = null; // last diagnosis received
 
   // Elements
   const $ = id => document.getElementById(id);
 
   const sections = {
-    observing: $('section-observing'),
+    scanning: $('section-scanning'),
     apikey: $('section-apikey'),
     diagnosis: $('section-diagnosis'),
-    executing: $('section-executing'),
+    options: $('section-options'),
+    autofix: $('section-auto-fix'),
     fixed: $('section-fixed'),
     healthy: $('section-healthy'),
     notfixed: $('section-notfixed'),
@@ -613,14 +751,38 @@
     if (msg.startsWith('✓') || msg.startsWith('✅') || msg.includes('Success') || msg.includes('fixed')) return 'success';
     if (msg.startsWith('❌') || msg.startsWith('✗') || msg.includes('Error') || msg.includes('failed')) return 'error';
     if (msg.startsWith('⚠️') || msg.startsWith('Warning')) return 'warn';
-    if (msg.startsWith('💭') || msg.startsWith('🔄') || msg.startsWith('Meta-Think')) return 'meta';
+    if (msg.startsWith('🤖') || msg.startsWith('💭') || msg.startsWith('🔄') || msg.startsWith('📡')) return 'meta';
     return '';
   }
 
+  // Details toggle (scan + fix log panels)
+  window.toggleDetails = function(panelSuffix) {
+    const btnId = 'btn-toggle-' + panelSuffix;
+    const panelId = 'details-' + panelSuffix;
+    const btn = $(btnId);
+    const panel = $(panelId);
+    if (!btn || !panel) return;
+    const isOpen = panel.classList.toggle('open');
+    btn.classList.toggle('open', isOpen);
+    btn.querySelector('.toggle-arrow').textContent = isOpen ? '▼' : '▶';
+    btn.childNodes[1].textContent = isOpen ? ' Hide details' : ' Show details';
+  };
+
+  // Reasoning toggle
+  window.toggleReasoning = function() {
+    const btn = $('toggle-reasoning');
+    const panel = $('reasoning-panel');
+    const isOpen = panel.classList.toggle('open');
+    btn.classList.toggle('open', isOpen);
+    btn.querySelector('.arrow').textContent = isOpen ? '▼' : '▶';
+    btn.childNodes[1].textContent = isOpen ? ' Hide AI reasoning details' : ' AI reasoning details';
+  };
+
   // Start SSE connection
   function startDiagnosis() {
-    showOnly('observing');
+    showOnly('scanning');
     $('log-area').textContent = '';
+    $('exec-log').textContent = '';
 
     eventSource = new EventSource('/api/diagnose');
 
@@ -634,19 +796,27 @@
       switch(type) {
         case 'session_start':
           sessionId = data.sessionId;
-          $('status-text').textContent = 'Scanning system...';
+          $('scan-status-text').textContent = 'Checking gateway...';
           break;
 
-        case 'progress':
+        case 'progress': {
           const msg = data.message || '';
-          appendLog('log-area', msg, classForMessage(msg));
-          appendLog('exec-log', msg, classForMessage(msg));
-          $('status-text').textContent = msg.replace(/^[🔍🤔🔧✅⚠️❌💭🔄→  ]+/, '').trim().slice(0, 60) || 'Working...';
-          $('exec-status-text').textContent = msg.replace(/^[🔍🤔🔧✅⚠️❌💭🔄→  ]+/, '').trim().slice(0, 60) || 'Working...';
+          const cls = classForMessage(msg);
+          appendLog('log-area', msg, cls);
+          appendLog('exec-log', msg, cls);
+          appendLog('reasoning-log', msg, cls);
+
+          // Update clean status text
+          const clean = msg.replace(/^[🔍🤔🔧✅⚠️❌💭🔄→📡🔒  ]+/, '').trim().slice(0, 80);
+          if (clean) {
+            $('scan-status-text').textContent = clean;
+            $('auto-fix-sub').textContent = clean;
+          }
           break;
+        }
 
         case 'state_change':
-          handleStateChange(data.state, data);
+          handleStateChange(data.state);
           break;
 
         case 'diagnosis':
@@ -654,7 +824,6 @@
           break;
 
         case 'action_result':
-          // Could highlight individual actions
           break;
 
         case 'verify_result':
@@ -664,14 +833,12 @@
             appendLog('exec-log', '  ' + data.explanation, 'success');
           } else {
             appendLog('exec-log', '⚠️ Not yet fixed: ' + data.explanation, 'warn');
-            appendLog('exec-log', '  Will re-analyze and try a different approach...', '');
+            appendLog('exec-log', '  Re-analyzing...', '');
           }
           break;
 
         case 'request_input':
-          if (data.field === 'apiKey') {
-            showApiKeyInput(data);
-          }
+          if (data.field === 'apiKey') showApiKeyInput(data);
           break;
 
         case 'complete':
@@ -682,15 +849,19 @@
           appendLog('log-area', '─────────────────────────────────────', '');
           appendLog('log-area', '❌ Error: ' + data.message, 'error');
           appendLog('log-area', '  Check your API key and internet connection, then reload to try again.', 'warn');
-          $('status-text').textContent = 'Error — see log below';
-          // Stay on the observing view so the user can see the error in the log
-          showOnly('observing');
+          $('scan-status-text').textContent = 'Error — click "Show details"';
+          showOnly('scanning');
+          // Auto-open details on error
+          const detailPanel = $('details-scan-log');
+          if (detailPanel && !detailPanel.classList.contains('open')) {
+            window.toggleDetails('scan-log');
+          }
           break;
       }
     };
 
     eventSource.onerror = function() {
-      if (currentState !== 'fixed' && currentState !== 'notfixed') {
+      if (currentState !== 'fixed' && currentState !== 'notfixed' && currentState !== 'healthy') {
         appendLog('log-area', '⚠️ Connection lost. The server may have stopped.', 'warn');
       }
     };
@@ -699,39 +870,36 @@
   function handleStateChange(state) {
     switch(state) {
       case 'observing':
-        showOnly('observing');
-        $('status-text').textContent = 'Scanning system...';
+        showOnly('scanning');
+        $('scan-status-text').textContent = 'Checking gateway...';
         break;
       case 'diagnosing':
-        showOnly('observing');
-        $('status-text').textContent = 'AI is analyzing your system...';
+        showOnly('scanning');
+        $('scan-status-text').textContent = 'AI is analyzing your system...';
+        $('scan-sub-text').textContent = 'This may take a few seconds';
         appendLog('log-area', '─────────────────────────────────────', '');
         appendLog('log-area', '🤖 Sending data to AI for diagnosis...', 'meta');
         break;
-      case 'meta_thinking':
-        showOnly('observing');
-        $('status-text').textContent = 'Rethinking strategy...';
-        appendLog('log-area', '─────────────────────────────────────', '');
-        appendLog('log-area', '💭 Previous approach didn\'t work. Re-analyzing with a fresh perspective...', 'meta');
+      case 'showing_options':
+        // Options will show via 'diagnosis' event + render options
         break;
-      case 'showing_plan':
-        // Diagnosis will show via 'diagnosis' event
+      case 'auto_executing':
+        $('exec-log').textContent = '';
+        showOnly('autofix');
         break;
       case 'executing':
         $('exec-log').textContent = '';
-        showOnly('executing');
-        $('exec-status-text').textContent = 'Applying fixes...';
+        showOnly('autofix');
         break;
       case 'verifying':
-        $('exec-status-text').textContent = 'Verifying repair...';
+        $('auto-fix-sub').textContent = 'Verifying repair...';
         appendLog('exec-log', '─────────────────────────────────────', '');
         appendLog('exec-log', '🔍 Checking if the fix worked...', 'meta');
         break;
       case 'needs_api_key':
-        // Will show via request_input event
-        break;
+        break; // handled by request_input event
       case 'error':
-        $('status-text').textContent = 'Error occurred';
+        $('scan-status-text').textContent = 'Error occurred';
         break;
       case 'fixed':
         showOnly('fixed');
@@ -746,58 +914,41 @@
   }
 
   function showDiagnosis(data) {
-    // First: log the AI's findings to the log area so user sees them progressively
-    const logLabel = data.isMetaThink ? '🔄 AI revised diagnosis:' : '🧠 AI diagnosis:';
-    appendLog('log-area', logLabel, 'meta');
-    appendLog('log-area', '  ' + (data.diagnosis || ''), '');
-    appendLog('log-area', '🎯 Root cause: ' + (data.rootCause || 'Unknown'), 'warn');
-
+    diagnosisData = data;
     const confidence = Math.round((data.confidence || 0.5) * 100);
-    appendLog('log-area', `📊 Confidence: ${confidence}%`, '');
+    const options = data.options || [];
+    const round = data.round || 1;
 
-    const actions = data.actions || [];
-    if (actions.length > 0) {
-      appendLog('log-area', `🔧 Repair plan: ${actions.length} step(s)`, 'meta');
-      actions.forEach((action, i) => {
-        appendLog('log-area', `  ${i+1}. ${action.description}`, '');
-        appendLog('log-area', `     $ ${action.command}`, 'meta');
+    // Log to reasoning panel
+    appendLog('reasoning-log', '─────────────────────────────────────', '');
+    appendLog('reasoning-log', '🧠 AI Diagnosis (Round ' + round + '):', 'meta');
+    appendLog('reasoning-log', '  ' + (data.diagnosis || ''), '');
+    appendLog('reasoning-log', '🎯 Root cause: ' + (data.rootCause || 'Unknown'), 'warn');
+    appendLog('reasoning-log', '📊 Confidence: ' + confidence + '%', '');
+    options.forEach((opt, i) => {
+      appendLog('reasoning-log', `  Option ${opt.id}: ${opt.title} [${opt.risk}]${opt.recommended ? ' ← recommended' : ''}`, 'meta');
+      (opt.steps || []).forEach((s, j) => {
+        appendLog('reasoning-log', `    ${j+1}. ${s.description}`, '');
+        appendLog('reasoning-log', `       $ ${s.command}`, 'meta');
       });
-    } else {
-      appendLog('log-area', '⚠️ No repair actions identified. System may be healthy.', 'warn');
-    }
+    });
 
-    // Now update and show the diagnosis card
-    const metaBanner = $('meta-banner');
-    if (data.isMetaThink) {
-      metaBanner.style.display = 'flex';
-      $('meta-banner-text').textContent = 'Reconsidering approach based on previous attempts...';
-    } else {
-      metaBanner.style.display = 'none';
-    }
-
+    // Update diagnosis card
     $('diag-text').textContent = data.diagnosis || '';
-    $('root-cause-box').textContent = '🎯 Root cause: ' + (data.rootCause || 'Unknown');
-
+    $('root-cause-box').textContent = '🎯 ' + (data.rootCause || 'Unknown root cause');
     $('confidence-fill').style.width = confidence + '%';
     $('confidence-label').textContent = 'Confidence: ' + confidence + '%';
 
-    // Actions list
-    const actionsList = $('actions-list');
-    actionsList.innerHTML = '';
-    actions.forEach((action, i) => {
-      const li = document.createElement('li');
-      li.className = 'action-item';
-      li.innerHTML = `
-        <span class="action-num">${i+1}.</span>
-        <span class="action-desc">
-          ${escHtml(action.description)}
-          <br>
-          <span class="action-cmd">${escHtml(action.command)}</span>
-        </span>
-        <span class="risk-badge risk-${action.risk}">${action.risk}</span>
-      `;
-      actionsList.appendChild(li);
-    });
+    // Round badge
+    if (round > 1) {
+      $('round-badge-diag').style.display = 'inline-flex';
+      $('round-badge-text').textContent = 'Round ' + round + ' — new approach';
+      $('round-badge-opts').style.display = 'inline-flex';
+      $('round-opts-text').textContent = 'Round ' + round + ' — new approach';
+    } else {
+      $('round-badge-diag').style.display = 'none';
+      $('round-badge-opts').style.display = 'none';
+    }
 
     // Alternatives
     const alts = data.alternativeHypotheses || [];
@@ -814,17 +965,75 @@
       $('alternatives-section').style.display = 'none';
     }
 
-    // Only show the diagnosis card if there are actions to take
-    if (actions.length > 0) {
-      showOnly('diagnosis');
+    // Show diagnosis card
+    showOnly('diagnosis');
+
+    // Auto-check if we should show options too immediately
+    const recommended = options.filter(o => o.recommended);
+    const canAutoExecute = recommended.length > 0 && recommended.every(o => o.autoExecute);
+
+    if (!canAutoExecute && options.length > 0) {
+      // Render option cards and switch to options section
+      renderOptions(options);
+      // Show diagnosis briefly then switch to options after 1s
+      setTimeout(() => showOnly('options'), 800);
     }
-    // If no actions, stay on observing view — loop will continue
+  }
+
+  function renderOptions(options) {
+    const list = $('options-list');
+    list.innerHTML = '';
+
+    options.forEach(opt => {
+      const card = document.createElement('div');
+      card.className = 'option-card' + (opt.recommended ? ' recommended' : '');
+
+      const riskClass = 'risk-' + (opt.risk || 'low');
+
+      card.innerHTML = `
+        <div class="option-card-header">
+          <div class="option-letter">${escHtml(opt.id)}</div>
+          <div class="option-title-row">
+            <span class="option-title">${escHtml(opt.title)}</span>
+            ${opt.recommended ? '<span class="recommended-badge">★ Recommended</span>' : ''}
+            <span class="risk-badge ${riskClass}">${escHtml(opt.risk)}</span>
+          </div>
+        </div>
+        <div class="option-description">${escHtml(opt.description)}</div>
+        <button class="option-fix-btn" data-option-id="${escHtml(opt.id)}">
+          🔧 Fix with this option
+        </button>
+      `;
+
+      list.appendChild(card);
+    });
+
+    // Attach click handlers
+    list.querySelectorAll('.option-fix-btn').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const optionId = this.dataset.optionId;
+        // Disable all buttons
+        list.querySelectorAll('.option-fix-btn').forEach(b => { b.disabled = true; });
+
+        $('exec-log').textContent = '';
+        appendLog('exec-log', '🔧 Starting repair: Option ' + optionId + '...', 'meta');
+        showOnly('autofix');
+
+        try {
+          await fetch('/api/fix', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId, optionId }),
+          });
+        } catch(e) {
+          appendLog('exec-log', '❌ Failed to start fix: ' + e.message, 'error');
+        }
+      });
+    });
   }
 
   function showApiKeyInput(data) {
-    if (data.instructions) {
-      $('apikey-instructions').textContent = data.instructions;
-    }
+    if (data.instructions) $('apikey-instructions').textContent = data.instructions;
     showOnly('apikey');
     $('apikey-input').focus();
   }
@@ -834,7 +1043,7 @@
       eventSource.close();
       eventSource = null;
     }
-    
+
     if (data.healthy) {
       $('healthy-explanation').textContent = data.explanation || 'Your system is running normally. No issues detected.';
       showOnly('healthy');
@@ -843,9 +1052,7 @@
       showOnly('fixed');
     } else {
       $('notfixed-explanation').textContent = data.explanation || 'Could not automatically fix the issue.';
-      if (data.diagnosticReport) {
-        $('report-area').textContent = data.diagnosticReport;
-      }
+      if (data.diagnosticReport) $('report-area').textContent = data.diagnosticReport;
       showOnly('notfixed');
     }
   }
@@ -858,27 +1065,7 @@
       .replace(/"/g, '&quot;');
   }
 
-  // Button handlers
-  $('btn-fix').addEventListener('click', async function() {
-    if (!sessionId) return;
-    this.disabled = true;
-    this.textContent = '🔧 Fixing...';
-
-    $('exec-log').textContent = '';
-    appendLog('exec-log', '🔧 Starting repair process...', 'meta');
-    showOnly('executing');
-
-    try {
-      await fetch('/api/fix', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId }),
-      });
-    } catch(e) {
-      appendLog('exec-log', '❌ Failed to start fix: ' + e.message, 'error');
-    }
-  });
-
+  // API key submit
   $('btn-submit-key').addEventListener('click', async function() {
     const key = $('apikey-input').value.trim();
     if (!key) {
@@ -891,9 +1078,9 @@
     this.disabled = true;
     this.textContent = 'Starting...';
 
-    showOnly('observing');
+    showOnly('scanning');
     $('log-area').textContent = '';
-    $('status-text').textContent = 'Initializing with API key...';
+    $('scan-status-text').textContent = 'Initializing with API key...';
 
     try {
       await fetch('/api/input', {

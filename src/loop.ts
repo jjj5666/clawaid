@@ -1,5 +1,5 @@
 import { observe, formatObservation, ObservationResult } from './observe';
-import { diagnose, DiagnosisResult, extractApiKey } from './diagnose';
+import { diagnose, DiagnosisResult, RepairOption, extractApiKey } from './diagnose';
 import { executeActions, formatExecuteResults } from './execute';
 import { verify } from './verify';
 
@@ -7,10 +7,10 @@ export type LoopState =
   | 'idle'
   | 'observing'
   | 'diagnosing'
-  | 'showing_plan'
+  | 'showing_options'
+  | 'auto_executing'
   | 'executing'
   | 'verifying'
-  | 'meta_thinking'
   | 'fixed'
   | 'not_fixed'
   | 'healthy'
@@ -39,7 +39,6 @@ export interface LoopContext {
   currentDiagnosis?: DiagnosisResult;
   attemptHistory: string[];
   roundNumber: number;
-  metaThinkCount: number;
 }
 
 export class DoctorLoop {
@@ -54,7 +53,6 @@ export class DoctorLoop {
       apiKey,
       attemptHistory: [],
       roundNumber: 0,
-      metaThinkCount: 0,
     };
   }
 
@@ -94,7 +92,7 @@ export class DoctorLoop {
           label: 'OpenRouter API Key',
           placeholder: 'sk-or-...',
           hint: '🔒 Local only. Not stored. Only sent to OpenRouter for AI diagnosis.',
-          instructions: 'OpenClaw Doctor needs an OpenRouter API key to call Claude Opus for diagnosis. Your existing OpenClaw config does not have an OpenRouter key.',
+          instructions: 'ClawAid needs an OpenRouter API key to call Claude for diagnosis. Your existing OpenClaw config does not have an OpenRouter key.',
         }
       });
       return; // Wait for user to provide key via provideInput()
@@ -112,7 +110,7 @@ export class DoctorLoop {
   }
 
   private async runMainLoop() {
-    // Phase 1: Initial observation
+    // ── Round 1: Observe + Diagnose ──────────────────────────────────────────
     this.setState('observing');
     this.progress('🔍 Gathering system information...');
     
@@ -123,263 +121,225 @@ export class DoctorLoop {
     this.progress('✓ System scan complete');
     this.progress('📡 Sending data to AI for analysis...');
 
-    // Three meta-think cycles, each with 3 repair rounds
-    for (let metaCycle = 0; metaCycle < 3; metaCycle++) {
-      if (this.stopped) break;
-      
-      if (metaCycle > 0) {
-        // Meta-think between cycles
-        this.context.metaThinkCount++;
-        this.setState('meta_thinking');
-        this.progress(`\n💭 Previous approach didn't work. Re-analyzing with new perspective...`);
-        this.progress(`🔄 Meta-Think ${metaCycle}/3: Gathering fresh data and reconsidering from scratch...`);
-      }
+    this.setState('diagnosing');
+    this.progress('🤔 AI is analyzing your system...');
 
-      // Do initial diagnosis (or meta-think diagnosis)
-      this.setState('diagnosing');
-      this.progress(metaCycle === 0 ? '🤔 AI is analyzing your system...' : '🔄 Finding a completely different approach...');
-      
-      try {
-        const currentObs = await observe((msg) => this.progress(msg));
-        const currentObsText = formatObservation(currentObs);
-        
-        const diagnosis = await diagnose({
-          apiKey: this.context.apiKey,
-          observationData: currentObsText,
-          previousAttempts: this.context.attemptHistory,
-          metaThinkRound: metaCycle > 0 ? metaCycle : undefined,
-        });
-        
-        this.context.currentDiagnosis = diagnosis;
+    try {
+      const diagnosis = await diagnose({
+        apiKey: this.context.apiKey,
+        observationData: this.context.originalObservationText,
+      });
 
-        // Check if system is healthy
-        if (diagnosis.healthy && diagnosis.actions.length === 0) {
-          this.progress('✅ ' + (diagnosis.diagnosis || 'OpenClaw is running normally. No issues detected.'));
-          this.setState('healthy');
-          this.emit({
-            type: 'complete',
-            data: {
-              fixed: false,
-              healthy: true,
-              explanation: diagnosis.diagnosis || 'OpenClaw is running normally. No issues detected.',
-            }
-          });
-          return;
-        }
-        
-        // Show diagnosis to user
-        this.setState('showing_plan');
-        this.emit({
-          type: 'diagnosis',
-          data: {
-            diagnosis: diagnosis.diagnosis,
-            confidence: diagnosis.confidence,
-            rootCause: diagnosis.rootCause,
-            actions: diagnosis.actions,
-            alternativeHypotheses: diagnosis.alternativeHypotheses,
-            isMetaThink: metaCycle > 0,
-          }
-        });
-        
-        if (diagnosis.actions.length === 0) {
-          this.progress('⚠️ AI returned no actions. The system may be healthy, or a different approach is needed. Continuing to next cycle...');
-          // Don't give up — fall through to repair rounds which will re-diagnose
-        }
+      this.context.currentDiagnosis = diagnosis;
 
-        // Wait for user confirmation to proceed (the UI sends a 'fix' action)
-        // For the first cycle we wait; for subsequent we proceed automatically
-        if (metaCycle === 0 && this.context.roundNumber === 0) {
-          // First diagnosis - wait for user to click "Fix" button
-          this.setState('showing_plan');
-          return; // Will resume when user clicks fix
-        }
-        
-      } catch (err) {
-        this.progress(`❌ AI analysis failed: ${(err as Error).message}`);
-        this.setState('error');
-        this.emit({ type: 'error', data: { message: (err as Error).message } });
-        return;
-      }
-
-      // Three repair rounds per meta-cycle
-      const fixed = await this.runRepairRounds(3);
-      if (fixed) {
-        this.setState('fixed');
+      // Healthy?
+      if (diagnosis.healthy && diagnosis.options.length === 0) {
+        this.progress('✅ ' + (diagnosis.diagnosis || 'OpenClaw is running normally. No issues detected.'));
+        this.setState('healthy');
         this.emit({
           type: 'complete',
-          data: {
-            fixed: true,
-            explanation: 'OpenClaw has been successfully repaired!',
-          }
+          data: { fixed: false, healthy: true, explanation: diagnosis.diagnosis },
         });
         return;
       }
+
+      this.emit({
+        type: 'diagnosis',
+        data: {
+          diagnosis: diagnosis.diagnosis,
+          confidence: diagnosis.confidence,
+          rootCause: diagnosis.rootCause,
+          options: diagnosis.options,
+          alternativeHypotheses: diagnosis.alternativeHypotheses,
+          round: 1,
+        }
+      });
+
+      // Auto-execute if the recommended option(s) are all autoExecute
+      const recommended = diagnosis.options.filter(o => o.recommended);
+      const canAutoExecute = recommended.length > 0 && recommended.every(o => o.autoExecute);
+
+      if (canAutoExecute) {
+        this.progress('🔧 Auto-fix available — executing recommended fix automatically...');
+        const fixed = await this.executeOption(recommended[0]);
+        if (fixed) {
+          this.setState('fixed');
+          this.emit({ type: 'complete', data: { fixed: true, explanation: 'OpenClaw has been successfully repaired!' } });
+          return;
+        }
+        // Auto-fix didn't work → show options to user for round 2
+      } else {
+        // Show option cards to user and wait for their choice
+        this.setState('showing_options');
+        return; // Resumes via startFix(optionId)
+      }
+    } catch (err) {
+      this.progress(`❌ AI analysis failed: ${(err as Error).message}`);
+      this.setState('error');
+      this.emit({ type: 'error', data: { message: (err as Error).message } });
+      return;
     }
 
-    // All 3 meta-cycles exhausted (9 rounds total)
-    this.setState('not_fixed');
-    this.progress('\n😔 After 9 repair attempts across 3 strategies, the issue persists.');
-    this.emit({
-      type: 'complete',
-      data: {
-        fixed: false,
-        explanation: 'The issue could not be automatically resolved after 9 attempts.',
-        diagnosticReport: this.buildDiagnosticReport(),
-      }
-    });
+    // Auto-fix failed → round 2 with updated observation
+    await this.continueAfterFailure(2);
   }
 
-  // Called when user clicks "Fix" button after first diagnosis
-  async startFix() {
+  /**
+   * Called when user clicks "Fix" on an option card.
+   * optionId: "A", "B", "C" — if omitted, use the recommended option.
+   */
+  async startFix(optionId?: string) {
     if (!this.context.currentDiagnosis) {
       this.progress('No diagnosis available. Please restart.');
       return;
     }
 
-    this.context.roundNumber = 0;
+    const options = this.context.currentDiagnosis.options;
+    let chosen: RepairOption | undefined;
 
-    // Execute the current plan
-    const fixed = await this.executePlan(this.context.currentDiagnosis);
-    
+    if (optionId) {
+      chosen = options.find(o => o.id === optionId);
+    }
+    if (!chosen) {
+      chosen = options.find(o => o.recommended) || options[0];
+    }
+
+    if (!chosen) {
+      this.progress('⚠️ No option found to execute.');
+      return;
+    }
+
+    this.context.roundNumber = 1;
+    const fixed = await this.executeOption(chosen);
+
     if (fixed) {
       this.setState('fixed');
+      this.emit({ type: 'complete', data: { fixed: true, explanation: 'OpenClaw has been successfully repaired!' } });
+      return;
+    }
+
+    // Not fixed after round 1 user choice → round 2
+    await this.continueAfterFailure(2);
+  }
+
+  /**
+   * Continue with round 2 or 3 after a failed fix attempt.
+   */
+  private async continueAfterFailure(round: number) {
+    if (this.stopped) return;
+
+    // Round 3: give up
+    if (round > 3) {
+      this.setState('not_fixed');
+      this.progress('\n😔 After 3 repair rounds, the issue persists.');
       this.emit({
         type: 'complete',
         data: {
-          fixed: true,
-          explanation: 'OpenClaw has been successfully repaired!',
+          fixed: false,
+          explanation: 'The issue could not be automatically resolved after 3 attempts.',
+          diagnosticReport: this.buildDiagnosticReport(),
         }
       });
       return;
     }
 
-    // If not fixed, continue with remaining meta-cycles
-    for (let metaCycle = 1; metaCycle < 3; metaCycle++) {
-      if (this.stopped) break;
-      
-      this.context.metaThinkCount++;
-      this.setState('meta_thinking');
-      this.progress(`\n💭 Meta-Think ${metaCycle}/3: Reconsidering approach...`);
-      
-      try {
-        const currentObs = await observe((msg) => this.progress(msg));
-        const currentObsText = formatObservation(currentObs);
-        
-        const diagnosis = await diagnose({
-          apiKey: this.context.apiKey,
-          observationData: currentObsText,
-          previousAttempts: this.context.attemptHistory,
-          metaThinkRound: metaCycle,
-        });
-        
-        this.context.currentDiagnosis = diagnosis;
-        
+    // Re-observe
+    this.setState('observing');
+    this.progress(`\n🔄 Round ${round}: Re-scanning system...`);
+
+    let currentObsText: string;
+    try {
+      const currentObs = await observe((msg) => this.progress(msg));
+      currentObsText = formatObservation(currentObs);
+    } catch (err) {
+      this.progress(`Observation error: ${(err as Error).message}`);
+      currentObsText = this.context.originalObservationText || '';
+    }
+
+    // Re-diagnose
+    this.setState('diagnosing');
+    this.progress('🤔 AI is re-analyzing with attempt history...');
+
+    try {
+      const newDiagnosis = await diagnose({
+        apiKey: this.context.apiKey,
+        observationData: currentObsText,
+        previousAttempts: this.context.attemptHistory,
+        round,
+      });
+
+      this.context.currentDiagnosis = newDiagnosis;
+
+      if (newDiagnosis.healthy && newDiagnosis.options.length === 0) {
+        this.progress('✅ ' + (newDiagnosis.diagnosis || 'OpenClaw is running normally. No issues detected.'));
+        this.setState('healthy');
+        this.emit({ type: 'complete', data: { fixed: false, healthy: true, explanation: newDiagnosis.diagnosis } });
+        return;
+      }
+
+      this.emit({
+        type: 'diagnosis',
+        data: {
+          diagnosis: newDiagnosis.diagnosis,
+          confidence: newDiagnosis.confidence,
+          rootCause: newDiagnosis.rootCause,
+          options: newDiagnosis.options,
+          alternativeHypotheses: newDiagnosis.alternativeHypotheses,
+          round,
+        }
+      });
+
+      // Round 3 = give up, just show report
+      if (round === 3) {
+        this.setState('not_fixed');
         this.emit({
-          type: 'diagnosis',
+          type: 'complete',
           data: {
-            diagnosis: diagnosis.diagnosis,
-            confidence: diagnosis.confidence,
-            rootCause: diagnosis.rootCause,
-            actions: diagnosis.actions,
-            alternativeHypotheses: diagnosis.alternativeHypotheses,
-            isMetaThink: true,
+            fixed: false,
+            explanation: 'The issue could not be automatically resolved after 3 attempts.',
+            diagnosticReport: this.buildDiagnosticReport(),
           }
         });
+        return;
+      }
 
-        const roundsFixed = await this.runRepairRounds(3);
-        if (roundsFixed) {
+      // Try auto-execute again if possible
+      const recommended = newDiagnosis.options.filter(o => o.recommended);
+      const canAutoExecute = recommended.length > 0 && recommended.every(o => o.autoExecute);
+
+      if (canAutoExecute) {
+        this.progress('🔧 Auto-fix available — executing recommended fix automatically...');
+        const fixed = await this.executeOption(recommended[0]);
+        if (fixed) {
           this.setState('fixed');
-          this.emit({
-            type: 'complete',
-            data: {
-              fixed: true,
-              explanation: 'OpenClaw has been successfully repaired!',
-            }
-          });
+          this.emit({ type: 'complete', data: { fixed: true, explanation: 'OpenClaw has been successfully repaired!' } });
           return;
         }
-      } catch (err) {
-        this.progress(`❌ Meta-think failed: ${(err as Error).message}`);
+        await this.continueAfterFailure(round + 1);
+      } else {
+        // Show options to user
+        this.setState('showing_options');
+        // Will resume via startFix() — but update roundNumber so next call knows which round we're on
+        this.context.roundNumber = round;
       }
+    } catch (err) {
+      this.progress(`❌ AI analysis failed: ${(err as Error).message}`);
+      this.setState('error');
+      this.emit({ type: 'error', data: { message: (err as Error).message } });
     }
-
-    this.setState('not_fixed');
-    this.emit({
-      type: 'complete',
-      data: {
-        fixed: false,
-        explanation: 'The issue could not be automatically resolved after multiple attempts.',
-        diagnosticReport: this.buildDiagnosticReport(),
-      }
-    });
   }
 
-  private async runRepairRounds(maxRounds: number): Promise<boolean> {
-    for (let round = 0; round < maxRounds; round++) {
-      if (this.stopped) return false;
-      
-      this.context.roundNumber++;
-      
-      if (round > 0) {
-        // Need new diagnosis for subsequent rounds
-        this.setState('diagnosing');
-        this.progress(`\n🔄 Round ${round + 1}/${maxRounds}: Re-analyzing...`);
-        
-        try {
-          const currentObs = await observe((msg) => this.progress(msg));
-          const currentObsText = formatObservation(currentObs);
-          
-          const newDiagnosis = await diagnose({
-            apiKey: this.context.apiKey,
-            observationData: currentObsText,
-            previousAttempts: this.context.attemptHistory,
-          });
-          
-          this.context.currentDiagnosis = newDiagnosis;
-          
-          this.emit({
-            type: 'diagnosis',
-            data: {
-              diagnosis: newDiagnosis.diagnosis,
-              confidence: newDiagnosis.confidence,
-              rootCause: newDiagnosis.rootCause,
-              actions: newDiagnosis.actions,
-              alternativeHypotheses: newDiagnosis.alternativeHypotheses,
-              isMetaThink: false,
-            }
-          });
-        } catch (err) {
-          this.progress(`Analysis error: ${(err as Error).message}`);
-          continue;
-        }
-      }
-      
-      if (!this.context.currentDiagnosis) continue;
-
-      // Skip execution if AI returned no actions; re-observe next round
-      if (this.context.currentDiagnosis.actions.length === 0) {
-        this.progress('⚠️ AI returned no actions this round. Will re-observe and try again...');
-        this.context.attemptHistory.push(`### Attempt ${this.context.roundNumber}\nAI returned no actions. Skipping execution and re-observing.`);
-        continue;
-      }
-      
-      const fixed = await this.executePlan(this.context.currentDiagnosis);
-      if (fixed) return true;
-    }
-    
-    return false;
-  }
-
-  private async executePlan(diagnosis: DiagnosisResult): Promise<boolean> {
-    if (diagnosis.actions.length === 0) {
-      this.progress('⚠️ No actions to execute.');
+  private async executeOption(option: RepairOption): Promise<boolean> {
+    if (option.steps.length === 0) {
+      this.progress('⚠️ No steps in this option.');
       return false;
     }
-    this.setState('executing');
-    this.progress(`\n🔧 Executing repair plan (${diagnosis.actions.length} steps)...`);
-    
+
+    this.setState('auto_executing');
+    this.progress(`\n🔧 Executing: ${option.title} (${option.steps.length} step${option.steps.length > 1 ? 's' : ''})...`);
+
     const executeResult = await executeActions(
-      diagnosis.actions,
+      option.steps,
       (msg, result) => {
         this.progress(msg);
         if (result) {
@@ -387,23 +347,24 @@ export class DoctorLoop {
         }
       }
     );
-    
-    // Record this attempt in history
+
+    // Record this attempt
     const attemptSummary = `
-### Attempt ${this.context.roundNumber}
-Diagnosis: ${diagnosis.diagnosis}
-Root cause: ${diagnosis.rootCause}
-Actions taken:
+### Attempt ${this.context.roundNumber + 1} — Option ${option.id}: ${option.title}
+Diagnosis: ${this.context.currentDiagnosis?.diagnosis || ''}
+Root cause: ${this.context.currentDiagnosis?.rootCause || ''}
+Steps taken:
 ${formatExecuteResults(executeResult.results)}
 Result: ${executeResult.summary}
 `.trim();
-    
+
     this.context.attemptHistory.push(attemptSummary);
-    
+    this.context.roundNumber++;
+
     // Verify
     this.setState('verifying');
-    this.progress('\n✅ Verifying repair...');
-    
+    this.progress('\n🔍 Verifying repair...');
+
     try {
       const verifyResult = await verify(
         this.context.apiKey,
@@ -411,15 +372,12 @@ Result: ${executeResult.summary}
         executeResult.results.map(r => `${r.action.command}: ${r.output}`),
         (msg) => this.progress(msg)
       );
-      
+
       this.emit({
         type: 'verify_result',
-        data: {
-          fixed: verifyResult.fixed,
-          explanation: verifyResult.explanation,
-        }
+        data: { fixed: verifyResult.fixed, explanation: verifyResult.explanation },
       });
-      
+
       if (verifyResult.fixed) {
         this.progress(`\n✅ ${verifyResult.explanation}`);
         return true;
@@ -435,7 +393,7 @@ Result: ${executeResult.summary}
 
   private buildDiagnosticReport(): string {
     return `
-# OpenClaw Doctor - Diagnostic Report
+# ClawAid - Diagnostic Report
 Generated: ${new Date().toISOString()}
 
 ## System State (Initial)
@@ -445,9 +403,8 @@ ${this.context.originalObservationText || 'Not captured'}
 ${this.context.attemptHistory.join('\n\n---\n\n')}
 
 ## Summary
-After ${this.context.roundNumber} repair rounds and ${this.context.metaThinkCount} meta-think cycles,
-the issue was not automatically resolved. Please review the diagnostic data above and consult
-the OpenClaw community for assistance.
+After ${this.context.roundNumber} repair round(s), the issue was not automatically resolved.
+Please review the diagnostic data above and consult the OpenClaw community for assistance.
 
 ## Resources
 - OpenClaw Discord: https://discord.gg/openclaw

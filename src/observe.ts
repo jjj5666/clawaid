@@ -24,6 +24,9 @@ export interface ObservationResult {
   openclawVersion: string;
   systemInfo: string;
   homeDir: string;
+  officialDoctorOutput: string;
+  desktopAppVersion: string;
+  desktopAppRunning: string;
   errors: string[];
 }
 
@@ -162,6 +165,10 @@ export async function observe(onProgress?: (msg: string) => void): Promise<Obser
   const gatewayStatus = await runCommand('openclaw gateway status 2>&1');
   const gatewayStatusJson = await runCommand('openclaw gateway status --json 2>&1');
 
+  progress('Running official openclaw doctor...');
+  const officialDoctorRaw = await runCommand('openclaw doctor 2>&1', 30000);
+  const officialDoctorOutput = truncate(officialDoctorRaw, 3000);
+
   progress('Reading config file...');
   const { content: configContent, configPath } = await readConfig();
 
@@ -184,6 +191,10 @@ export async function observe(onProgress?: (msg: string) => void): Promise<Obser
   progress('Checking OpenClaw version...');
   const openclawVersion = await runCommand('openclaw --version 2>&1');
 
+  progress('Checking OpenClaw desktop app...');
+  const desktopAppVersion = await runCommand('defaults read /Applications/OpenClaw.app/Contents/Info.plist CFBundleShortVersionString 2>&1');
+  const desktopAppRunning = await runCommand('pgrep -f "OpenClaw.app" 2>&1');
+
   progress('Gathering system info...');
   const systemInfo = await runCommand('sw_vers 2>/dev/null || uname -a');
 
@@ -205,6 +216,9 @@ export async function observe(onProgress?: (msg: string) => void): Promise<Obser
     openclawVersion,
     systemInfo,
     homeDir,
+    officialDoctorOutput,
+    desktopAppVersion,
+    desktopAppRunning,
     errors,
   };
 }
@@ -266,9 +280,16 @@ function extractConfigEssentials(configContent: string): string {
 
 export function formatObservation(obs: ObservationResult): string {
   return `
-=== OPENCLAW DOCTOR OBSERVATION ===
+=== CLAWAID OBSERVATION ===
 Timestamp: ${obs.timestamp}
 Home: ${obs.homeDir}
+
+--- OFFICIAL openclaw doctor output (IMPORTANT - check this first) ---
+${truncate(obs.officialDoctorOutput, 3000)}
+
+--- Desktop App ---
+Version: ${obs.desktopAppVersion}
+Running (pgrep): ${obs.desktopAppRunning}
 
 --- openclaw status (text, truncated) ---
 ${truncate(obs.openclawStatus, 2000)}

@@ -1,5 +1,4 @@
 import * as https from 'https';
-import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -12,12 +11,22 @@ export interface DiagnosticAction {
   backup: string | null;
 }
 
+export interface RepairOption {
+  id: string;           // "A", "B", "C"
+  title: string;        // "Restart gateway (recommended)"
+  description: string;  // brief explanation
+  recommended: boolean; // AI picks the best one
+  risk: 'low' | 'medium' | 'high';
+  autoExecute: boolean; // true = run without asking user
+  steps: DiagnosticAction[];
+}
+
 export interface DiagnosisResult {
   healthy?: boolean;
   diagnosis: string;
   confidence: number;
   rootCause: string;
-  actions: DiagnosticAction[];
+  options: RepairOption[];
   alternativeHypotheses: string[];
   rawResponse?: string;
 }
@@ -26,10 +35,10 @@ export interface DiagnoseOptions {
   apiKey: string;
   observationData: string;
   previousAttempts?: string[];
-  metaThinkRound?: number;
+  round?: number;
 }
 
-const SYSTEM_PROMPT = `You are a top-tier OpenClaw diagnostics engineer. OpenClaw is a local AI gateway/assistant platform that runs on macOS.
+const SYSTEM_PROMPT = `You are a top-tier OpenClaw diagnostics engineer. OpenClaw is a local AI gateway/assistant platform that runs on macOS. Your tool is called ClawAid 🩺.
 
 Key facts about OpenClaw:
 - Default gateway port: 18789
@@ -40,66 +49,60 @@ Key facts about OpenClaw:
 - gateway.mode must be "local" in config for local operation
 - Doctor command: openclaw doctor / openclaw doctor --yes / openclaw doctor --repair
 
+IMPORTANT - Solution priority (always prefer higher in the list):
+1. \`openclaw doctor --yes\` or \`openclaw doctor --repair\` — if the official doctor already identified the issue, use its built-in fix first
+2. \`openclaw gateway restart\` — restart the gateway service
+3. \`openclaw gateway install --force\` — reinstall the launch agent
+4. System commands: kill, launchctl (only if CLI commands above fail)
+5. File edits — absolute LAST resort only
+
+ALWAYS check the official \`openclaw doctor\` output first. It already identifies many common issues like:
+- WhatsApp groupPolicy warnings
+- Missing or misconfigured gateway
+- LaunchAgent issues
+If the official doctor already identified an issue AND has a CLI fix, use that fix first.
+
 You think like a scientist: observe, hypothesize, test, refine.
 
-Given the system data, follow this chain of thought:
-1. What anomalies do you see? (List facts only)
-2. What root cause do these point to? (Not symptoms - the actual root cause)
-3. Could you be wrong? What other possibilities exist?
-4. What is the minimal fix?
-5. What are the risks of this fix? Could it break anything else?
-6. Can it be done with official CLI commands? Or must files be edited?
+Given the system data:
+1. What anomalies do you see? (List facts only — check the official doctor output FIRST)
+2. What root cause do these point to?
+3. What is the minimal fix using the priority order above?
+4. What are the risks?
 
 IMPORTANT RULES:
-- If the system is healthy (gateway running, RPC probe ok, no errors in logs), return "healthy": true and empty actions. Do NOT invent problems.
-- Prefer official OpenClaw CLI commands (openclaw gateway restart, openclaw doctor --yes, openclaw gateway install --force) over system commands (kill, launchctl). Only resort to system commands or file edits as last resort.
-- Focus ONLY on things that prevent OpenClaw from functioning. Ignore cosmetic issues, warnings about unused channels, or non-critical configuration details.
+- If the system is healthy (gateway running, RPC probe ok, no errors in logs), return "healthy": true and empty options. Do NOT invent problems.
+- Focus ONLY on things that prevent OpenClaw from functioning. Ignore cosmetic issues.
+- Return 1-3 options, ALWAYS mark exactly one as recommended.
+- Options with risk "low" SHOULD have autoExecute: true (they run automatically without asking the user).
+- Options with risk "medium" or "high" MUST have autoExecute: false.
 
-Output ONLY valid JSON (no markdown, no code fences, no explanation outside JSON):
+Output ONLY valid JSON (no markdown, no code fences):
 {
   "healthy": false,
   "diagnosis": "plain language description of what's wrong (2-3 sentences max). If healthy, say 'OpenClaw is running normally. No issues detected.'",
   "confidence": 0.0-1.0,
   "rootCause": "technical root cause (one sentence). If healthy, say 'No issues found'",
-  "actions": [
+  "options": [
     {
-      "description": "what this step does in plain language",
-      "command": "the actual command to run",
-      "type": "cli|system|file_edit",
-      "risk": "low|medium|high",
-      "backup": "backup command if type is file_edit, null otherwise"
+      "id": "A",
+      "title": "Restart gateway",
+      "description": "brief explanation of what this option does and why it should work",
+      "recommended": true,
+      "risk": "low",
+      "autoExecute": true,
+      "steps": [
+        {
+          "description": "what this step does in plain language",
+          "command": "the actual command to run",
+          "type": "cli",
+          "risk": "low",
+          "backup": null
+        }
+      ]
     }
   ],
-  "alternativeHypotheses": ["other possible causes to investigate if this doesn't work"]
-}`;
-
-const META_THINK_PROMPT = `You are a top-tier OpenClaw diagnostics engineer doing a meta-analysis.
-
-Your previous repair attempts did NOT fix the problem. You have seen ${3} rounds of observe → diagnose → fix → verify, and the issue persists.
-
-Now think differently:
-1. What did all my failed attempts have in common? (common assumption I kept making)
-2. What does the failure data tell me about what the real problem ISN'T?
-3. What root cause would explain BOTH the original symptoms AND the failure of my fixes?
-4. What completely different approach should I try?
-
-Be brutally honest. If you're uncertain, say so. If the problem is beyond automated repair, say so.
-
-Output ONLY valid JSON:
-{
-  "diagnosis": "updated understanding of the problem after failed attempts",
-  "confidence": 0.0-1.0,
-  "rootCause": "revised root cause hypothesis",
-  "actions": [
-    {
-      "description": "what this new approach does",
-      "command": "the actual command to run",
-      "type": "cli|system|file_edit",
-      "risk": "low|medium|high",
-      "backup": "backup command if type is file_edit, null otherwise"
-    }
-  ],
-  "alternativeHypotheses": ["other possibilities we haven't tried"]
+  "alternativeHypotheses": ["other possible causes if this doesn't work"]
 }`;
 
 function extractApiKey(): string | null {
@@ -148,8 +151,8 @@ async function callOpenRouter(apiKey: string, systemPrompt: string, userMessage:
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://github.com/openclaw-doctor',
-        'X-Title': 'OpenClaw Doctor',
+        'HTTP-Referer': 'https://github.com/openclaw-clawaid',
+        'X-Title': 'ClawAid',
         'Content-Length': Buffer.byteLength(body),
       },
     };
@@ -207,43 +210,51 @@ function parseJsonResponse(response: string): DiagnosisResult {
   
   const parsed = JSON.parse(jsonStr);
   
+  // Normalize options array
+  const rawOptions = Array.isArray(parsed.options) ? parsed.options : [];
+  const options: RepairOption[] = rawOptions.map((o: Partial<RepairOption> & { steps?: Partial<DiagnosticAction>[] }) => ({
+    id: o.id || 'A',
+    title: o.title || 'Fix',
+    description: o.description || '',
+    recommended: Boolean(o.recommended),
+    risk: o.risk || 'low',
+    autoExecute: Boolean(o.autoExecute),
+    steps: Array.isArray(o.steps) ? o.steps.map((s) => ({
+      description: s.description || 'Unknown action',
+      command: s.command || '',
+      type: s.type || 'cli',
+      risk: s.risk || 'low',
+      backup: s.backup || null,
+    })) : [],
+  }));
+
   // Validate and normalize
   return {
     healthy: Boolean(parsed.healthy),
     diagnosis: parsed.diagnosis || 'Unable to determine diagnosis',
     confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.5,
     rootCause: parsed.rootCause || 'Unknown root cause',
-    actions: Array.isArray(parsed.actions) ? parsed.actions.map((a: Partial<DiagnosticAction>) => ({
-      description: a.description || 'Unknown action',
-      command: a.command || '',
-      type: a.type || 'cli',
-      risk: a.risk || 'low',
-      backup: a.backup || null,
-    })) : [],
+    options,
     alternativeHypotheses: Array.isArray(parsed.alternativeHypotheses) ? parsed.alternativeHypotheses : [],
     rawResponse: response,
   };
 }
 
 export async function diagnose(options: DiagnoseOptions): Promise<DiagnosisResult> {
-  const { apiKey, observationData, previousAttempts, metaThinkRound } = options;
-  
-  const isMetaThink = metaThinkRound !== undefined && metaThinkRound > 0;
+  const { apiKey, observationData, previousAttempts, round } = options;
   
   let userMessage: string;
   
-  if (isMetaThink && previousAttempts && previousAttempts.length > 0) {
+  if (previousAttempts && previousAttempts.length > 0) {
     userMessage = `
-## Meta-Think Round ${metaThinkRound}
+## System Observation Data
 
-Your previous repair attempts have failed. Here is the complete history:
-
-${previousAttempts.join('\n\n---\n\n')}
-
-## Current System State (after ${previousAttempts.length} failed attempts):
 ${observationData}
 
-Given that your previous approaches did not work, what is your revised diagnosis and completely different repair strategy?
+## Previous Repair Attempts (Round ${round || previousAttempts.length} — these did NOT fully fix the issue)
+${previousAttempts.join('\n\n---\n\n')}
+
+Based on the failure of previous attempts, please provide a revised diagnosis and a new approach.
 `.trim();
   } else {
     userMessage = `
@@ -251,24 +262,14 @@ Given that your previous approaches did not work, what is your revised diagnosis
 
 ${observationData}
 
-${previousAttempts && previousAttempts.length > 0 ? `
-## Previous Repair Attempts (these did NOT work)
-${previousAttempts.join('\n\n---\n\n')}
-
-Based on the failure of these previous attempts, please provide a new diagnosis and approach.
-` : ''}
-
-Please diagnose the OpenClaw issues and provide a repair plan.
+Please diagnose any OpenClaw issues and provide a repair plan.
 `.trim();
   }
 
-  const systemPrompt = isMetaThink ? META_THINK_PROMPT : SYSTEM_PROMPT;
-
   let response: string;
   try {
-    response = await callOpenRouter(apiKey, systemPrompt, userMessage);
+    response = await callOpenRouter(apiKey, SYSTEM_PROMPT, userMessage);
   } catch (err) {
-    // Re-throw with a clear, user-visible message
     const msg = (err as Error).message || String(err);
     throw new Error(`AI API call failed: ${msg}`);
   }
@@ -276,12 +277,11 @@ Please diagnose the OpenClaw issues and provide a repair plan.
   try {
     return parseJsonResponse(response);
   } catch (e) {
-    // If JSON parsing fails, return a structured error with the raw response visible
     return {
-      diagnosis: `AI analysis completed but response format was unexpected. The AI may have returned a non-JSON response. Raw response: ${response.slice(0, 500)}`,
+      diagnosis: `AI analysis completed but response format was unexpected. Raw response: ${response.slice(0, 500)}`,
       confidence: 0.1,
       rootCause: 'Unable to parse AI response as JSON',
-      actions: [],
+      options: [],
       alternativeHypotheses: ['Manual inspection required', 'Try again — the AI may return valid JSON on the next attempt'],
       rawResponse: response,
     };
@@ -332,7 +332,6 @@ Output ONLY valid JSON with "fixed" (boolean) and "explanation" (string).`;
       explanation: parsed.explanation || 'Verification complete',
     };
   } catch {
-    // Fallback: check if "fixed: true" or similar appears
     const looksFixed = response.toLowerCase().includes('"fixed": true') || 
                        response.toLowerCase().includes('"fixed":true');
     return {

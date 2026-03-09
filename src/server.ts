@@ -17,7 +17,7 @@ app.get('/', (_req: Request, res: Response) => {
 });
 
 // SSE endpoint - main diagnostic stream
-let activeSessions = new Map<string, { res: Response; loop: DoctorLoop }>();
+const activeSessions = new Map<string, { res: Response; loop: DoctorLoop }>();
 
 app.get('/api/diagnose', (req: Request, res: Response) => {
   const sessionId = Date.now().toString();
@@ -73,8 +73,9 @@ app.post('/api/input', (req: Request, res: Response) => {
 });
 
 // Endpoint to trigger fix after user clicks "Fix" button
+// Accepts optional optionId ("A", "B", "C") — defaults to recommended option
 app.post('/api/fix', (req: Request, res: Response) => {
-  const { sessionId } = req.body as { sessionId: string };
+  const { sessionId, optionId } = req.body as { sessionId: string; optionId?: string };
   
   const session = activeSessions.get(sessionId);
   if (!session) {
@@ -82,7 +83,7 @@ app.post('/api/fix', (req: Request, res: Response) => {
     return;
   }
   
-  session.loop.startFix().catch((err: Error) => {
+  session.loop.startFix(optionId).catch((err: Error) => {
     console.error('Error starting fix:', err);
   });
   
@@ -91,13 +92,13 @@ app.post('/api/fix', (req: Request, res: Response) => {
 
 // Health check
 app.get('/api/health', (_req: Request, res: Response) => {
-  res.json({ ok: true, version: '1.0.0', sessions: activeSessions.size });
+  res.json({ ok: true, version: '1.0.0', name: 'ClawAid', sessions: activeSessions.size });
 });
 
 export function createServer(port: number): Promise<void> {
   return new Promise((resolve) => {
     app.listen(port, '127.0.0.1', () => {
-      console.log(`OpenClaw Doctor running at http://127.0.0.1:${port}`);
+      console.log(`🩺 ClawAid running at http://127.0.0.1:${port}`);
       resolve();
     });
   });
