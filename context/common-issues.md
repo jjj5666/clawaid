@@ -21,9 +21,10 @@
 - `openclaw gateway run --force` (kills existing, starts new)
 - Or: `kill <pid>` then `openclaw gateway start`
 
-### 3. 🟡 Proxy configuration mismatch
-**Symptom:** All API calls timeout, gateway hangs
-**Cause:** Proxy env vars in LaunchAgent plist but proxy not running
+### 3. 🔴 Proxy configuration mismatch (CRITICAL — treat as high severity!)
+**Symptom:** All API calls timeout, gateway hangs, agent completely unresponsive
+**Cause:** Proxy env vars (HTTP_PROXY/HTTPS_PROXY) in LaunchAgent plist but proxy software not running
+**IMPORTANT:** This is a TICKING TIME BOMB. Even if the gateway is currently running fine, the proxy vars will take effect on next restart and cause COMPLETE FAILURE. This has caused real-world outages lasting hours. ALWAYS recommend removing proxy vars from plist as a repair option, even if the system appears healthy right now.
 **Detection:** Check plist for HTTP_PROXY/HTTPS_PROXY env vars
 **Fix:**
 ```bash

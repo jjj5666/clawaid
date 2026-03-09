@@ -156,24 +156,9 @@ export class DoctorLoop {
         }
       });
 
-      // Auto-execute if the recommended option(s) are all autoExecute
-      const recommended = diagnosis.options.filter(o => o.recommended);
-      const canAutoExecute = recommended.length > 0 && recommended.every(o => o.autoExecute);
-
-      if (canAutoExecute) {
-        this.progress('🔧 Auto-fix available — executing recommended fix automatically...');
-        const fixed = await this.executeOption(recommended[0]);
-        if (fixed) {
-          this.setState('fixed');
-          this.emit({ type: 'complete', data: { fixed: true, explanation: 'OpenClaw has been successfully repaired!' } });
-          return;
-        }
-        // Auto-fix didn't work → show options to user for round 2
-      } else {
-        // Show option cards to user and wait for their choice
-        this.setState('showing_options');
-        return; // Resumes via startFix(optionId)
-      }
+      // Always show options to user and wait for their choice
+      this.setState('showing_options');
+      return; // Resumes via startFix(optionId)
     } catch (err) {
       this.progress(`❌ AI analysis failed: ${(err as Error).message}`);
       this.setState('error');
@@ -304,25 +289,9 @@ export class DoctorLoop {
         return;
       }
 
-      // Try auto-execute again if possible
-      const recommended = newDiagnosis.options.filter(o => o.recommended);
-      const canAutoExecute = recommended.length > 0 && recommended.every(o => o.autoExecute);
-
-      if (canAutoExecute) {
-        this.progress('🔧 Auto-fix available — executing recommended fix automatically...');
-        const fixed = await this.executeOption(recommended[0]);
-        if (fixed) {
-          this.setState('fixed');
-          this.emit({ type: 'complete', data: { fixed: true, explanation: 'OpenClaw has been successfully repaired!' } });
-          return;
-        }
-        await this.continueAfterFailure(round + 1);
-      } else {
-        // Show options to user
-        this.setState('showing_options');
-        // Will resume via startFix() — but update roundNumber so next call knows which round we're on
-        this.context.roundNumber = round;
-      }
+      // Always show options to user and wait for their choice
+      this.setState('showing_options');
+      this.context.roundNumber = round;
     } catch (err) {
       this.progress(`❌ AI analysis failed: ${(err as Error).message}`);
       this.setState('error');
@@ -336,8 +305,10 @@ export class DoctorLoop {
       return false;
     }
 
+    const dryRun = Boolean((global as Record<string, unknown>).__clawaid_dry_run);
+
     this.setState('auto_executing');
-    this.progress(`\n🔧 Executing: ${option.title} (${option.steps.length} step${option.steps.length > 1 ? 's' : ''})...`);
+    this.progress(`\n🔧 ${dryRun ? '[DRY-RUN] ' : ''}Executing: ${option.title} (${option.steps.length} step${option.steps.length > 1 ? 's' : ''})...`);
 
     const executeResult = await executeActions(
       option.steps,
@@ -346,7 +317,8 @@ export class DoctorLoop {
         if (result) {
           this.emit({ type: 'action_result', data: result });
         }
-      }
+      },
+      dryRun
     );
 
     // Record this attempt
@@ -361,6 +333,13 @@ Result: ${executeResult.summary}
 
     this.context.attemptHistory.push(attemptSummary);
     this.context.roundNumber++;
+
+    // In dry-run mode, skip verification
+    if (dryRun) {
+      this.progress('\n⚠️ DRY-RUN: Skipping verification (nothing was executed).');
+      this.emit({ type: 'verify_result', data: { fixed: false, explanation: 'Dry-run mode — no changes made.' } });
+      return false;
+    }
 
     // Verify
     this.setState('verifying');

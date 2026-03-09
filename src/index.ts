@@ -41,8 +41,14 @@ async function openBrowser(url: string): Promise<void> {
 }
 
 async function main() {
+  const dryRun = process.argv.includes('--dry-run');
+  
   console.log('\n🩺 ClawAid\n');
+  if (dryRun) console.log('⚠️  DRY-RUN mode: fixes will NOT be executed\n');
   console.log('Finding available port...');
+  
+  // Export dry-run flag so server can access it
+  (global as Record<string, unknown>).__clawaid_dry_run = dryRun;
   
   const port = await findFreePort(7357);
   const url = `http://127.0.0.1:${port}`;

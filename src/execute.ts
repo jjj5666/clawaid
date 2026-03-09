@@ -60,13 +60,30 @@ async function backupFile(filePath: string): Promise<string> {
 
 export async function executeActions(
   actions: DiagnosticAction[],
-  onProgress?: (msg: string, result?: ActionResult) => void
+  onProgress?: (msg: string, result?: ActionResult) => void,
+  dryRun = false
 ): Promise<ExecuteResult> {
   const results: ActionResult[] = [];
   
   const progress = (msg: string, result?: ActionResult) => {
     if (onProgress) onProgress(msg, result);
   };
+
+  if (dryRun) {
+    progress('⚠️ DRY-RUN mode — showing what would be executed:');
+    for (let i = 0; i < actions.length; i++) {
+      const action = actions[i];
+      progress(`  Step ${i + 1}: ${action.description}`);
+      progress(`    $ ${action.command}`);
+      progress(`    Risk: ${action.risk} | Type: ${action.type}`);
+      results.push({
+        action,
+        success: true,
+        output: '[dry-run: not executed]',
+      });
+    }
+    return { results, allSucceeded: true, summary: `Dry run: ${actions.length} actions shown (not executed)` };
+  }
 
   for (let i = 0; i < actions.length; i++) {
     const action = actions[i];
