@@ -786,7 +786,7 @@
   </div>
 
   <div class="footer">
-    <p>ClawAid v1.0.0 · <a href="https://github.com/jjj5666/clawaid" target="_blank">GitHub</a></p>
+    <p>ClawAid v1.1.0 · <a href="https://clawaid.app" target="_blank">clawaid.app</a></p>
   </div>
 
 </div>
@@ -1210,14 +1210,22 @@
   }
 
   function showPaywall(data) {
-    const isChinese = Boolean(data.isChinese);
-    const price = data.price || (isChinese ? '¥9.9' : '$1.99');
-    const credits = data.credits || 0;
+    // data.price may be an object { price, currency, isChinese, credits } or a string
+    let priceStr, isChinese, credits;
+    if (data.price && typeof data.price === 'object') {
+      priceStr = data.price.price || (data.price.currency === 'CNY' ? '¥9.9' : '$1.99');
+      isChinese = data.price.isChinese;
+      credits = data.price.credits || data.credits || 5;
+    } else {
+      priceStr = data.price || (data.isChinese ? '¥9.9' : '$1.99');
+      isChinese = Boolean(data.isChinese);
+      credits = data.credits || 5;
+    }
 
-    $('paywall-price').textContent = price;
-    $('paywall-credits').textContent = credits > 0
-      ? `Includes ${credits} credits`
-      : 'Credits for more scans';
+    $('paywall-price').textContent = priceStr;
+    $('paywall-credits').textContent = isChinese
+      ? `包含 ${credits} 次修复`
+      : `Includes ${credits} fix credits`;
 
     showOnly('paywall');
   }
