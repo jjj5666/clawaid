@@ -533,7 +533,7 @@
 
   <!-- Header -->
   <div class="header">
-    <div class="logo">🩺</div>
+    <div class="logo" style="font-size:48px; line-height:1;">🦞🩹</div>
     <h1>ClawAid</h1>
     <p>AI-powered diagnostics and repair for OpenClaw</p>
   </div>
@@ -671,6 +671,11 @@
     <div class="result-icon">💚</div>
     <div class="result-title">OpenClaw is healthy!</div>
     <p class="result-desc" id="healthy-explanation">Your system is running normally. No issues detected.</p>
+
+    <div id="healthy-warnings" style="display:none; text-align:left; margin-bottom:16px;">
+      <div style="font-size:13px; font-weight:600; color:#e37400; margin-bottom:8px;">⚠️ Non-critical notes</div>
+      <ul id="healthy-warnings-list" style="list-style:none; padding:0; margin:0;"></ul>
+    </div>
 
     <button class="btn btn-secondary" onclick="location.reload()" style="margin-bottom: 8px;">
       🔄 Scan Again
@@ -1046,6 +1051,19 @@
 
     if (data.healthy) {
       $('healthy-explanation').textContent = data.explanation || 'Your system is running normally. No issues detected.';
+      // Show warnings if any
+      const warnings = data.warnings || [];
+      if (warnings.length > 0) {
+        $('healthy-warnings').style.display = 'block';
+        const list = $('healthy-warnings-list');
+        list.innerHTML = '';
+        warnings.forEach(function(w) {
+          const li = document.createElement('li');
+          li.style.cssText = 'font-size:13px; color:#5f6368; padding:6px 10px; background:#fef7e0; border-radius:6px; margin-bottom:6px; line-height:1.4;';
+          li.textContent = w;
+          list.appendChild(li);
+        });
+      }
       showOnly('healthy');
     } else if (data.fixed) {
       $('fixed-explanation').textContent = data.explanation || 'OpenClaw has been repaired!';

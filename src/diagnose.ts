@@ -26,6 +26,7 @@ export interface DiagnosisResult {
   diagnosis: string;
   confidence: number;
   rootCause: string;
+  warnings: string[];
   options: RepairOption[];
   alternativeHypotheses: string[];
   rawResponse?: string;
@@ -71,18 +72,23 @@ Given the system data:
 4. What are the risks?
 
 IMPORTANT RULES:
-- If the system is healthy (gateway running, RPC probe ok, no errors in logs), return "healthy": true and empty options. Do NOT invent problems.
-- Focus ONLY on things that prevent OpenClaw from functioning. Ignore cosmetic issues.
-- Return 1-3 options, ALWAYS mark exactly one as recommended.
+- If the core system is healthy (gateway running, RPC probe ok, no errors), return "healthy": true.
+- BUT still report non-critical issues in the "warnings" array (e.g., channel config warnings, version mismatches, orphan files). Users should know about these even if they don't need immediate fixing.
+- Focus options ONLY on things that prevent OpenClaw from functioning. Non-critical warnings don't need fix options.
+- Return 1-3 options, ALWAYS mark exactly one as recommended. If healthy with no critical issues, options can be empty.
 - Options with risk "low" SHOULD have autoExecute: true (they run automatically without asking the user).
 - Options with risk "medium" or "high" MUST have autoExecute: false.
 
 Output ONLY valid JSON (no markdown, no code fences):
 {
   "healthy": false,
-  "diagnosis": "plain language description of what's wrong (2-3 sentences max). If healthy, say 'OpenClaw is running normally. No issues detected.'",
+  "diagnosis": "plain language description of what's wrong (2-3 sentences max). If healthy, describe the overall status briefly.",
   "confidence": 0.0-1.0,
-  "rootCause": "technical root cause (one sentence). If healthy, say 'No issues found'",
+  "rootCause": "technical root cause (one sentence). If healthy, say 'No critical issues found'",
+  "warnings": [
+    "Non-critical: WhatsApp groupPolicy set to allowlist but allowFrom is empty — messages in groups would be dropped if WhatsApp were enabled. Safe to ignore for now.",
+    "Non-critical: Desktop app version (2026.2.22) is older than gateway (2026.3.2). Consider updating."
+  ],
   "options": [
     {
       "id": "A",
@@ -234,10 +240,27 @@ function parseJsonResponse(response: string): DiagnosisResult {
     diagnosis: parsed.diagnosis || 'Unable to determine diagnosis',
     confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.5,
     rootCause: parsed.rootCause || 'Unknown root cause',
+    warnings: Array.isArray(parsed.warnings) ? parsed.warnings : [],
     options,
     alternativeHypotheses: Array.isArray(parsed.alternativeHypotheses) ? parsed.alternativeHypotheses : [],
     rawResponse: response,
   };
+}
+
+function loadContextDocs(): string {
+  const contextDir = path.join(__dirname, '..', 'context');
+  let docs = '';
+  try {
+    if (!fs.existsSync(contextDir)) return '';
+    const files = fs.readdirSync(contextDir).filter(f => f.endsWith('.md'));
+    for (const file of files) {
+      const content = fs.readFileSync(path.join(contextDir, file), 'utf-8');
+      // Truncate each file to 2000 chars to avoid bloating the prompt
+      const truncated = content.length > 2000 ? content.slice(0, 2000) + '\n...[truncated]' : content;
+      docs += `\n--- ${file} ---\n${truncated}\n`;
+    }
+  } catch { /* ignore */ }
+  return docs;
 }
 
 export async function diagnose(options: DiagnoseOptions): Promise<DiagnosisResult> {
@@ -245,8 +268,13 @@ export async function diagnose(options: DiagnoseOptions): Promise<DiagnosisResul
   
   let userMessage: string;
   
+  const contextDocs = loadContextDocs();
+
   if (previousAttempts && previousAttempts.length > 0) {
     userMessage = `
+## Reference Documentation
+${contextDocs}
+
 ## System Observation Data
 
 ${observationData}
@@ -258,6 +286,9 @@ Based on the failure of previous attempts, please provide a revised diagnosis an
 `.trim();
   } else {
     userMessage = `
+## Reference Documentation
+${contextDocs}
+
 ## System Observation Data
 
 ${observationData}
@@ -281,6 +312,7 @@ Please diagnose any OpenClaw issues and provide a repair plan.
       diagnosis: `AI analysis completed but response format was unexpected. Raw response: ${response.slice(0, 500)}`,
       confidence: 0.1,
       rootCause: 'Unable to parse AI response as JSON',
+      warnings: [],
       options: [],
       alternativeHypotheses: ['Manual inspection required', 'Try again — the AI may return valid JSON on the next attempt'],
       rawResponse: response,

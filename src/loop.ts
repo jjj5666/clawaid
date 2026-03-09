@@ -138,7 +138,7 @@ export class DoctorLoop {
         this.setState('healthy');
         this.emit({
           type: 'complete',
-          data: { fixed: false, healthy: true, explanation: diagnosis.diagnosis },
+          data: { fixed: false, healthy: true, explanation: diagnosis.diagnosis, warnings: diagnosis.warnings || [] },
         });
         return;
       }
@@ -149,6 +149,7 @@ export class DoctorLoop {
           diagnosis: diagnosis.diagnosis,
           confidence: diagnosis.confidence,
           rootCause: diagnosis.rootCause,
+          warnings: diagnosis.warnings || [],
           options: diagnosis.options,
           alternativeHypotheses: diagnosis.alternativeHypotheses,
           round: 1,
@@ -273,7 +274,7 @@ export class DoctorLoop {
       if (newDiagnosis.healthy && newDiagnosis.options.length === 0) {
         this.progress('✅ ' + (newDiagnosis.diagnosis || 'OpenClaw is running normally. No issues detected.'));
         this.setState('healthy');
-        this.emit({ type: 'complete', data: { fixed: false, healthy: true, explanation: newDiagnosis.diagnosis } });
+        this.emit({ type: 'complete', data: { fixed: false, healthy: true, explanation: newDiagnosis.diagnosis, warnings: newDiagnosis.warnings || [] } });
         return;
       }
 
