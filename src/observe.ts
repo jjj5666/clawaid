@@ -36,6 +36,7 @@ async function runCommand(cmd: string, timeout = 10000): Promise<string> {
   try {
     const { stdout, stderr } = await execAsync(cmd, {
       timeout,
+      shell: os.platform() === 'win32' ? 'cmd.exe' : '/bin/sh',
       env: { ...process.env, PATH: '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:' + (process.env.PATH || '') }
     });
     return (stdout + (stderr ? '\nSTDERR: ' + stderr : '')).trim();
@@ -154,7 +155,10 @@ async function readConfig(): Promise<{ content: string; configPath: string }> {
 export function loadMockObservation(scenario: string): ObservationResult {
   const scenarioPath = path.join(__dirname, '..', 'test-scenarios', scenario + '.json');
   const content = fs.readFileSync(scenarioPath, 'utf-8');
-  return JSON.parse(content) as ObservationResult;
+  const obs = JSON.parse(content) as ObservationResult;
+  // Run rules on mock data too
+  obs.ruleFindings = runRules(obs);
+  return obs;
 }
 
 export async function observe(onProgress?: (msg: string) => void): Promise<ObservationResult> {
@@ -206,7 +210,7 @@ export async function observe(onProgress?: (msg: string) => void): Promise<Obser
   progress('Gathering system info...');
   const systemInfo = await runCommand('sw_vers 2>/dev/null || uname -a');
 
-  return {
+  const obs: ObservationResult = {
     timestamp: new Date().toISOString(),
     openclawStatus,
     gatewayStatus,
@@ -229,6 +233,39 @@ export async function observe(onProgress?: (msg: string) => void): Promise<Obser
     desktopAppRunning,
     errors,
   };
+
+  // Run deterministic rule checks
+  progress('Running rule checks...');
+  obs.ruleFindings = runRules(obs);
+
+  return obs;
+}
+
+function extractLogEssentials(logs: string): string {
+  if (!logs) return '(no logs)';
+  const lines = logs.split('\n');
+
+  // Always keep last 20 lines (most recent context)
+  const tail = lines.slice(-20);
+
+  // Find error/warning lines from the rest
+  const errorPattern = /error|fail|400|404|timeout|refused|crash|panic|EADDRINUSE|uncaught|unhandled|FATAL|died|exit code/i;
+  const errorLines = lines.slice(0, -20).filter(l => errorPattern.test(l));
+
+  // Keep up to 30 error lines
+  const topErrors = errorLines.slice(-30);
+
+  const parts: string[] = [];
+  if (topErrors.length > 0) {
+    parts.push(`### Error/warning lines (${topErrors.length} of ${errorLines.length} total)`);
+    parts.push(topErrors.join('\n'));
+  }
+  parts.push(`### Last 20 lines`);
+  parts.push(tail.join('\n'));
+
+  const result = parts.join('\n');
+  // Hard cap at 15KB
+  return result.length > 15000 ? result.slice(0, 15000) + '\n...[truncated]' : result;
 }
 
 function truncate(text: string, maxChars: number): string {
@@ -287,55 +324,67 @@ function extractConfigEssentials(configContent: string): string {
 }
 
 export function formatObservation(obs: ObservationResult): string {
-  // Run deterministic rules engine
-  const findings = runRules(obs);
-  obs.ruleFindings = findings;
-  const ruleSection = formatRuleFindings(findings);
+  // Give AI ALL the data upfront. This is their evidence to work with.
+  // No truncation — Sonnet 4.6 has 200K context, our data is <30K tokens.
+
+  const ruleSection = obs.ruleFindings && obs.ruleFindings.length > 0
+    ? formatRuleFindings(obs.ruleFindings)
+    : '✅ All rule checks passed — no issues detected by pattern matching.';
+
+  // Detect Windows platform from system info or paths
+  const isWindows = os.platform() === 'win32'
+    || /windows|win32|win64|\\Users\\/i.test(obs.systemInfo + obs.homeDir + obs.configPath)
+    || /Scheduled Task/i.test(obs.gatewayStatus + obs.officialDoctorOutput)
+    || /ENOENT.*zsh|spawnSync.*zsh/i.test(obs.gatewayStatus + obs.officialDoctorOutput);
+
+  const platformWarning = isWindows ? `
+## ⚠️ PLATFORM: WINDOWS
+This is a Windows system. CRITICAL rules for Windows:
+1. **DO NOT use openclaw CLI commands** like \`openclaw gateway restart\`, \`openclaw gateway install --force\`, or \`openclaw doctor --repair\` — they will fail with \`spawnSync /bin/zsh ENOENT\` because OpenClaw CLI hardcodes /bin/zsh on Windows.
+2. **Use direct Windows commands instead:**
+   - Start gateway: Find node.exe and openclaw dist/index.js paths, then run: \`node "path\\to\\openclaw\\dist\\index.js" gateway start\`
+   - Or use Scheduled Tasks: \`schtasks /run /tn "OpenClaw Gateway"\`
+   - Create directories: \`mkdir "path"\` (not \`mkdir -p\`)
+   - Process check: \`tasklist | findstr openclaw\` (not \`ps aux | grep\`)
+3. **Config file edits are OK** — editing openclaw.json directly works on all platforms.
+4. **Tell the user** this is a known OpenClaw CLI bug on Windows, and provide manual workaround commands.
+` : '';
 
   return `
+${platformWarning}
+## Automated rule checks (deterministic, code-verified)
 ${ruleSection}
 
-=== CLAWAID OBSERVATION ===
+## System info
 Timestamp: ${obs.timestamp}
-Home: ${obs.homeDir}
+OpenClaw version: ${obs.openclawVersion}
+Node: ${obs.nodeVersion} | npm: ${obs.npmVersion}
+Desktop app version: ${obs.desktopAppVersion}
+Desktop app running: ${obs.desktopAppRunning}
+System: ${obs.systemInfo}
 
---- OFFICIAL openclaw doctor output (IMPORTANT - check this first) ---
-${truncate(obs.officialDoctorOutput, 3000)}
+## Gateway status
+${obs.gatewayStatus}
 
---- Desktop App ---
-Version: ${obs.desktopAppVersion}
-Running (pgrep): ${obs.desktopAppRunning}
-
---- openclaw status (text, truncated) ---
-${truncate(obs.openclawStatus, 2000)}
-
---- openclaw gateway status ---
-${truncate(obs.gatewayStatus, 3000)}
-
---- openclaw gateway status (json, essentials) ---
+## Gateway status (JSON)
 ${extractGatewayEssentials(obs.gatewayStatusJson)}
 
---- config essentials: ${obs.configPath} ---
+## Official openclaw doctor output
+${obs.officialDoctorOutput}
+
+## Config file (${obs.configPath})
 ${extractConfigEssentials(obs.configContent)}
 
---- port 18789 check ---
-${truncate(obs.portCheck, 1000)}
+## LaunchAgent plist (${obs.plistPath})
+${obs.plistContent}
 
---- openclaw processes ---
-${truncate(obs.processCheck, 1000)}
+## Port 18789 check
+${obs.portCheck}
 
---- launch agent plist: ${obs.plistPath} ---
-${truncate(obs.plistContent, 2000)}
+## OpenClaw processes
+${obs.processCheck}
 
---- recent logs (last 50 lines): ${obs.logPath} ---
-${truncate(obs.recentLogs.split('\n').slice(-50).join('\n'), 5000)}
-
---- runtime versions ---
-node: ${obs.nodeVersion}
-npm: ${obs.npmVersion}
-openclaw: ${obs.openclawVersion}
-
---- system info ---
-${obs.systemInfo}
+## Recent logs (${obs.logPath})
+${extractLogEssentials(obs.recentLogs)}
 `.trim();
 }

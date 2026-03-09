@@ -168,31 +168,64 @@ const zombieGateway: Rule = (obs) => {
 const badModel: Rule = (obs) => {
   const logs = obs.recentLogs || '';
 
-  // Count occurrences of 400 Bad Request or model not found
-  const badRequestMatches = logs.match(/400\s*(Bad Request)?/gi) || [];
-  const modelNotFoundMatches = logs.match(/model[\s_-]?not[\s_-]?found/gi) || [];
-  const totalErrors = badRequestMatches.length + modelNotFoundMatches.length;
+  // Only look at errors in the last 10 minutes of logs
+  // Log lines typically start with a timestamp like "2026-03-09T15:30:05" or "15:30:05"
+  const now = new Date();
+  const tenMinAgo = new Date(now.getTime() - 10 * 60 * 1000);
+  const lines = logs.split('\n');
 
-  if (totalErrors >= 2) {
-    // Try to extract model name
-    let modelName = '';
-    const modelMatch = logs.match(/model[:\s]+["']?([a-zA-Z0-9\/_.-]+)["']?\s*(not found|is not available|does not exist)/i);
-    if (modelMatch) {
-      modelName = modelMatch[1];
+  let recentErrors = 0;
+  let recentSuccesses = 0;
+  let lastErrorTime = 0;
+  let lastSuccessTime = 0;
+  let modelName = '';
+
+  for (const line of lines) {
+    // Try to extract timestamp from line
+    const tsMatch = line.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})|(\d{2}:\d{2}:\d{2})/);
+    if (tsMatch) {
+      let lineTime: Date | null = null;
+      if (tsMatch[1]) {
+        lineTime = new Date(tsMatch[1]);
+      } else if (tsMatch[2]) {
+        // Time only — assume today
+        const [h, m, s] = tsMatch[2].split(':').map(Number);
+        lineTime = new Date(now);
+        lineTime.setHours(h, m, s, 0);
+      }
+
+      if (lineTime && lineTime >= tenMinAgo) {
+        if (/400\s*(Bad Request)?/i.test(line) || /model[\s_-]?not[\s_-]?found/i.test(line)) {
+          recentErrors++;
+          lastErrorTime = lineTime.getTime();
+          // Try to extract model name
+          const mm = line.match(/model[:\s]+["']?([a-zA-Z0-9\/_.-]+)["']?\s*(not found|is not available|does not exist)/i);
+          if (mm) modelName = mm[1];
+        }
+        if (/200|completion|success|ok/i.test(line) && !/error|fail|400|404/i.test(line)) {
+          recentSuccesses++;
+          lastSuccessTime = lineTime.getTime();
+        }
+      }
     }
+  }
 
+  // If there are recent successes AFTER the last error, the issue is likely fixed
+  if (lastSuccessTime > lastErrorTime && recentSuccesses > 0) {
+    return [];
+  }
+
+  if (recentErrors >= 2) {
     return [{
       id: 'bad-model',
       severity: 'high',
       title: 'AI model errors detected' + (modelName ? ` (${modelName})` : ''),
       description:
-        `Found ${totalErrors} "400 Bad Request" or "model not found" errors in recent logs. ` +
+        `Found ${recentErrors} "400 Bad Request" or "model not found" errors in the last 10 minutes. ` +
         (modelName
           ? `The model "${modelName}" may be unavailable, deprecated, or misspelled.`
           : 'The configured default model may be unavailable, deprecated, or misspelled.'),
-      fix: modelName
-        ? `openclaw models set default anthropic/claude-sonnet-4-6`
-        : `openclaw models set default anthropic/claude-sonnet-4-6`,
+      fix: 'openclaw models list --all  # then: openclaw models set <working-model-id>',
     }];
   }
   return [];
@@ -292,6 +325,7 @@ const ALL_RULES: Rule[] = [
   configParseError,
   gatewayNotRunning,
   portConflict,
+
   // High
   zombieGateway,
   badModel,
@@ -328,34 +362,37 @@ export function runRules(obs: ObservationResult): RuleFinding[] {
 
 export function formatRuleFindings(findings: RuleFinding[]): string {
   if (findings.length === 0) {
-    return `=== AUTOMATED RULE CHECKS (deterministic, pre-AI) ===
-[No known issues detected by rule engine]
-=== END RULE CHECKS ===`;
+    return `=== PRE-SCAN HINTS ===
+[No obvious issues detected by pattern matching]
+Note: These are hints only. Use your own judgment — check timestamps, recent successes, and live status before concluding.
+=== END HINTS ===`;
   }
 
-  const severityEmoji: Record<string, string> = {
-    critical: '🔴 CRITICAL',
-    high: '🟠 HIGH',
-    warning: '⚠️ WARNING',
-    info: 'ℹ️ INFO',
+  const severityLabel: Record<string, string> = {
+    critical: 'Likely issue',
+    high: 'Possible issue',
+    warning: 'Note',
+    info: 'FYI',
   };
 
   const lines: string[] = [
-    '=== AUTOMATED RULE CHECKS (deterministic, pre-AI) ===',
-    '[These findings are 100% certain — verified by code, not AI inference]',
+    '=== PRE-SCAN HINTS (pattern-matched, may be stale — verify before acting) ===',
     '',
   ];
 
   for (const f of findings) {
-    lines.push(`${severityEmoji[f.severity] || f.severity.toUpperCase()}: ${f.title}`);
+    lines.push(`${severityLabel[f.severity] || 'Note'}: ${f.title}`);
     lines.push(`   ${f.description}`);
     if (f.fix) {
-      lines.push(`   Fix: ${f.fix}`);
+      lines.push(`   Possible fix (verify first): ${f.fix}`);
     }
     lines.push('');
   }
 
-  lines.push('=== END RULE CHECKS ===');
+  lines.push('IMPORTANT: These hints are based on pattern matching of logs and config.');
+  lines.push('They may flag issues that have already been fixed. Always verify with live checks');
+  lines.push('(e.g., openclaw gateway status, openclaw models status) before proposing a fix.');
+  lines.push('=== END HINTS ===');
 
   return lines.join('\n');
 }

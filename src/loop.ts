@@ -1,16 +1,24 @@
+import * as https from 'https';
+import * as http from 'http';
+import * as os from 'os';
+import { execSync } from 'child_process';
 import { observe, loadMockObservation, formatObservation, ObservationResult } from './observe';
-import { diagnose, DiagnosisResult, RepairOption, extractApiKey, PaywallError } from './diagnose';
-import { executeActions, formatExecuteResults } from './execute';
-import { verify } from './verify';
+import { extractApiKey, getMachineFingerprint, PaywallError } from './diagnose';
+
+// ClawAid backend API URL
+const CLAWAID_API = process.env.CLAWAID_API || 'https://api.clawaid.app';
+
+// Max steps before giving up
+const MAX_STEPS = 20;
+// Max consecutive fix attempts before giving up
+const MAX_FIX_ATTEMPTS = 4;
 
 export type LoopState =
   | 'idle'
+  | 'waiting_user_description'  // waiting for user to describe their problem (or skip)
   | 'observing'
-  | 'diagnosing'
-  | 'showing_options'
-  | 'auto_executing'
-  | 'executing'
-  | 'verifying'
+  | 'running'     // agentic loop in progress
+  | 'waiting'     // waiting for user to confirm a medium/high risk step
   | 'fixed'
   | 'not_fixed'
   | 'healthy'
@@ -18,441 +26,334 @@ export type LoopState =
   | 'paywall'
   | 'error';
 
+export interface AgentStep {
+  type: 'read' | 'fix' | 'done';
+  command?: string;
+  description: string;
+  reason?: string;
+  risk?: 'low' | 'medium' | 'high';
+  // for done:
+  fixed?: boolean;
+  summary?: string;
+  warnings?: string[];  // non-critical issues to display to the user
+}
+
+export interface StepRecord {
+  step: AgentStep;
+  output: string;
+  skipped?: boolean;
+  timestamp: number;
+}
+
 export interface LoopEvent {
   type:
     | 'state_change'
     | 'progress'
-    | 'diagnosis'
-    | 'action_result'
-    | 'verify_result'
-    | 'request_input'
+    | 'step_start'      // agent decided on a step, about to run
+    | 'step_done'       // step finished with output
+    | 'confirm_needed'  // medium/high risk step needs user approval
     | 'complete'
     | 'paywall'
+    | 'request_input'
     | 'error';
   data: unknown;
 }
 
 export type EventCallback = (event: LoopEvent) => void;
 
-export interface LoopContext {
-  apiKey: string;
-  token?: string;
-  originalObservation?: ObservationResult;
-  originalObservationText?: string;
-  currentDiagnosis?: DiagnosisResult;
-  attemptHistory: string[];
-  roundNumber: number;
-  paywallOnFix?: boolean;
-  paywallPrice?: unknown;
-}
-
 export class DoctorLoop {
   private callback: EventCallback;
-  private context: LoopContext;
   private state: LoopState = 'idle';
   private stopped = false;
+  private apiKey = '';
+  private token?: string;
+  private userDescription = '';
+  private userScreenshot?: string; // base64 data URL
+  private observation?: ObservationResult;
+  private observationText = '';
+  private history: StepRecord[] = [];
+  private fixAttempts = 0;
+  private pendingConfirm?: { step: AgentStep; resolve: (confirmed: boolean) => void };
+  private pendingDescription?: { resolve: (value: { description: string; screenshot?: string }) => void };
 
-  constructor(callback: EventCallback, apiKey = '') {
+  constructor(callback: EventCallback) {
     this.callback = callback;
-    this.context = {
-      apiKey,
-      attemptHistory: [],
-      roundNumber: 0,
-    };
   }
 
-  setApiKey(key: string) {
-    this.context.apiKey = key;
-  }
+  setToken(token: string) { this.token = token; }
+  stop() { this.stopped = true; }
 
-  setToken(token: string) {
-    this.context.token = token;
-  }
-
-  stop() {
-    this.stopped = true;
-  }
-
-  private emit(event: LoopEvent) {
-    this.callback(event);
-  }
-
-  private setState(state: LoopState) {
-    this.state = state;
-    this.emit({ type: 'state_change', data: { state } });
-  }
-
-  private progress(msg: string) {
-    this.emit({ type: 'progress', data: { message: msg } });
-  }
+  private emit(event: LoopEvent) { this.callback(event); }
+  private setState(s: LoopState) { this.state = s; this.emit({ type: 'state_change', data: { state: s } }); }
+  private progress(msg: string) { this.emit({ type: 'progress', data: { message: msg } }); }
 
   async start() {
-    // Check for API key first
+    // Auto-extract API key from OpenClaw config
     const autoKey = extractApiKey();
     if (autoKey) {
-      this.context.apiKey = autoKey;
-      this.progress('Found OpenRouter API key in OpenClaw config ✓');
-    } else if (!this.context.apiKey) {
+      this.apiKey = autoKey;
+    } else if (!this.apiKey) {
       this.setState('needs_api_key');
       this.emit({
         type: 'request_input',
         data: {
           field: 'apiKey',
-          label: 'OpenRouter API Key',
-          placeholder: 'sk-or-...',
-          hint: '🔒 Local only. Not stored. Only sent to OpenRouter for AI diagnosis.',
-          instructions: 'ClawAid needs an OpenRouter API key to call Claude for diagnosis. Your existing OpenClaw config does not have an OpenRouter key.',
+          instructions: 'ClawAid needs an OpenRouter API key to run diagnostics.',
         }
       });
-      return; // Wait for user to provide key via provideInput()
+      return;
     }
 
-    await this.runMainLoop();
+    // Ask user to describe their problem (or skip)
+    this.setState('waiting_user_description');
+    this.emit({
+      type: 'request_input',
+      data: {
+        field: 'userDescription',
+        instructions: 'What\'s going on? Describe the problem in a few words, or upload a screenshot. You can also skip and let ClawAid figure it out.',
+        allowSkip: true,
+        allowScreenshot: true,
+      }
+    });
+    const userInput = await new Promise<{ description: string; screenshot?: string }>((resolve) => {
+      this.pendingDescription = { resolve };
+    });
+    this.userDescription = userInput.description || '';
+    this.userScreenshot = userInput.screenshot;
+
+    await this.runLoop();
   }
 
-  async provideInput(field: string, value: string) {
+  async provideInput(field: string, value: string, extra?: { screenshot?: string }) {
     if (field === 'apiKey') {
-      this.context.apiKey = value;
-      this.progress('API key received, starting diagnosis...');
-      await this.runMainLoop();
+      this.apiKey = value;
+      await this.runLoop();
+    } else if (field === 'userDescription') {
+      if (this.pendingDescription) {
+        this.pendingDescription.resolve({ description: value, screenshot: extra?.screenshot });
+        this.pendingDescription = undefined;
+      }
     }
   }
 
-  private async runMainLoop() {
-    // ── Round 1: Observe + Diagnose ──────────────────────────────────────────
-    this.setState('observing');
-    this.progress('🔍 Gathering system information...');
+  // Called when user confirms or rejects a medium/high risk step
+  async confirmStep(confirmed: boolean) {
+    if (this.pendingConfirm) {
+      this.pendingConfirm.resolve(confirmed);
+      this.pendingConfirm = undefined;
+    }
+  }
 
-    const mockScenario = (global as any).__clawaid_mock as string | undefined;
-    const observation = mockScenario
+  // Called when user wants to skip current pending step
+  async skipStep() {
+    await this.confirmStep(false);
+  }
+
+  private async runLoop() {
+    // ── Phase 1: Observe ─────────────────────────────────────────────────────
+    this.setState('observing');
+    this.progress('🔍 Scanning your system...');
+
+    const mockScenario = (global as Record<string, unknown>).__clawaid_mock as string | undefined;
+    const obs = mockScenario
       ? loadMockObservation(mockScenario)
       : await observe((msg) => this.progress(msg));
-    this.context.originalObservation = observation;
-    this.context.originalObservationText = formatObservation(observation);
-    
-    this.progress('✓ System scan complete');
-    this.progress('📡 Sending data to AI for analysis...');
 
-    this.setState('diagnosing');
-    this.progress('🤔 AI is analyzing your system...');
+    this.observation = obs;
+    this.observationText = formatObservation(obs);
+    this.progress('✓ Scan complete');
 
-    try {
-      const diagnosis = await diagnose({
-        apiKey: this.context.apiKey,
-        observationData: this.context.originalObservationText,
-        token: this.context.token,
-      });
+    // ── Phase 2: Agentic step loop ───────────────────────────────────────────
+    // Always call AI — rule engine findings are hints, not gatekeepers.
+    this.setState('running');
 
-      this.context.currentDiagnosis = diagnosis;
+    for (let stepIndex = 0; stepIndex < MAX_STEPS; stepIndex++) {
+      if (this.stopped) return;
 
-      // Healthy?
-      if (diagnosis.healthy && diagnosis.options.length === 0) {
-        this.progress('✅ ' + (diagnosis.diagnosis || 'OpenClaw is running normally. No issues detected.'));
-        this.setState('healthy');
-        this.emit({
-          type: 'complete',
-          data: { fixed: false, healthy: true, explanation: diagnosis.diagnosis, warnings: diagnosis.warnings || [], reasoning: diagnosis.reasoning || [] },
-        });
-        return;
-      }
-
-      this.emit({
-        type: 'diagnosis',
-        data: {
-          diagnosis: diagnosis.diagnosis,
-          confidence: diagnosis.confidence,
-          rootCause: diagnosis.rootCause,
-          reasoning: diagnosis.reasoning || [],
-          warnings: diagnosis.warnings || [],
-          options: diagnosis.options,
-          alternativeHypotheses: diagnosis.alternativeHypotheses,
-          round: 1,
-          paywallOnFix: diagnosis.paywallOnFix || false,
-          price: diagnosis.price,
+      // Ask AI for next step
+      let step: AgentStep;
+      try {
+        step = await this.callStep(stepIndex === 0);
+      } catch (err) {
+        if (err instanceof PaywallError) {
+          this.setState('paywall');
+          this.emit({ type: 'paywall', data: { price: err.price, currency: err.currency, isChinese: err.isChinese, credits: err.credits } });
+          return;
         }
-      });
-
-      // Store paywall flag so startFix can check it
-      if (diagnosis.paywallOnFix) {
-        this.context.paywallOnFix = true;
-        this.context.paywallPrice = diagnosis.price;
-      }
-
-      // Always show options to user and wait for their choice
-      this.setState('showing_options');
-      return; // Resumes via startFix(optionId)
-    } catch (err) {
-      if (err instanceof PaywallError) {
-        this.setState('paywall');
-        this.emit({
-          type: 'paywall',
-          data: {
-            price: err.price,
-            currency: err.currency,
-            isChinese: err.isChinese,
-            credits: err.credits,
-          },
-        });
+        const msg = (err as Error).message;
+        if (msg.includes('paywall')) {
+          this.setState('paywall');
+          this.emit({ type: 'paywall', data: {} });
+          return;
+        }
+        this.setState('error');
+        this.emit({ type: 'error', data: { message: msg } });
         return;
       }
-      this.progress(`❌ AI analysis failed: ${(err as Error).message}`);
-      this.setState('error');
-      this.emit({ type: 'error', data: { message: (err as Error).message } });
-      return;
+
+      // Done
+      if (step.type === 'done') {
+        this.emit({ type: 'step_start', data: { step, index: stepIndex } });
+        const warnings = step.warnings || [];
+        if (step.fixed) {
+          this.setState('fixed');
+          this.emit({ type: 'complete', data: { fixed: true, summary: step.summary, warnings, history: this.history } });
+        } else if (this.fixAttempts === 0 && !step.fixed) {
+          // Healthy — no fixes were needed
+          this.setState('healthy');
+          this.emit({ type: 'complete', data: { fixed: false, healthy: true, summary: step.summary, warnings, history: this.history } });
+        } else {
+          this.setState('not_fixed');
+          this.emit({ type: 'complete', data: { fixed: false, summary: step.summary, warnings, history: this.history } });
+        }
+        return;
+      }
+
+      // Announce step to UI
+      this.emit({ type: 'step_start', data: { step, index: stepIndex } });
+
+      // For fix steps: check risk level and maybe ask user
+      if (step.type === 'fix') {
+        this.fixAttempts++;
+        if (this.fixAttempts > MAX_FIX_ATTEMPTS) {
+          this.setState('not_fixed');
+          this.emit({ type: 'complete', data: { fixed: false, summary: `Tried ${MAX_FIX_ATTEMPTS} fixes without success.`, history: this.history } });
+          return;
+        }
+
+        // ALL fix steps require user confirmation — never auto-execute
+        this.setState('waiting');
+        const confirmed = await this.waitForConfirm(step);
+        this.setState('running');
+
+        if (!confirmed) {
+          this.history.push({ step, output: '[Skipped by user]', skipped: true, timestamp: Date.now() });
+          this.emit({ type: 'step_done', data: { step, output: '[Skipped by user]', skipped: true, index: stepIndex } });
+          continue;
+        }
+      }
+
+      // Execute the command
+      const output = this.executeCommand(step.command || '');
+      // Include thinking in history so AI can see its own reasoning chain
+      const stepWithThinking = { ...step, thinking: (step as any).thinking };
+      this.history.push({ step: stepWithThinking, output, timestamp: Date.now() });
+      this.emit({ type: 'step_done', data: { step: stepWithThinking, output, index: stepIndex } });
     }
 
-    // Auto-fix failed → round 2 with updated observation
-    await this.continueAfterFailure(2);
+    // Exhausted max steps
+    this.setState('not_fixed');
+    this.emit({ type: 'complete', data: { fixed: false, summary: `Reached maximum of ${MAX_STEPS} diagnostic steps.`, history: this.history } });
   }
 
-  /**
-   * Called when user clicks "Fix" on an option card.
-   * optionId: "A", "B", "C" — if omitted, use the recommended option.
-   */
-  async startFix(optionId?: string) {
-    if (!this.context.currentDiagnosis) {
-      this.progress('No diagnosis available. Please restart.');
-      return;
-    }
-
-    // Check paywall before allowing fix
-    if (this.context.paywallOnFix) {
-      this.setState('paywall');
-      this.emit({
-        type: 'paywall',
-        data: { price: this.context.paywallPrice },
-      });
-      return;
-    }
-
-    const options = this.context.currentDiagnosis.options;
-    let chosen: RepairOption | undefined;
-
-    if (optionId) {
-      chosen = options.find(o => o.id === optionId);
-    }
-    if (!chosen) {
-      chosen = options.find(o => o.recommended) || options[0];
-    }
-
-    if (!chosen) {
-      this.progress('⚠️ No option found to execute.');
-      return;
-    }
-
-    this.context.roundNumber = 1;
-    const fixed = await this.executeOption(chosen);
-
-    if (fixed) {
-      this.setState('fixed');
-      this.emit({ type: 'complete', data: { fixed: true, explanation: 'OpenClaw has been successfully repaired!' } });
-      return;
-    }
-
-    // Not fixed after round 1 user choice → round 2
-    await this.continueAfterFailure(2);
+  private waitForConfirm(step: AgentStep): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.pendingConfirm = { step, resolve };
+      this.emit({ type: 'confirm_needed', data: { step } });
+    });
   }
 
-  /**
-   * Continue with round 2 or 3 after a failed fix attempt.
-   */
-  private async continueAfterFailure(round: number) {
-    if (this.stopped) return;
-
-    // Round 3: give up
-    if (round > 3) {
-      this.setState('not_fixed');
-      this.progress('\n😔 After 3 repair rounds, the issue persists.');
-      this.emit({
-        type: 'complete',
-        data: {
-          fixed: false,
-          explanation: 'The issue could not be automatically resolved after 3 attempts.',
-          diagnosticReport: this.buildDiagnosticReport(),
-        }
-      });
-      return;
-    }
-
-    // Re-observe
-    this.setState('observing');
-    this.progress(`\n🔄 Round ${round}: Re-scanning system...`);
-
-    const mockScenario = (global as any).__clawaid_mock as string | undefined;
-    let currentObsText: string;
-    try {
-      const currentObs = mockScenario
-        ? loadMockObservation(mockScenario)
-        : await observe((msg) => this.progress(msg));
-      currentObsText = formatObservation(currentObs);
-    } catch (err) {
-      this.progress(`Observation error: ${(err as Error).message}`);
-      currentObsText = this.context.originalObservationText || '';
-    }
-
-    // Re-diagnose
-    this.setState('diagnosing');
-    this.progress('🤔 AI is re-analyzing with attempt history...');
+  private executeCommand(command: string): string {
+    if (!command) return '(no command)';
+    const dryRun = Boolean((global as Record<string, unknown>).__clawaid_dry_run);
+    if (dryRun) return '[dry-run: command not executed]';
 
     try {
-      const newDiagnosis = await diagnose({
-        apiKey: this.context.apiKey,
-        observationData: currentObsText,
-        previousAttempts: this.context.attemptHistory,
-        round,
-        token: this.context.token,
+      const cmd = command.replace(/~/g, os.homedir());
+      const output = execSync(cmd, {
+        timeout: 20000,
+        encoding: 'utf-8',
+        shell: os.platform() === 'win32' ? 'cmd.exe' : '/bin/sh',
+        env: { ...process.env, PATH: (process.env.PATH || '') + ':/usr/local/bin:/opt/homebrew/bin' },
       });
+      return (output || '(no output)').slice(0, 3000);
+    } catch (err: unknown) {
+      const e = err as { stdout?: string; stderr?: string; message?: string };
+      const out = ((e.stdout || '') + (e.stderr || '')).trim();
+      return out ? out.slice(0, 3000) : `Error: ${e.message || 'unknown error'}`;
+    }
+  }
 
-      this.context.currentDiagnosis = newDiagnosis;
+  private async callStep(isFirst: boolean): Promise<AgentStep> {
+    const fingerprint = getMachineFingerprint();
+    const findings = this.observation?.ruleFindings || [];
 
-      if (newDiagnosis.healthy && newDiagnosis.options.length === 0) {
-        this.progress('✅ ' + (newDiagnosis.diagnosis || 'OpenClaw is running normally. No issues detected.'));
-        this.setState('healthy');
-        this.emit({ type: 'complete', data: { fixed: false, healthy: true, explanation: newDiagnosis.diagnosis, warnings: newDiagnosis.warnings || [], reasoning: newDiagnosis.reasoning || [] } });
-        return;
+    // Build mode context for AI
+    const allFindings = findings.map(f => `- [${f.severity.toUpperCase()}] ${f.title}: ${f.description}${f.fix ? ' (suggested fix: ' + f.fix + ')' : ''}`).join('\n');
+    const rulesSummary = findings.length > 0
+      ? `Rule engine pre-scan found:\n${allFindings}`
+      : 'Rule engine pre-scan: no known issues detected (but rules only cover common patterns — use your own judgment on the full data).';
+
+    let modeContext = '';
+    if (this.userDescription) {
+      modeContext = `MODE: USER_REPORTED_PROBLEM\nUser says: "${this.userDescription}"\n${rulesSummary}\nYour goal: Solve the user's problem. Use the system data and rule findings as clues. If you find other unrelated issues, put them in warnings.`;
+      if (this.userScreenshot) {
+        modeContext += '\nUser also provided a screenshot of the issue.';
       }
+    } else {
+      const hasRuleIssues = findings.some(f => f.severity === 'critical' || f.severity === 'high');
+      if (hasRuleIssues) {
+        modeContext = `MODE: FULL_SCAN\n${rulesSummary}\nYour goal: Confirm and fix the issues identified above. Use the system data as evidence.`;
+      } else {
+        modeContext = `MODE: FULL_SCAN (verification)\n${rulesSummary}\nThe rule engine found no critical issues. Verify by checking the full system data. If you agree the system is healthy, return done immediately with healthy=true — don't run extra read steps. Only investigate further if you spot a real problem in the data above. Put minor observations in warnings.`;
+      }
+    }
 
-      this.emit({
-        type: 'diagnosis',
-        data: {
-          diagnosis: newDiagnosis.diagnosis,
-          confidence: newDiagnosis.confidence,
-          rootCause: newDiagnosis.rootCause,
-          reasoning: newDiagnosis.reasoning || [],
-          options: newDiagnosis.options,
-          alternativeHypotheses: newDiagnosis.alternativeHypotheses,
-          round,
-        }
-      });
+    const body = JSON.stringify({
+      observationData: this.observationText,
+      modeContext,
+      history: this.history.map(h => ({ step: h.step, output: h.output, skipped: h.skipped })),
+      fingerprint,
+      ...(this.token ? { token: this.token } : {}),
+      ...(isFirst ? { sessionStart: true } : {}),
+    });
 
-      // Round 3 = give up, just show report
-      if (round === 3) {
-        this.setState('not_fixed');
-        this.emit({
-          type: 'complete',
-          data: {
-            fixed: false,
-            explanation: 'The issue could not be automatically resolved after 3 attempts.',
-            diagnosticReport: this.buildDiagnosticReport(),
+    const url = new URL(`${CLAWAID_API}/step`);
+    const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+    const lib = isLocal ? http : https;
+
+    return new Promise((resolve, reject) => {
+      const options = {
+        hostname: url.hostname,
+        port: parseInt(url.port) || (isLocal ? 3001 : 443),
+        path: url.pathname,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+      };
+
+      const req = lib.request(options, (res) => {
+        let data = '';
+        res.on('data', c => { data += c; });
+        res.on('end', () => {
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.type === 'paywall') {
+              reject(new PaywallError({
+                price: parsed.price?.price || '$1.99',
+                currency: parsed.price?.currency || 'USD',
+                isChinese: parsed.price?.isChinese || false,
+                credits: parsed.price?.credits || 5,
+              }));
+              return;
+            }
+            if (parsed.error) { reject(new Error(parsed.error)); return; }
+            resolve(parsed as AgentStep);
+          } catch {
+            reject(new Error(`Parse error: ${data.slice(0, 100)}`));
           }
         });
-        return;
-      }
-
-      // Always show options to user and wait for their choice
-      this.setState('showing_options');
-      this.context.roundNumber = round;
-    } catch (err) {
-      if (err instanceof PaywallError) {
-        this.setState('paywall');
-        this.emit({
-          type: 'paywall',
-          data: {
-            price: err.price,
-            currency: err.currency,
-            isChinese: err.isChinese,
-            credits: err.credits,
-          },
-        });
-        return;
-      }
-      this.progress(`❌ AI analysis failed: ${(err as Error).message}`);
-      this.setState('error');
-      this.emit({ type: 'error', data: { message: (err as Error).message } });
-    }
-  }
-
-  private async executeOption(option: RepairOption): Promise<boolean> {
-    if (option.steps.length === 0) {
-      this.progress('⚠️ No steps in this option.');
-      return false;
-    }
-
-    const dryRun = Boolean((global as Record<string, unknown>).__clawaid_dry_run);
-
-    this.setState('auto_executing');
-    this.progress(`\n🔧 ${dryRun ? '[DRY-RUN] ' : ''}Executing: ${option.title} (${option.steps.length} step${option.steps.length > 1 ? 's' : ''})...`);
-
-    const executeResult = await executeActions(
-      option.steps,
-      (msg, result) => {
-        this.progress(msg);
-        if (result) {
-          this.emit({ type: 'action_result', data: result });
-        }
-      },
-      dryRun
-    );
-
-    // Record this attempt
-    const attemptSummary = `
-### Attempt ${this.context.roundNumber + 1} — Option ${option.id}: ${option.title}
-Diagnosis: ${this.context.currentDiagnosis?.diagnosis || ''}
-Root cause: ${this.context.currentDiagnosis?.rootCause || ''}
-Steps taken:
-${formatExecuteResults(executeResult.results)}
-Result: ${executeResult.summary}
-`.trim();
-
-    this.context.attemptHistory.push(attemptSummary);
-    this.context.roundNumber++;
-
-    // In dry-run mode, skip verification
-    if (dryRun) {
-      this.progress('\n⚠️ DRY-RUN: Skipping verification (nothing was executed).');
-      this.emit({ type: 'verify_result', data: { fixed: false, explanation: 'Dry-run mode — no changes made.' } });
-      return false;
-    }
-
-    // Verify
-    this.setState('verifying');
-    this.progress('\n🔍 Verifying repair...');
-
-    try {
-      const verifyResult = await verify(
-        this.context.apiKey,
-        this.context.originalObservationText || '',
-        executeResult.results.map(r => `${r.action.command}: ${r.output}`),
-        (msg) => this.progress(msg)
-      );
-
-      this.emit({
-        type: 'verify_result',
-        data: { fixed: verifyResult.fixed, explanation: verifyResult.explanation },
       });
 
-      if (verifyResult.fixed) {
-        this.progress(`\n✅ ${verifyResult.explanation}`);
-        return true;
-      } else {
-        this.progress(`\n⚠️ Not yet fixed: ${verifyResult.explanation}`);
-        return false;
-      }
-    } catch (err) {
-      this.progress(`Verification error: ${(err as Error).message}`);
-      return false;
-    }
+      req.on('error', reject);
+      req.setTimeout(60000, () => { req.destroy(); reject(new Error('Step request timeout')); });
+      req.write(body);
+      req.end();
+    });
   }
 
-  private buildDiagnosticReport(): string {
-    return `
-# ClawAid - Diagnostic Report
-Generated: ${new Date().toISOString()}
-
-## System State (Initial)
-${this.context.originalObservationText || 'Not captured'}
-
-## Repair Attempts (${this.context.attemptHistory.length} total)
-${this.context.attemptHistory.join('\n\n---\n\n')}
-
-## Summary
-After ${this.context.roundNumber} repair round(s), the issue was not automatically resolved.
-Please review the diagnostic data above and consult the OpenClaw community for assistance.
-
-## Resources
-- OpenClaw Discord: https://discord.gg/openclaw
-- Run manually: openclaw doctor
-- View logs: openclaw logs --follow
-`.trim();
+  // Legacy: kept for old test harness compatibility
+  async startFix(_optionId?: string) {
+    // In the new design, fixing happens automatically in the loop
+    // This is a no-op but kept so server.ts doesn't break
   }
 }

@@ -1,0 +1,42 @@
+data: {"type":"session_start","data":{"sessionId":"1773049395027"},"sessionId":"1773049395027"}
+
+data: {"type":"state_change","data":{"state":"waiting_user_description"},"sessionId":"1773049395027"}
+
+data: {"type":"request_input","data":{"field":"userDescription","instructions":"What's going on? Describe the problem in a few words, or upload a screenshot. You can also skip and let ClawAid figure it out.","allowSkip":true,"allowScreenshot":true},"sessionId":"1773049395027"}
+
+data: {"type":"state_change","data":{"state":"observing"},"sessionId":"1773049395027"}
+
+data: {"type":"progress","data":{"message":"🔍 Scanning your system..."},"sessionId":"1773049395027"}
+
+data: {"type":"progress","data":{"message":"Checking OpenClaw status..."},"sessionId":"1773049395027"}
+
+data: {"type":"progress","data":{"message":"Checking gateway status..."},"sessionId":"1773049395027"}
+
+data: {"type":"progress","data":{"message":"Running official openclaw doctor..."},"sessionId":"1773049395027"}
+
+data: {"type":"progress","data":{"message":"Reading config file..."},"sessionId":"1773049395027"}
+
+data: {"type":"progress","data":{"message":"Checking port 18789..."},"sessionId":"1773049395027"}
+
+data: {"type":"progress","data":{"message":"Checking OpenClaw processes..."},"sessionId":"1773049395027"}
+
+data: {"type":"progress","data":{"message":"Reading launch agent plist..."},"sessionId":"1773049395027"}
+
+data: {"type":"progress","data":{"message":"Finding and reading logs..."},"sessionId":"1773049395027"}
+
+data: {"type":"progress","data":{"message":"Checking Node.js version..."},"sessionId":"1773049395027"}
+
+data: {"type":"progress","data":{"message":"Checking OpenClaw version..."},"sessionId":"1773049395027"}
+
+data: {"type":"progress","data":{"message":"Checking OpenClaw desktop app..."},"sessionId":"1773049395027"}
+
+data: {"type":"progress","data":{"message":"Gathering system info..."},"sessionId":"1773049395027"}
+
+data: {"type":"progress","data":{"message":"Running rule checks..."},"sessionId":"1773049395027"}
+
+data: {"type":"progress","data":{"message":"✓ Scan complete"},"sessionId":"1773049395027"}
+
+data: {"type":"state_change","data":{"state":"healthy"},"sessionId":"1773049395027"}
+
+data: {"type":"complete","data":{"fixed":false,"healthy":true,"summary":"System is healthy — no issues found.","warnings":["WhatsApp groupPolicy is \"allowlist\" but no groups are allowed: The WhatsApp channel has groupPolicy set to \"allowlist\", but groupAllowFrom is empty or missing. This means the bot will ignore ALL group messages. If you want to receive group messages, add group IDs to groupAllowFrom, or change groupPolicy to \"all\"."],"history":[]},"sessionId":"1773049395027"}
+

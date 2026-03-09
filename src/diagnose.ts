@@ -33,11 +33,52 @@ export class PaywallError extends Error {
   }
 }
 
-async function callClawAidAPI(observationData: string, previousAttempts?: string[], round?: number, token?: string): Promise<DiagnosisResult> {
+interface ToolRequest {
+  id: string;
+  command: string;
+  description: string;
+}
+
+interface NeedToolsResponse {
+  type: 'need_tools';
+  reasoning: string;
+  tools: ToolRequest[];
+}
+
+// Execute a whitelisted tool command locally and return its output
+async function executeTool(tool: ToolRequest): Promise<string> {
+  const { execSync } = await import('child_process');
+  try {
+    // Expand ~ manually
+    const cmd = tool.command.replace(/~/g, os.homedir());
+    const output = execSync(cmd, { timeout: 15000, encoding: 'utf-8', shell: os.platform() === 'win32' ? 'cmd.exe' : '/bin/sh' });
+    return (output || '(no output)').slice(0, 3000);
+  } catch (err: unknown) {
+    const e = err as { stdout?: string; stderr?: string; message?: string };
+    const out = (e.stdout || '') + (e.stderr || '');
+    return out ? out.slice(0, 3000) : `Error: ${e.message || 'unknown'}`;
+  }
+}
+
+async function callBackend(
+  observationData: string,
+  previousAttempts: string[] | undefined,
+  round: number | undefined,
+  token: string | undefined,
+  toolResults: Record<string, string> | undefined,
+  onProgress?: (msg: string) => void,
+): Promise<DiagnosisResult> {
   return new Promise((resolve, reject) => {
     const fingerprint = getMachineFingerprint();
-    const body = JSON.stringify({ observationData, previousAttempts, round, fingerprint, ...(token ? { token } : {}) });
-    // Worker path is /diagnose (no /api prefix)
+    const body = JSON.stringify({
+      observationData,
+      previousAttempts,
+      round,
+      fingerprint,
+      ...(token ? { token } : {}),
+      ...(toolResults ? { toolResults } : {}),
+    });
+
     const url = new URL(`${CLAWAID_API}/diagnose`);
     const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
     const lib = isLocal ? http : https;
@@ -59,7 +100,6 @@ async function callClawAidAPI(observationData: string, previousAttempts?: string
       res.on('end', () => {
         try {
           const parsed = JSON.parse(data);
-          // paywallOnFix = diagnosis visible, fix blocked — don't throw, just flag
           if (parsed.paywall && !parsed.paywallOnFix) {
             reject(new PaywallError({
               price: parsed.price || (parsed.isChinese ? '¥9.9' : '$1.99'),
@@ -69,8 +109,8 @@ async function callClawAidAPI(observationData: string, previousAttempts?: string
             }));
             return;
           }
-          if (parsed.error) reject(new Error(parsed.error));
-          else resolve(parsed as DiagnosisResult);
+          if (parsed.error) { reject(new Error(parsed.error)); return; }
+          resolve(parsed as DiagnosisResult);
         } catch {
           reject(new Error(`Failed to parse backend response: ${data.slice(0, 200)}`));
         }
@@ -82,6 +122,50 @@ async function callClawAidAPI(observationData: string, previousAttempts?: string
     req.write(body);
     req.end();
   });
+}
+
+// Agentic loop: AI may request tools up to 2 times before giving final diagnosis
+async function callClawAidAPI(
+  observationData: string,
+  previousAttempts?: string[],
+  round?: number,
+  token?: string,
+  onProgress?: (msg: string) => void,
+): Promise<DiagnosisResult> {
+  const MAX_TOOL_ROUNDS = 2;
+  let toolResults: Record<string, string> | undefined;
+
+  for (let toolRound = 0; toolRound <= MAX_TOOL_ROUNDS; toolRound++) {
+    const response = await callBackend(observationData, previousAttempts, round, token, toolResults, onProgress);
+
+    // If it's a final diagnosis, return it
+    const asAny = response as unknown as { type?: string; tools?: ToolRequest[]; reasoning?: string };
+    if (!asAny.type || asAny.type === 'diagnosis') {
+      return response;
+    }
+
+    // AI wants tools
+    if (asAny.type === 'need_tools' && Array.isArray(asAny.tools) && toolRound < MAX_TOOL_ROUNDS) {
+      const needTools = asAny as unknown as NeedToolsResponse;
+      if (onProgress) onProgress(`🔎 AI needs more info: ${needTools.reasoning || 'gathering data...'}`);
+
+      toolResults = toolResults || {};
+      for (const tool of needTools.tools) {
+        if (onProgress) onProgress(`  → Running: ${tool.description}`);
+        const output = await executeTool(tool);
+        toolResults[tool.id] = output;
+        if (onProgress) onProgress(`  ✓ Got ${output.split('\n').length} lines`);
+      }
+      // Loop: call backend again with tool results
+      continue;
+    }
+
+    // Tool rounds exhausted or unexpected type — treat what we have as diagnosis
+    return response;
+  }
+
+  // Should not reach here, but satisfy TypeScript
+  throw new Error('Tool loop exhausted without diagnosis');
 }
 
 export interface DiagnosticAction {
@@ -122,6 +206,7 @@ export interface DiagnoseOptions {
   previousAttempts?: string[];
   round?: number;
   token?: string;
+  onProgress?: (msg: string) => void;
 }
 
 const SYSTEM_PROMPT = `You are a top-tier OpenClaw diagnostics engineer. OpenClaw is a local AI gateway/assistant platform that runs on macOS. Your tool is called ClawAid 🩺.
@@ -362,7 +447,7 @@ function loadContextDocs(): string {
 }
 
 export async function diagnose(options: DiagnoseOptions): Promise<DiagnosisResult> {
-  const { apiKey, observationData, previousAttempts, round, token } = options;
+  const { apiKey, observationData, previousAttempts, round, token, onProgress } = options;
   
   let userMessage: string;
   
@@ -400,7 +485,7 @@ IMPORTANT: You MUST respond with valid JSON only. No prose, no markdown, no expl
   }
 
   try {
-    return await callClawAidAPI(observationData, previousAttempts, round, token);
+    return await callClawAidAPI(observationData, previousAttempts, round, token, onProgress);
   } catch (err) {
     // Re-throw PaywallError — don't fall back for paywalled responses
     if (err instanceof PaywallError) throw err;

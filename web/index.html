@@ -6,788 +6,230 @@
   <title>ClawAid</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
-      background: #fafafa;
-      color: #202124;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    :root {
+      --bg: #f5f5f5; --surface: #fff; --border: #e5e5e5;
+      --text: #111; --text2: #555; --muted: #999;
+      --blue: #2563eb; --blue-bg: #eff6ff; --blue-border: #bfdbfe;
+      --green: #16a34a; --green-bg: #f0fdf4; --green-border: #bbf7d0;
+      --red: #dc2626; --red-bg: #fef2f2; --red-border: #fecaca;
+      --yellow: #ca8a04; --yellow-bg: #fefce8; --yellow-border: #fde68a;
+      --r: 12px; --rs: 8px;
     }
-
-    .container {
-      width: 100%;
-      max-width: 600px;
-      padding: 48px 24px 80px;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px 16px 80px; }
+    .wrap { max-width: 540px; margin: 0 auto; }
 
     /* Header */
-    .header {
-      text-align: center;
-      margin-bottom: 40px;
-    }
+    .hdr { text-align: center; margin-bottom: 28px; }
+    .hdr .logo { font-size: 40px; line-height: 1; margin-bottom: 6px; }
+    .hdr h1 { font-size: 22px; font-weight: 600; }
+    .hdr p { font-size: 13px; color: var(--text2); margin-top: 2px; }
 
-    .logo {
-      font-size: 40px;
+    /* Steps feed */
+    #feed { display: flex; flex-direction: column; gap: 8px; }
+
+    /* Step card */
+    .step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      animation: fadeUp 0.2s ease;
+    }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    .step-top {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 16px; cursor: pointer; user-select: none;
+    }
+    .step-icon { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; }
+    .step-title { font-size: 14px; font-weight: 500; flex: 1; color: var(--text); }
+    .step-badge {
+      font-size: 10px; font-weight: 600; padding: 2px 7px;
+      border-radius: 4px; text-transform: uppercase;
+    }
+    .badge-read { background: var(--blue-bg); color: var(--blue); }
+    .badge-fix  { background: var(--yellow-bg); color: var(--yellow); }
+    .badge-done { background: var(--green-bg); color: var(--green); }
+    .badge-risk-medium { background: var(--yellow-bg); color: var(--yellow); }
+    .badge-risk-high   { background: var(--red-bg); color: var(--red); }
+
+    .step-status { font-size: 18px; flex-shrink: 0; }
+
+    /* Expandable detail */
+    .step-detail { display: none; padding: 0 16px 14px; }
+    .step.open .step-detail { display: block; }
+    .step-reason { font-size: 13px; color: var(--text2); line-height: 1.5; margin-bottom: 8px; }
+    .step-cmd {
+      font-family: 'SF Mono', monospace; font-size: 12px;
+      background: #f8f8f8; border: 1px solid var(--border); border-radius: var(--rs);
+      padding: 8px 10px; color: var(--text2); word-break: break-all;
       margin-bottom: 8px;
     }
-
-    .header h1 {
-      font-size: 28px;
-      font-weight: 400;
-      color: #202124;
-      margin-bottom: 6px;
+    .step-output {
+      font-family: 'SF Mono', monospace; font-size: 11px;
+      background: #fafafa; border: 1px solid var(--border); border-radius: var(--rs);
+      padding: 8px 10px; color: var(--text2); max-height: 160px;
+      overflow-y: auto; white-space: pre-wrap; word-break: break-all; line-height: 1.4;
     }
+    .step-output-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    .header p {
-      font-size: 14px;
-      color: #5f6368;
+    /* Confirm bar */
+    .confirm-bar {
+      display: flex; gap: 8px; padding: 12px 16px;
+      background: var(--yellow-bg); border-top: 1px solid var(--yellow-border);
     }
-
-    /* Status card */
-    .card {
-      background: #fff;
-      border: 1px solid #e8eaed;
-      border-radius: 12px;
-      padding: 32px;
-      margin-bottom: 16px;
-    }
-
-    /* Progress log */
-    .log-area {
-      background: #f8f9fa;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 16px;
-      font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
-      font-size: 12px;
-      color: #3c4043;
-      line-height: 1.6;
-      max-height: 280px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .log-area .log-line { display: block; }
-    .log-area .log-line.success { color: #137333; }
-    .log-area .log-line.error { color: #c5221f; }
-    .log-area .log-line.warn { color: #e37400; }
-    .log-area .log-line.meta { color: #1a73e8; font-weight: 600; }
-
-    /* Show details toggle */
-    .details-toggle {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: #1a73e8;
-      cursor: pointer;
-      margin-top: 12px;
-      user-select: none;
-      background: none;
-      border: none;
-      padding: 0;
-    }
-    .details-toggle:hover { text-decoration: underline; }
-    .details-toggle .toggle-arrow { transition: transform 0.2s; display: inline-block; }
-    .details-toggle.open .toggle-arrow { transform: rotate(90deg); }
-
-    .details-panel {
-      margin-top: 8px;
-      display: none;
-    }
-    .details-panel.open { display: block; }
+    .confirm-bar.risk-high { background: var(--red-bg); border-top-color: var(--red-border); }
 
     /* Spinner */
-    .spinner {
-      display: inline-block;
-      width: 18px;
-      height: 18px;
-      border: 2px solid #e0e0e0;
-      border-top-color: #1a73e8;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      flex-shrink: 0;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Status row */
-    .status-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 15px;
-      color: #202124;
-      margin-bottom: 4px;
-    }
-
-    .status-sub {
-      font-size: 12px;
-      color: #9aa0a6;
-      margin-left: 28px;
-    }
-
-    /* Phase label */
-    .phase-label {
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #9aa0a6;
-      margin-bottom: 16px;
-    }
-
-    /* Diagnosis card */
-    .diagnosis-section {
-      margin-bottom: 20px;
-    }
-
-    .section-label {
-      font-size: 11px;
-      font-weight: 600;
-      color: #9aa0a6;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
-    }
-
-    .diagnosis-text {
-      font-size: 15px;
-      color: #202124;
-      line-height: 1.6;
-    }
-
-    .root-cause {
-      background: #fef7e0;
-      border: 1px solid #f9ab00;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 13px;
-      color: #7a4f00;
-      margin-top: 10px;
-    }
-
-    .confidence-bar {
-      height: 4px;
-      background: #e8f0fe;
-      border-radius: 2px;
-      margin-top: 12px;
-      overflow: hidden;
-    }
-
-    .confidence-fill {
-      height: 100%;
-      background: #1a73e8;
-      border-radius: 2px;
-      transition: width 0.5s ease;
-    }
-
-    .confidence-label {
-      font-size: 11px;
-      color: #9aa0a6;
-      margin-top: 4px;
-    }
-
-    /* Collapsible reasoning */
-    .collapsible-toggle {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: #5f6368;
-      cursor: pointer;
-      margin-top: 12px;
-      background: none;
-      border: none;
-      padding: 0;
-      user-select: none;
-    }
-    .collapsible-toggle:hover { color: #202124; }
-    .collapsible-toggle .arrow { transition: transform 0.2s; display: inline-block; }
-    .collapsible-toggle.open .arrow { transform: rotate(90deg); }
-    .collapsible-panel { display: none; margin-top: 8px; }
-    .collapsible-panel.open { display: block; }
-
-    /* Divider */
-    .divider {
-      border: none;
-      border-top: 1px solid #f1f3f4;
-      margin: 16px 0;
-    }
-
-    /* Option cards */
-    .options-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-top: 8px;
-    }
-
-    .option-card {
-      border: 1.5px solid #e0e0e0;
-      border-radius: 10px;
-      padding: 16px;
-      transition: border-color 0.15s;
-      position: relative;
-    }
-
-    .option-card.recommended {
-      border-color: #1a73e8;
-      background: #f8fbff;
-    }
-
-    .option-card-header {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-
-    .option-letter {
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background: #e8eaed;
-      color: #3c4043;
-      font-size: 13px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .option-card.recommended .option-letter {
-      background: #1a73e8;
-      color: #fff;
-    }
-
-    .option-title-row {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .option-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: #202124;
-    }
-
-    .recommended-badge {
-      font-size: 10px;
-      background: #e8f0fe;
-      color: #1a73e8;
-      border: 1px solid #c5d9f7;
-      border-radius: 4px;
-      padding: 2px 6px;
-      font-weight: 600;
-    }
-
-    .risk-badge {
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-weight: 600;
-    }
-    .risk-low { background: #e6f4ea; color: #137333; }
-    .risk-medium { background: #fef7e0; color: #7a4f00; }
-    .risk-high { background: #fce8e6; color: #c5221f; }
-
-    .option-description {
-      font-size: 13px;
-      color: #5f6368;
-      line-height: 1.5;
-      margin-left: 36px;
-    }
-
-    .option-fix-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 12px;
-      margin-left: 36px;
-      padding: 8px 18px;
-      font-size: 13px;
-      font-weight: 500;
-      background: #f1f3f4;
-      color: #3c4043;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    .option-card.recommended .option-fix-btn {
-      background: #1a73e8;
-      color: #fff;
-    }
-
-    .option-fix-btn:hover { opacity: 0.85; }
-    .option-fix-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    /* Auto-fix progress */
-    .auto-fix-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 0;
-    }
-
-    .auto-fix-icon {
-      font-size: 20px;
-    }
-
-    .auto-fix-text {
-      font-size: 15px;
-      font-weight: 500;
-      color: #202124;
-    }
-
-    .auto-fix-sub {
-      font-size: 12px;
-      color: #9aa0a6;
-      margin-top: 2px;
-    }
+    .spinner { width: 16px; height: 16px; border: 2px solid #e0e0e0; border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Buttons */
     .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 24px;
-      font-size: 15px;
-      font-weight: 500;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
-      width: 100%;
-      justify-content: center;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 8px 16px; font-size: 13px; font-weight: 500;
+      border: none; border-radius: var(--rs); cursor: pointer;
     }
-
-    .btn:active { transform: scale(0.98); }
+    .btn:hover:not(:disabled) { opacity: 0.85; }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-green   { background: var(--green); color: #fff; }
+    .btn-ghost   { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+    .btn-big { width: 100%; padding: 12px 20px; font-size: 15px; border-radius: var(--r); }
+    /* .btn-coffee removed */
 
-    .btn-primary {
-      background: #1a73e8;
-      color: #fff;
+    /* Result card */
+    .result {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 24px 20px; text-align: center; animation: fadeUp 0.3s ease;
     }
-    .btn-primary:hover:not(:disabled) { background: #1557b0; }
+    .result-icon { font-size: 40px; margin-bottom: 10px; }
+    .result-title { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+    .result-desc { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 16px; }
 
-    .btn-secondary {
-      background: #f1f3f4;
-      color: #3c4043;
+    /* Start card */
+    .start-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 24px 20px;
     }
-    .btn-secondary:hover:not(:disabled) { background: #e8eaed; }
+    .start-card p { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 12px; }
+    .start-card ul { padding-left: 18px; font-size: 13px; color: var(--text2); line-height: 1.8; margin-bottom: 16px; }
 
-    .btn-coffee {
-      background: #FFDD00;
-      color: #000;
-      font-size: 14px;
+    /* Input */
+    .input-field { width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid var(--border); border-radius: var(--rs); font-family: monospace; margin-bottom: 8px; }
+    .input-field:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(37,99,235,.12); }
+
+    /* desc-textarea now defined in the integrated input card section below */
+
+    /* .screenshot-area removed — replaced by integrated camera button approach */
+
+    .btn-row { display: flex; gap: 8px; }
+    .btn-row .btn { flex: 1; }
+
+    /* Warnings list */
+    .warnings-list { margin-top: 14px; text-align: left; }
+    .warning-item {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 10px 12px; margin-bottom: 6px;
+      background: var(--yellow-bg); border: 1px solid var(--yellow-border);
+      border-radius: var(--rs); font-size: 13px; color: var(--text); line-height: 1.5;
+      transition: opacity 0.3s, max-height 0.3s;
     }
-    .btn-coffee:hover:not(:disabled) { background: #f0cf00; }
-
-    /* Input field */
-    .input-group { margin-bottom: 16px; }
-
-    .input-label {
-      display: block;
-      font-size: 13px;
-      font-weight: 500;
-      color: #3c4043;
-      margin-bottom: 6px;
+    .warning-item .wi-icon { flex-shrink: 0; font-size: 15px; margin-top: 1px; }
+    .warning-item .wi-text { flex: 1; }
+    .warning-item .wi-dismiss {
+      flex-shrink: 0; background: none; border: none; cursor: pointer;
+      font-size: 14px; color: var(--muted); padding: 0 0 0 6px; line-height: 1;
+      align-self: flex-start; margin-top: 1px;
     }
-
-    .input-field {
-      width: 100%;
-      padding: 10px 14px;
-      font-size: 14px;
-      border: 1px solid #dadce0;
-      border-radius: 8px;
-      outline: none;
-      transition: border-color 0.15s;
-      font-family: monospace;
-      color: #202124;
-    }
-    .input-field:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.2); }
-
-    .trust-badge {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: #137333;
-      margin-top: 8px;
-      background: #e6f4ea;
-      padding: 6px 10px;
-      border-radius: 6px;
-    }
-
-    /* Result screens */
-    .result-icon {
-      font-size: 48px;
-      text-align: center;
-      margin-bottom: 16px;
-    }
-
-    .result-title {
-      font-size: 22px;
-      font-weight: 500;
-      text-align: center;
-      margin-bottom: 8px;
-    }
-
-    .result-desc {
-      font-size: 14px;
-      color: #5f6368;
-      text-align: center;
-      line-height: 1.6;
-      margin-bottom: 24px;
-    }
-
-    .report-area {
-      background: #f8f9fa;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 16px;
-      font-family: monospace;
-      font-size: 11px;
-      color: #3c4043;
-      max-height: 200px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-      margin-bottom: 12px;
-    }
-
-    /* Alternatives */
-    .alt-list { list-style: none; margin-top: 6px; }
-    .alt-list li {
-      font-size: 13px;
-      color: #5f6368;
-      padding: 4px 0;
-      display: flex;
-      gap: 6px;
-    }
-    .alt-list li::before { content: '→'; color: #9aa0a6; flex-shrink: 0; }
-
-    /* Sections */
-    .section { display: none; }
-    .section.visible { display: block; }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .fade-in { animation: fadeIn 0.25s ease; }
+    .warning-item .wi-dismiss:hover { color: var(--text); }
+    .warning-item.dismissing { opacity: 0; pointer-events: none; }
+    .warnings-title { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
 
     /* Footer */
-    .footer {
-      text-align: center;
-      font-size: 12px;
-      color: #9aa0a6;
-      margin-top: 32px;
-    }
-    .footer a { color: #1a73e8; text-decoration: none; }
-    .footer a:hover { text-decoration: underline; }
+    .footer { text-align: center; font-size: 12px; color: var(--muted); margin-top: 28px; }
+    .footer a { color: var(--blue); text-decoration: none; }
 
-    /* Copy button */
-    .copy-btn {
-      background: none;
-      border: 1px solid #dadce0;
-      border-radius: 6px;
-      padding: 6px 12px;
-      font-size: 12px;
-      cursor: pointer;
-      color: #5f6368;
-      transition: background 0.15s;
+    /* AI reasoning toggle */
+    .step-reasoning-toggle {
+      display: inline-block; font-size: 12px; color: var(--muted);
+      cursor: pointer; margin-bottom: 8px; user-select: none;
+      text-decoration: underline dotted;
     }
-    .copy-btn:hover { background: #f1f3f4; }
+    .step-reasoning-toggle:hover { color: var(--text2); }
+    .step-reasoning-text {
+      display: none; font-size: 12px; color: var(--muted); line-height: 1.5;
+      background: #fafafa; border: 1px solid var(--border); border-radius: var(--rs);
+      padding: 8px 10px; margin-bottom: 8px; white-space: pre-wrap; word-break: break-word;
+    }
 
-    /* Round badge */
-    .round-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #e8f0fe;
-      color: #1a73e8;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 20px;
-      margin-bottom: 12px;
+    /* Integrated input card */
+    .desc-input-wrap {
+      position: relative;
     }
+    .desc-textarea-wrap {
+      position: relative;
+    }
+    .desc-textarea {
+      width: 100%; padding: 10px 12px; padding-bottom: 36px; font-size: 14px;
+      border: 1px solid var(--border); border-radius: var(--rs);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      resize: vertical; min-height: 80px; line-height: 1.5;
+    }
+    .desc-textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(37,99,235,.12); }
+    .desc-textarea::placeholder { color: var(--muted); }
+    .desc-camera-btn {
+      position: absolute; bottom: 8px; right: 8px;
+      background: none; border: none; cursor: pointer; font-size: 18px;
+      line-height: 1; padding: 4px; color: var(--muted); border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .desc-camera-btn:hover { color: var(--text); background: var(--bg); }
+    .desc-camera-btn.has-image { color: var(--green); }
+
+    .screenshot-preview-row {
+      display: flex; align-items: center; gap: 8px;
+      margin-top: 6px; margin-bottom: 8px;
+      padding: 6px 10px; background: var(--green-bg); border: 1px solid var(--green-border);
+      border-radius: var(--rs); font-size: 12px; color: var(--green);
+    }
+    .screenshot-preview-row img { height: 40px; border-radius: 4px; }
+    .screenshot-preview-row .spr-remove {
+      margin-left: auto; background: none; border: none; cursor: pointer;
+      font-size: 14px; color: var(--muted);
+    }
+    .screenshot-preview-row .spr-remove:hover { color: var(--red); }
+
+    /* Hide sections */
+    .hidden { display: none; }
   </style>
 </head>
 <body>
-<div class="container">
+<div class="wrap">
 
-  <!-- Header -->
-  <div class="header">
-    <div class="logo" style="font-size:48px; line-height:1;">🦞🩹</div>
-    <h1>ClawAid</h1>
-    <p>Automatic diagnostics and repair for OpenClaw</p>
+  <div class="hdr">
+    <div class="logo">🦞🩹</div>
+    <h1 id="hdr-title">ClawAid</h1>
+    <p id="hdr-subtitle">Automatic diagnostics & repair for OpenClaw</p>
   </div>
 
-  <!-- ===== SECTION: Privacy ===== -->
-  <div id="section-privacy" class="section visible card fade-in">
-    <div style="text-align:center; font-size:32px; margin-bottom:12px;">🔒</div>
-    <div style="font-size:16px; font-weight:500; text-align:center; margin-bottom:12px;">Before we start</div>
-    <div style="font-size:13px; color:#5f6368; line-height:1.6; margin-bottom:16px;">
-      ClawAid will collect your OpenClaw config, gateway status, and recent logs to diagnose issues.
-      <ul style="margin-top:8px; padding-left:20px;">
-        <li>API keys are partially redacted before sending</li>
-        <li>Data is sent to <strong>our diagnostic service</strong> for analysis only</li>
-        <li>Nothing is stored or shared beyond this session</li>
+  <!-- Start screen -->
+  <div id="start-screen">
+    <div class="start-card">
+      <p id="privacy-text">ClawAid reads your OpenClaw config, gateway status, and logs to find and fix problems.</p>
+      <ul id="privacy-list">
+        <li>API keys are redacted before leaving your machine</li>
+        <li>Data is sent to our diagnostic service — never stored</li>
+        <li>All commands run locally on your machine</li>
       </ul>
-    </div>
-    <button class="btn btn-primary" id="btn-start-scan">
-      🩺 Start Scan
-    </button>
-  </div>
-
-  <!-- ===== SECTION: Scanning ===== -->
-  <div id="section-scanning" class="section card fade-in">
-    <div class="phase-label">Phase 1 — Scanning</div>
-    <div class="status-row">
-      <span class="spinner"></span>
-      <span id="scan-status-text">Starting scan...</span>
-    </div>
-    <div class="status-sub" id="scan-sub-text"></div>
-
-    <button class="details-toggle" id="btn-toggle-scan-log" onclick="toggleDetails('scan-log')">
-      <span class="toggle-arrow">▶</span> Show details
-    </button>
-    <div class="details-panel" id="details-scan-log">
-      <div class="log-area" id="log-area">Connecting to diagnostic engine...</div>
+      <button class="btn btn-primary btn-big" id="btn-start">🩺 Start Scan</button>
     </div>
   </div>
 
-  <!-- ===== SECTION: API Key Input ===== -->
-  <div id="section-apikey" class="section card fade-in">
-    <div class="phase-label">Action Required</div>
-    <div class="diagnosis-section">
-      <div class="section-label">API Key Required</div>
-      <p class="diagnosis-text" id="apikey-instructions">
-        ClawAid needs an OpenRouter API key to run diagnostics.
-      </p>
-    </div>
-    <hr class="divider">
-    <div class="input-group">
-      <label class="input-label" for="apikey-input">OpenRouter API Key</label>
-      <input
-        class="input-field"
-        id="apikey-input"
-        type="password"
-        placeholder="sk-or-..."
-        autocomplete="off"
-        spellcheck="false"
-      />
-      <div class="trust-badge">
-        🔒 Local only. Not stored. Only sent to OpenRouter for AI diagnosis.
-      </div>
-      <div style="margin-top: 6px;">
-        <a href="https://openrouter.ai/keys" target="_blank" style="font-size: 12px; color: #1a73e8;">
-          Get an OpenRouter API key →
-        </a>
-      </div>
-    </div>
-    <button class="btn btn-primary" id="btn-submit-key">
-      Start Diagnosis
-    </button>
-  </div>
+  <!-- Steps feed -->
+  <div id="feed" class="hidden"></div>
 
-  <!-- ===== SECTION: Diagnosis ===== -->
-  <div id="section-diagnosis" class="section card fade-in">
-    <div class="phase-label">Phase 2 — Diagnosis</div>
-    <div id="round-badge-diag" class="round-badge" style="display:none;">
-      <span>🔄</span><span id="round-badge-text">Round 2</span>
-    </div>
-
-    <div class="diagnosis-section">
-      <div class="section-label">What's wrong</div>
-      <p class="diagnosis-text" id="diag-text">Analyzing...</p>
-      <div class="root-cause" id="root-cause-box"></div>
-      <div class="confidence-bar">
-        <div class="confidence-fill" id="confidence-fill" style="width:0%"></div>
-      </div>
-      <div class="confidence-label" id="confidence-label">Confidence: —</div>
-    </div>
-
-    <button class="collapsible-toggle" id="toggle-reasoning" onclick="toggleReasoning()">
-      <span class="arrow">▶</span> Diagnostic details
-    </button>
-    <div class="collapsible-panel" id="reasoning-panel">
-      <div class="log-area" id="reasoning-log" style="max-height:180px;"></div>
-    </div>
-
-    <div id="alternatives-section" style="display:none; margin-top:12px;">
-      <hr class="divider">
-      <div class="section-label">Other possibilities</div>
-      <ul class="alt-list" id="alt-list"></ul>
-    </div>
-  </div>
-
-  <!-- ===== SECTION: Options (user choice) ===== -->
-  <div id="section-options" class="section card fade-in">
-    <div class="phase-label">Phase 3 — Choose a Fix</div>
-    <div id="round-badge-opts" class="round-badge" style="display:none;">
-      <span>🔄</span><span id="round-opts-text">Round 2</span>
-    </div>
-    <p style="font-size:14px; color:#5f6368; margin-bottom:16px;">
-      Select a repair option below. The recommended fix is highlighted.
-    </p>
-    <div class="options-list" id="options-list"></div>
-  </div>
-
-  <!-- ===== SECTION: Auto-executing ===== -->
-  <div id="section-auto-fix" class="section card fade-in">
-    <div class="phase-label">Phase 3 — Auto-fixing</div>
-    <div class="auto-fix-row">
-      <div class="auto-fix-icon">🔧</div>
-      <div>
-        <div class="auto-fix-text">Auto-fixing...</div>
-        <div class="auto-fix-sub" id="auto-fix-sub">Applying recommended fix</div>
-      </div>
-      <span class="spinner" style="margin-left:auto;"></span>
-    </div>
-
-    <button class="details-toggle" id="btn-toggle-fix-log" onclick="toggleDetails('fix-log')">
-      <span class="toggle-arrow">▶</span> Show details
-    </button>
-    <div class="details-panel" id="details-fix-log">
-      <div class="log-area" id="exec-log"></div>
-    </div>
-  </div>
-
-  <!-- ===== SECTION: Fixed ===== -->
-  <div id="section-fixed" class="section card fade-in">
-    <div class="result-icon">✅</div>
-    <div class="result-title">OpenClaw is fixed!</div>
-
-    <div id="fixed-summary" style="text-align:left; margin: 20px 0;">
-      <div style="margin-bottom:16px;">
-        <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1px; color:#9aa0a6; margin-bottom:6px;">What was wrong</div>
-        <div id="fixed-what-wrong" style="font-size:14px; color:#3c4043; line-height:1.6;"></div>
-      </div>
-      <div style="border-top:1px solid #e8eaed; padding-top:16px;">
-        <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1px; color:#9aa0a6; margin-bottom:6px;">What we fixed</div>
-        <div id="fixed-what-fixed" style="font-size:14px; color:#3c4043; line-height:1.6;"></div>
-      </div>
-    </div>
-
-    <div style="margin-bottom:16px;">
-      <button class="details-toggle" id="btn-fixed-details" onclick="toggleFixedDetails()">
-        <span class="toggle-arrow">▶</span> Show technical details
-      </button>
-      <div class="details-panel" id="fixed-details-panel" style="margin-top:8px;">
-        <p id="fixed-explanation" style="font-size:13px; color:#5f6368;"></p>
-      </div>
-    </div>
-
-    <button class="btn btn-coffee" onclick="window.open('https://buymeacoffee.com/clawaid','_blank')">
-      ☕ Buy me a coffee
-    </button>
-    <div style="margin-top: 8px; text-align: center; font-size: 12px; color: #9aa0a6;">
-      ClawAid is free. If it saved your day, a coffee helps keep it alive!
-    </div>
-  </div>
-
-  <!-- ===== SECTION: Healthy ===== -->
-  <div id="section-healthy" class="section card fade-in">
-    <div class="result-icon">💚</div>
-    <div class="result-title">OpenClaw is healthy!</div>
-    <p class="result-desc" id="healthy-explanation">Your system is running normally. No issues detected.</p>
-
-    <div id="healthy-reasoning" style="display:none; text-align:left; margin-bottom:12px;">
-      <button class="details-toggle" onclick="this.nextElementSibling.classList.toggle('open'); this.querySelector('.toggle-arrow').textContent = this.nextElementSibling.classList.contains('open') ? '▼' : '▶'">
-        <span class="toggle-arrow">▶</span> How we diagnosed this
-      </button>
-      <div class="details-panel" id="healthy-reasoning-list" style="margin-top:8px;"></div>
-    </div>
-
-    <div id="healthy-warnings" style="display:none; text-align:left; margin-bottom:16px;">
-      <div style="font-size:13px; font-weight:600; color:#e37400; margin-bottom:8px;">⚠️ Non-critical notes</div>
-      <ul id="healthy-warnings-list" style="list-style:none; padding:0; margin:0;"></ul>
-    </div>
-
-    <button class="btn btn-secondary" onclick="location.reload()" style="margin-bottom: 8px;">
-      🔄 Scan Again
-    </button>
-  </div>
-
-  <!-- ===== SECTION: Not Fixed ===== -->
-  <div id="section-notfixed" class="section card fade-in">
-    <div class="result-icon">😔</div>
-    <div class="result-title">Couldn't fix automatically</div>
-    <p class="result-desc" id="notfixed-explanation">
-      After multiple attempts, the issue couldn't be resolved automatically.
-      Here's the diagnostic report to share with the community.
-    </p>
-
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-      <span style="font-size: 13px; font-weight: 500; color: #3c4043;">Diagnostic Report</span>
-      <button class="copy-btn" id="btn-copy-report">Copy</button>
-    </div>
-    <div class="report-area" id="report-area"></div>
-
-    <button class="btn btn-secondary" onclick="window.open('https://discord.gg/openclaw','_blank')" style="margin-bottom: 8px;">
-      💬 Get Help on Discord
-    </button>
-    <button class="btn btn-secondary" onclick="location.reload()">
-      🔄 Try Again
-    </button>
-  </div>
-
-  <!-- ===== SECTION: Paywall ===== -->
-  <div id="section-paywall" class="section card fade-in">
-    <div style="text-align:center; font-size:40px; margin-bottom:12px;">🔐</div>
-    <div style="font-size:18px; font-weight:500; text-align:center; margin-bottom:8px;">Use credits to continue</div>
-    <p style="font-size:13px; color:#5f6368; text-align:center; line-height:1.6; margin-bottom:20px;">
-      You've used your free diagnostic scans. Purchase credits to keep diagnosing.
-    </p>
-
-    <!-- Price display -->
-    <div id="paywall-price-box" style="background:#e8f0fe; border-radius:10px; padding:16px; text-align:center; margin-bottom:20px;">
-      <div id="paywall-price" style="font-size:28px; font-weight:700; color:#1a73e8;">$1.99</div>
-      <div id="paywall-credits" style="font-size:13px; color:#5f6368; margin-top:4px;">Credits for more scans</div>
-    </div>
-
-    <!-- Buy button -->
-    <a id="paywall-buy-btn" href="https://clawaid.app/#buy" target="_blank"
-       style="display:flex; align-items:center; justify-content:center; gap:8px;
-              padding:12px 24px; font-size:15px; font-weight:500; text-decoration:none;
-              background:#1a73e8; color:#fff; border-radius:8px; margin-bottom:20px;">
-      💳 Buy Credits
-    </a>
-
-    <hr class="divider">
-
-    <!-- Redeem token -->
-    <div style="font-size:13px; font-weight:500; color:#3c4043; margin-bottom:8px;">Already have a token?</div>
-    <div class="input-group" style="margin-bottom:8px;">
-      <input class="input-field" id="paywall-token-input" type="text"
-             placeholder="Paste your activation token..."
-             autocomplete="off" spellcheck="false" />
-    </div>
-    <button class="btn btn-secondary" id="paywall-activate-btn" style="margin-bottom:8px;">
-      🔑 Activate Token
-    </button>
-    <div id="paywall-activate-msg" style="font-size:12px; color:#5f6368; min-height:18px; text-align:center;"></div>
-  </div>
-
-  <div class="footer">
-    <p>ClawAid v1.1.0 · <a href="https://clawaid.app" target="_blank">clawaid.app</a></p>
-  </div>
+  <div class="footer">ClawAid v2.0.0 · <a href="https://clawaid.app" target="_blank">clawaid.app</a></div>
 
 </div>
 
@@ -795,542 +237,568 @@
 (function() {
   'use strict';
 
-  // State
   let sessionId = null;
-  let currentState = 'idle';
   let eventSource = null;
-  let diagnosisData = null; // last diagnosis received
-  let chosenOption = null; // option selected for fix
+  const feed = document.getElementById('feed');
+  const startScreen = document.getElementById('start-screen');
 
-  // Elements
-  const $ = id => document.getElementById(id);
-
-  const sections = {
-    privacy: $('section-privacy'),
-    scanning: $('section-scanning'),
-    apikey: $('section-apikey'),
-    diagnosis: $('section-diagnosis'),
-    options: $('section-options'),
-    autofix: $('section-auto-fix'),
-    fixed: $('section-fixed'),
-    healthy: $('section-healthy'),
-    notfixed: $('section-notfixed'),
-    paywall: $('section-paywall'),
+  // ─── i18n ─────────────────────────────────────────────────────────────────
+  const isZh = /^zh/i.test(navigator.language || '');
+  const T = {
+    startScan: isZh ? '🩺 开始扫描' : '🩺 Start Scan',
+    title: 'ClawAid',
+    subtitle: isZh ? '一条命令，自动诊断并修复 OpenClaw' : 'One command to diagnose and fix OpenClaw',
+    privacy: isZh ? 'ClawAid 会读取你的 OpenClaw 配置、gateway 状态和日志来诊断问题。' : 'ClawAid reads your OpenClaw config, gateway status, and logs to find and fix problems.',
+    scanning: isZh ? '正在扫描你的系统...' : 'Scanning your system...',
+    scanned: isZh ? '系统数据已收集' : 'System data collected',
+    allClear: isZh ? '一切正常！' : 'All clear!',
+    fixed: isZh ? '已修复！' : 'Fixed!',
+    notFixed: isZh ? '无法自动修复' : "Couldn't fix automatically",
+    healthyDesc: isZh ? '你的 OpenClaw 运行正常。' : 'Your OpenClaw is running normally.',
+    fixedDesc: isZh ? 'OpenClaw 已修复。' : 'OpenClaw has been repaired.',
+    notFixedDesc: isZh ? '多次尝试后问题仍然存在。' : 'After multiple attempts, the issue persists.',
+    scanAgain: isZh ? '🔄 重新扫描' : '🔄 Scan Again',
+    tryAgain: isZh ? '🔄 再试一次' : '🔄 Try Again',
+    warnings: isZh ? '⚠️ 其他需要注意的' : '⚠️ Other things to know',
+    wasHelpful: isZh ? '问题解决了吗？' : 'Was this helpful?',
+    feedbackYes: isZh ? '👍 解决了' : '👍 Yes',
+    feedbackNo: isZh ? '👎 没解决' : '👎 No',
+    thanksYes: isZh ? '太好了！很高兴帮到你 🎉' : 'Thanks! Glad it helped 🎉',
+    thanksNo: isZh ? '抱歉没解决，联系我们帮你搞定 👇' : "Sorry to hear that. Reach out below — we'll help! 👇",
+    contact: isZh ? '💬 有问题？' : '💬 Questions or feedback?',
+    allowQ: isZh ? '这将修改你的系统，允许执行吗？' : 'This will modify your system. Allow?',
+    allow: isZh ? '✓ 允许' : '✓ Allow',
+    skip: isZh ? '跳过' : 'Skip',
+    whatsWrong: isZh ? '遇到什么问题？' : "What's going on?",
+    descHint: isZh ? '描述你的问题，或者直接扫描——ClawAid 会自动诊断。' : 'Describe the problem, or just scan — ClawAid will figure it out.',
+    descPlaceholder: isZh ? '例如：更新后 OpenClaw 就不响应了...（可选）' : 'e.g. OpenClaw stopped responding after I updated... (optional)',
+    sendDiagnose: isZh ? '📝 发送并诊断' : '📝 Send & diagnose',
+    justScan: isZh ? '🔍 直接扫描修复' : '🔍 Just scan & fix',
+    privacyList: isZh
+      ? ['API 密钥在发送前已脱敏', '数据发送到诊断服务，不会存储', '所有命令在你的本机执行']
+      : ['API keys are redacted before leaving your machine', 'Data is sent to our diagnostic service — never stored', 'All commands run locally on your machine'],
   };
 
-  function showOnly(name) {
-    Object.entries(sections).forEach(([key, el]) => {
-      el.classList.toggle('visible', key === name);
+  // Apply i18n to static elements
+  if (isZh) {
+    const sub = document.getElementById('hdr-subtitle');
+    if (sub) sub.textContent = '自动诊断并修复 OpenClaw';
+    const pv = document.getElementById('privacy-text');
+    if (pv) pv.textContent = T.privacy;
+    const pl = document.getElementById('privacy-list');
+    if (pl) pl.innerHTML = T.privacyList.map(t => '<li>' + t + '</li>').join('');
+    const btn = document.getElementById('btn-start');
+    if (btn) btn.textContent = T.startScan;
+  }
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function sendFeedback(value, btn) {
+    const container = btn.parentElement;
+    container.innerHTML = value === 'yes'
+      ? '<span style="color:#34a853;font-size:13px;">' + T.thanksYes + '</span>'
+      : '<span style="color:#ea4335;font-size:13px;">' + T.thanksNo + '</span>';
+    fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feedback: value, sessionId })
+    }).catch(() => {});
+  }
+
+  function scrollBottom() {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  }
+
+  // ─── Step rendering ───────────────────────────────────────────────────────
+
+  function iconForStep(step) {
+    if (step.type === 'read') return '🔍';
+    if (step.type === 'fix') return '🔧';
+    if (step.type === 'done') return step.fixed ? '✅' : '😔';
+    return '⚙️';
+  }
+
+  function badgeForStep(step) {
+    let html = '';
+    if (step.type === 'read') html += '<span class="step-badge badge-read">read</span>';
+    if (step.type === 'fix') html += '<span class="step-badge badge-fix">fix</span>';
+    if (step.type === 'done') html += '<span class="step-badge badge-done">done</span>';
+    if (step.risk === 'medium') html += ' <span class="step-badge badge-risk-medium">medium risk</span>';
+    if (step.risk === 'high') html += ' <span class="step-badge badge-risk-high">⚠ high risk</span>';
+    return html;
+  }
+
+  function addStepCard(step, index) {
+    const card = document.createElement('div');
+    card.className = 'step';
+    card.id = 'step-' + index;
+    const reasoningContent = step.thinking || step.reason || '';
+    const reasoningHtml = reasoningContent ? `
+      <span class="step-reasoning-toggle" onclick="(function(el){var t=el.nextElementSibling;t.style.display=t.style.display==='block'?'none':'block';el.textContent=t.style.display==='block'?'▲ Hide AI reasoning':'💭 Show AI reasoning';})(this)">💭 Show AI reasoning</span>
+      <div class="step-reasoning-text">${esc(reasoningContent)}</div>
+    ` : '';
+    card.innerHTML = `
+      <div class="step-top" onclick="this.parentElement.classList.toggle('open')">
+        <div class="step-icon">${iconForStep(step)}</div>
+        <div class="step-title">${esc(step.description || step.summary || 'Working...')}</div>
+        ${badgeForStep(step)}
+        <div class="step-status" id="step-status-${index}"><div class="spinner"></div></div>
+      </div>
+      <div class="step-detail" id="step-detail-${index}">
+        ${reasoningHtml}
+        ${step.command ? `<div class="step-cmd">$ ${esc(step.command)}</div>` : ''}
+        <div id="step-output-area-${index}"></div>
+      </div>
+    `;
+    feed.appendChild(card);
+    scrollBottom();
+    return card;
+  }
+
+  function finishStepCard(index, output, skipped) {
+    const statusEl = document.getElementById('step-status-' + index);
+    if (statusEl) statusEl.innerHTML = skipped ? '⏭️' : '✓';
+    const outputArea = document.getElementById('step-output-area-' + index);
+    if (outputArea && output && !skipped) {
+      const trimmed = output.length > 800 ? output.slice(0, 800) + '\n...' : output;
+      outputArea.innerHTML = `
+        <div class="step-output-label">Output</div>
+        <div class="step-output">${esc(trimmed)}</div>
+      `;
+    }
+  }
+
+  function addConfirmBar(step, index) {
+    const card = document.getElementById('step-' + index);
+    if (!card) return;
+    const risk = step.risk || 'medium';
+    const bar = document.createElement('div');
+    bar.className = 'confirm-bar' + (risk === 'high' ? ' risk-high' : '');
+    bar.id = 'confirm-bar-' + index;
+    bar.innerHTML = `
+      <span style="font-size:13px; color:var(--text); flex:1;">${T.allowQ}</span>
+      <button class="btn btn-green" id="btn-yes-${index}">${T.allow}</button>
+      <button class="btn btn-ghost" id="btn-no-${index}">${T.skip}</button>
+    `;
+    card.appendChild(bar);
+    card.classList.add('open'); // auto-expand so user sees what's about to run
+
+    document.getElementById('btn-yes-' + index).addEventListener('click', () => {
+      bar.remove();
+      fetch('/api/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId, confirmed: true }) });
     });
-    currentState = name;
+    document.getElementById('btn-no-' + index).addEventListener('click', () => {
+      bar.remove();
+      fetch('/api/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId, confirmed: false }) });
+    });
+
+    scrollBottom();
   }
 
-  function appendLog(areaId, msg, cls) {
-    const area = $(areaId);
-    if (!area) return;
-    const line = document.createElement('span');
-    line.className = 'log-line' + (cls ? ' ' + cls : '');
-    line.textContent = msg + '\n';
-    area.appendChild(line);
-    area.scrollTop = area.scrollHeight;
+  // ─── Scan block (initial observation phase) ───────────────────────────────
+
+  function addScanBlock() {
+    const div = document.createElement('div');
+    div.className = 'step';
+    div.id = 'scan-block';
+    div.innerHTML = `
+      <div class="step-top" onclick="this.parentElement.classList.toggle('open')">
+        <div class="step-icon">📡</div>
+        <div class="step-title" id="scan-title">${T.scanning}</div>
+        <div class="step-status" id="scan-status"><div class="spinner"></div></div>
+      </div>
+      <div class="step-detail" id="scan-detail"></div>
+    `;
+    feed.appendChild(div);
   }
 
-  function classForMessage(msg) {
-    if (msg.startsWith('✓') || msg.startsWith('✅') || msg.includes('Success') || msg.includes('fixed')) return 'success';
-    if (msg.startsWith('❌') || msg.startsWith('✗') || msg.includes('Error') || msg.includes('failed')) return 'error';
-    if (msg.startsWith('⚠️') || msg.startsWith('Warning')) return 'warn';
-    if (msg.startsWith('🤖') || msg.startsWith('💭') || msg.startsWith('🔄') || msg.startsWith('📡')) return 'meta';
-    return '';
+  function finishScanBlock() {
+    const el = document.getElementById('scan-status');
+    if (el) el.innerHTML = '✓';
+    const title = document.getElementById('scan-title');
+    if (title) title.textContent = T.scanned;
   }
 
-  // Details toggle (scan + fix log panels)
-  window.toggleDetails = function(panelSuffix) {
-    const btnId = 'btn-toggle-' + panelSuffix;
-    const panelId = 'details-' + panelSuffix;
-    const btn = $(btnId);
-    const panel = $(panelId);
-    if (!btn || !panel) return;
-    const isOpen = panel.classList.toggle('open');
-    btn.classList.toggle('open', isOpen);
-    btn.querySelector('.toggle-arrow').textContent = isOpen ? '▼' : '▶';
-    btn.childNodes[1].textContent = isOpen ? ' Hide details' : ' Show details';
-  };
+  // ─── Result cards ─────────────────────────────────────────────────────────
 
-  // Fixed details toggle
-  window.toggleFixedDetails = function() {
-    const btn = $('btn-fixed-details');
-    const panel = $('fixed-details-panel');
-    const isOpen = panel.classList.toggle('open');
-    btn.querySelector('.toggle-arrow').textContent = isOpen ? '▼' : '▶';
-    btn.childNodes[1].textContent = isOpen ? ' Hide technical details' : ' Show technical details';
-  };
+  function renderWarnings(warnings) {
+    if (!warnings || warnings.length === 0) return '';
+    let html = '<div class="warnings-list"><div class="warnings-title">' + T.warnings + '</div>';
+    for (const w of warnings) {
+      html += `<div class="warning-item"><span class="wi-icon">💡</span><span class="wi-text">${esc(w)}</span><button class="wi-dismiss" title="Dismiss" onclick="(function(btn){var item=btn.closest('.warning-item');item.classList.add('dismissing');setTimeout(function(){item.remove();},300);})(this)">×</button></div>`;
+    }
+    html += '</div>';
+    return html;
+  }
 
-  // Reasoning toggle
-  window.toggleReasoning = function() {
-    const btn = $('toggle-reasoning');
-    const panel = $('reasoning-panel');
-    const isOpen = panel.classList.toggle('open');
-    btn.classList.toggle('open', isOpen);
-    btn.querySelector('.arrow').textContent = isOpen ? '▼' : '▶';
-    btn.childNodes[1].textContent = isOpen ? ' Hide diagnostic details' : ' Diagnostic details';
-  };
+  function showResult(data) {
+    const div = document.createElement('div');
+    div.className = 'result';
+    const warningsHtml = renderWarnings(data.warnings);
 
-  // Start SSE connection
+    const feedbackHtml = `
+      <div style="margin-top:18px;padding:14px;background:#f8f9fa;border-radius:10px;border:1px solid #e0e0e0;">
+        <div style="font-size:13px;color:#555;margin-bottom:8px;">${T.wasHelpful}</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <button class="btn btn-ghost" onclick="sendFeedback('yes',this)" style="flex:1;">${T.feedbackYes}</button>
+          <button class="btn btn-ghost" onclick="sendFeedback('no',this)" style="flex:1;">${T.feedbackNo}</button>
+        </div>
+        <div style="font-size:12px;color:#888;line-height:1.5;">
+          ${T.contact}<br>
+          WeChat: <b>oliver56666</b> · <a href="https://github.com/jjj5666/clawaid/issues" target="_blank" style="color:#1a73e8;">GitHub Issues</a>
+        </div>
+      </div>
+    `;
+
+    if (data.healthy) {
+      div.innerHTML = `
+        <div class="result-icon">💚</div>
+        <div class="result-title">${T.allClear}</div>
+        <div class="result-desc">${esc(data.summary || T.healthyDesc)}</div>
+        ${warningsHtml}
+        ${feedbackHtml}
+        <button class="btn btn-ghost btn-big" onclick="location.reload()" style="margin-top:14px;">${T.scanAgain}</button>
+      `;
+    } else if (data.fixed) {
+      div.innerHTML = `
+        <div class="result-icon">✅</div>
+        <div class="result-title">${T.fixed}</div>
+        <div class="result-desc">${esc(data.summary || T.fixedDesc)}</div>
+        ${warningsHtml}
+        ${feedbackHtml}
+        <button class="btn btn-ghost btn-big" onclick="location.reload()" style="margin-top:14px;">${T.scanAgain}</button>
+      `;
+    } else {
+      div.innerHTML = `
+        <div class="result-icon">😔</div>
+        <div class="result-title">${T.notFixed}</div>
+        <div class="result-desc">${esc(data.summary || T.notFixedDesc)}</div>
+        ${warningsHtml}
+        ${feedbackHtml}
+        <button class="btn btn-ghost btn-big" onclick="location.reload()" style="margin-top:14px;">${T.tryAgain}</button>
+      `;
+    }
+
+    feed.appendChild(div);
+    scrollBottom();
+  }
+
+  // ─── SSE connection ───────────────────────────────────────────────────────
+
+  let currentStepIndex = -1;
+
+  let scanBlockAdded = false;
+
   function startDiagnosis() {
-    showOnly('scanning');
-    $('log-area').textContent = '';
-    $('exec-log').textContent = '';
+    startScreen.classList.add('hidden');
+    feed.classList.remove('hidden');
+    feed.innerHTML = '';
+    currentStepIndex = -1;
+    scanBlockAdded = false;
 
     eventSource = new EventSource('/api/diagnose');
 
     eventSource.onmessage = function(e) {
-      let parsed;
-      try { parsed = JSON.parse(e.data); } catch { return; }
-
-      const { type, data } = parsed;
-      sessionId = parsed.sessionId || sessionId;
-
-      switch(type) {
-        case 'session_start':
-          sessionId = data.sessionId;
-          $('scan-status-text').textContent = 'Checking gateway...';
-          break;
-
-        case 'progress': {
-          const msg = data.message || '';
-          const cls = classForMessage(msg);
-          appendLog('log-area', msg, cls);
-          appendLog('exec-log', msg, cls);
-          appendLog('reasoning-log', msg, cls);
-
-          // Update clean status text
-          const clean = msg.replace(/^[🔍🤔🔧✅⚠️❌💭🔄→📡🔒  ]+/, '').trim().slice(0, 80);
-          if (clean) {
-            $('scan-status-text').textContent = clean;
-            $('auto-fix-sub').textContent = clean;
-          }
-          break;
-        }
-
-        case 'state_change':
-          handleStateChange(data.state);
-          break;
-
-        case 'diagnosis':
-          showDiagnosis(data);
-          break;
-
-        case 'action_result':
-          break;
-
-        case 'verify_result':
-          appendLog('exec-log', '─────────────────────────────────────', '');
-          if (data.fixed) {
-            appendLog('exec-log', '✅ Verified — issue resolved!', 'success');
-            appendLog('exec-log', '  ' + data.explanation, 'success');
-          } else {
-            appendLog('exec-log', '⚠️ Not yet fixed: ' + data.explanation, 'warn');
-            appendLog('exec-log', '  Re-analyzing...', '');
-          }
-          break;
-
-        case 'request_input':
-          if (data.field === 'apiKey') showApiKeyInput(data);
-          break;
-
-        case 'paywall':
-          showPaywall(data);
-          break;
-
-        case 'complete':
-          handleComplete(data);
-          break;
-
-        case 'error':
-          appendLog('log-area', '─────────────────────────────────────', '');
-          appendLog('log-area', '❌ Error: ' + data.message, 'error');
-          appendLog('log-area', '  Check your API key and internet connection, then reload to try again.', 'warn');
-          $('scan-status-text').textContent = 'Error — click "Show details"';
-          showOnly('scanning');
-          // Auto-open details on error
-          const detailPanel = $('details-scan-log');
-          if (detailPanel && !detailPanel.classList.contains('open')) {
-            window.toggleDetails('scan-log');
-          }
-          break;
-      }
+      let msg;
+      try { msg = JSON.parse(e.data); } catch { return; }
+      sessionId = msg.sessionId || sessionId;
+      onEvent(msg.type, msg.data || {});
     };
 
     eventSource.onerror = function() {
-      if (currentState !== 'fixed' && currentState !== 'notfixed' && currentState !== 'healthy') {
-        appendLog('log-area', '⚠️ Connection lost. The server may have stopped.', 'warn');
+      // Only show error if we haven't completed
+      if (!['fixed','not_fixed','healthy'].includes(document.body.dataset.state || '')) {
+        const err = document.createElement('div');
+        err.className = 'result';
+        err.innerHTML = `
+          <div class="result-icon">⚠️</div>
+          <div class="result-title">Connection lost</div>
+          <div class="result-desc">The server may have stopped.</div>
+          <button class="btn btn-ghost btn-big" onclick="location.reload()">🔄 Retry</button>
+        `;
+        feed.appendChild(err);
       }
     };
   }
 
-  function handleStateChange(state) {
-    switch(state) {
-      case 'observing':
-        showOnly('scanning');
-        $('scan-status-text').textContent = 'Checking gateway...';
+  function onEvent(type, data) {
+    switch (type) {
+      case 'session_start':
+        sessionId = data.sessionId;
         break;
-      case 'diagnosing':
-        showOnly('scanning');
-        $('scan-status-text').textContent = 'Analyzing your system...';
-        $('scan-sub-text').textContent = 'This may take a few seconds';
-        appendLog('log-area', '─────────────────────────────────────', '');
-        appendLog('log-area', '🤖 Sending data to AI for diagnosis...', 'meta');
-        break;
-      case 'showing_options':
-        // Options will show via 'diagnosis' event + render options
-        break;
-      case 'auto_executing':
-        $('exec-log').textContent = '';
-        showOnly('autofix');
-        break;
-      case 'executing':
-        $('exec-log').textContent = '';
-        showOnly('autofix');
-        break;
-      case 'verifying':
-        $('auto-fix-sub').textContent = 'Verifying repair...';
-        appendLog('exec-log', '─────────────────────────────────────', '');
-        appendLog('exec-log', '🔍 Checking if the fix worked...', 'meta');
-        break;
-      case 'needs_api_key':
-        break; // handled by request_input event
-      case 'paywall':
-        break; // handled by 'paywall' event
-      case 'error':
-        $('scan-status-text').textContent = 'Error occurred';
-        break;
-      case 'fixed':
-        showOnly('fixed');
-        break;
-      case 'healthy':
-        showOnly('healthy');
-        break;
-      case 'not_fixed':
-        showOnly('notfixed');
-        break;
-    }
-  }
 
-  function showDiagnosis(data) {
-    diagnosisData = data;
-    const confidence = Math.round((data.confidence || 0.5) * 100);
-    const options = data.options || [];
-    const round = data.round || 1;
-
-    // Render reasoning as clean list
-    const reasoningLog = $('reasoning-log');
-    reasoningLog.innerHTML = '';
-    const reasoning = data.reasoning || [];
-    if (reasoning.length > 0) {
-      reasoning.forEach(function(r, i) {
-        const line = document.createElement('div');
-        line.style.cssText = 'padding:6px 0; font-size:13px; color:#3c4043; border-bottom:1px solid #f1f3f4;';
-        line.textContent = (i+1) + '. ' + r;
-        reasoningLog.appendChild(line);
-      });
-    } else {
-      reasoningLog.textContent = 'No reasoning details available.';
-    }
-
-    // Update diagnosis card
-    $('diag-text').textContent = data.diagnosis || '';
-    $('root-cause-box').textContent = '🎯 ' + (data.rootCause || 'Unknown root cause');
-    $('confidence-fill').style.width = confidence + '%';
-    $('confidence-label').textContent = 'Confidence: ' + confidence + '%';
-
-    // Round badge
-    if (round > 1) {
-      $('round-badge-diag').style.display = 'inline-flex';
-      $('round-badge-text').textContent = 'Round ' + round + ' — new approach';
-      $('round-badge-opts').style.display = 'inline-flex';
-      $('round-opts-text').textContent = 'Round ' + round + ' — new approach';
-    } else {
-      $('round-badge-diag').style.display = 'none';
-      $('round-badge-opts').style.display = 'none';
-    }
-
-    // Alternatives
-    const alts = data.alternativeHypotheses || [];
-    if (alts.length > 0) {
-      $('alternatives-section').style.display = 'block';
-      const altList = $('alt-list');
-      altList.innerHTML = '';
-      alts.forEach(alt => {
-        const li = document.createElement('li');
-        li.textContent = alt;
-        altList.appendChild(li);
-      });
-    } else {
-      $('alternatives-section').style.display = 'none';
-    }
-
-    // Show diagnosis card
-    showOnly('diagnosis');
-
-    // Auto-check if we should show options too immediately
-    const recommended = options.filter(o => o.recommended);
-    const canAutoExecute = recommended.length > 0 && recommended.every(o => o.autoExecute);
-
-    if (canAutoExecute) {
-      // Store recommended option for result page
-      chosenOption = recommended[0] || null;
-      // Auto-execute: show diagnosis briefly, then trigger fix
-      setTimeout(function() {
-        fetch('/api/fix', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId: sessionId }),
-        });
-      }, 1200);
-    } else if (options.length > 0) {
-      // Render option cards and switch to options section
-      renderOptions(options);
-      // Show diagnosis briefly then switch to options after 1s
-      setTimeout(() => showOnly('options'), 3000);
-    }
-  }
-
-  function renderOptions(options) {
-    const list = $('options-list');
-    list.innerHTML = '';
-
-    options.forEach(opt => {
-      const card = document.createElement('div');
-      card.className = 'option-card' + (opt.recommended ? ' recommended' : '');
-
-      const riskClass = 'risk-' + (opt.risk || 'low');
-
-      card.innerHTML = `
-        <div class="option-card-header">
-          <div class="option-letter">${escHtml(opt.id)}</div>
-          <div class="option-title-row">
-            <span class="option-title">${escHtml(opt.title)}</span>
-            ${opt.recommended ? '<span class="recommended-badge">★ Recommended</span>' : ''}
-            <span class="risk-badge ${riskClass}">${escHtml(opt.risk)}</span>
-          </div>
-        </div>
-        <div class="option-description">${escHtml(opt.description)}</div>
-        <button class="option-fix-btn" data-option-id="${escHtml(opt.id)}">
-          🔧 Fix with this option
-        </button>
-      `;
-
-      list.appendChild(card);
-    });
-
-    // Attach click handlers
-    list.querySelectorAll('.option-fix-btn').forEach(btn => {
-      btn.addEventListener('click', async function() {
-        const optionId = this.dataset.optionId;
-        // Store chosen option for result page
-        chosenOption = (diagnosisData && diagnosisData.options) ? diagnosisData.options.find(o => o.id === optionId) || diagnosisData.options.find(o => o.recommended) : null;
-        // Disable all buttons
-        list.querySelectorAll('.option-fix-btn').forEach(b => { b.disabled = true; });
-
-        $('exec-log').textContent = '';
-        appendLog('exec-log', '🔧 Starting repair: Option ' + optionId + '...', 'meta');
-        showOnly('autofix');
-
-        try {
-          await fetch('/api/fix', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId, optionId }),
-          });
-        } catch(e) {
-          appendLog('exec-log', '❌ Failed to start fix: ' + e.message, 'error');
+      case 'state_change':
+        document.body.dataset.state = data.state;
+        if (data.state === 'observing' && !scanBlockAdded) {
+          addScanBlock();
+          scanBlockAdded = true;
         }
-      });
+        if (data.state === 'running') finishScanBlock();
+        break;
+
+      case 'progress': {
+        // Append to scan block detail while scanning
+        const detail = document.getElementById('scan-detail');
+        if (detail) {
+          const line = document.createElement('div');
+          line.style.cssText = 'font-size:12px; color:var(--text2); padding:2px 0;';
+          line.textContent = data.message || '';
+          detail.appendChild(line);
+        }
+        break;
+      }
+
+      case 'step_start': {
+        currentStepIndex = data.index;
+        const step = data.step;
+        if (step.type === 'done') {
+          // Show result, don't add a step card
+        } else {
+          addStepCard(step, data.index);
+        }
+        break;
+      }
+
+      case 'step_done': {
+        finishStepCard(data.index, data.output, data.skipped);
+        break;
+      }
+
+      case 'confirm_needed': {
+        addConfirmBar(data.step, currentStepIndex);
+        break;
+      }
+
+      case 'complete': {
+        if (eventSource) { eventSource.close(); eventSource = null; }
+        finishScanBlock();
+        showResult(data);
+        break;
+      }
+
+      case 'paywall': {
+        if (eventSource) { eventSource.close(); eventSource = null; }
+        showPaywall(data);
+        break;
+      }
+
+      case 'request_input': {
+        if (data.field === 'apiKey') showApiKeyInput(data);
+        if (data.field === 'userDescription') showDescriptionInput(data);
+        break;
+      }
+
+      case 'error': {
+        const err = document.createElement('div');
+        err.className = 'result';
+        err.innerHTML = `
+          <div class="result-icon">❌</div>
+          <div class="result-title">Error</div>
+          <div class="result-desc">${esc(data.message || 'Unknown error')}</div>
+          <button class="btn btn-ghost btn-big" onclick="location.reload()">🔄 Retry</button>
+        `;
+        feed.appendChild(err);
+        scrollBottom();
+        break;
+      }
+    }
+  }
+
+  // ─── Paywall / API key ────────────────────────────────────────────────────
+
+  function showPaywall(data) {
+    const price = data.price || data;
+    const priceStr = (price && price.price) || '$1.99';
+    const isCN = price && price.isChinese;
+    const credits = (price && price.credits) || 5;
+
+    const div = document.createElement('div');
+    div.className = 'start-card';
+    div.innerHTML = `
+      <div style="text-align:center; margin-bottom:12px;">
+        <div style="font-size:32px; font-weight:700; color:var(--blue);">${esc(priceStr)}</div>
+        <div style="font-size:13px; color:var(--muted);">${isCN ? '包含 '+credits+' 次修复' : 'Includes '+credits+' fix credits'}</div>
+      </div>
+      <a href="https://clawaid.app/#buy" target="_blank" class="btn btn-primary btn-big" style="text-decoration:none; margin-bottom:12px;">💳 Buy Credits</a>
+      <hr style="border:none; border-top:1px solid var(--border); margin:12px 0;">
+      <p style="font-size:13px; color:var(--text2); margin-bottom:8px;">Already have a token?</p>
+      <input class="input-field" id="pw-token" type="text" placeholder="Paste your token..." />
+      <button class="btn btn-ghost btn-big" id="pw-activate">🔑 Activate</button>
+      <div id="pw-msg" style="font-size:12px; text-align:center; margin-top:6px; min-height:16px;"></div>
+    `;
+    feed.appendChild(div);
+
+    document.getElementById('pw-activate').addEventListener('click', async () => {
+      const token = document.getElementById('pw-token').value.trim();
+      const msg = document.getElementById('pw-msg');
+      if (!token) { msg.style.color = 'var(--red)'; msg.textContent = 'Enter your token.'; return; }
+      msg.style.color = 'var(--muted)'; msg.textContent = 'Checking...';
+      try {
+        const r = await (await fetch('/api/redeem', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })).json();
+        if (r.valid) { msg.style.color = 'var(--green)'; msg.textContent = '✅ Activated! Restarting...'; setTimeout(() => location.reload(), 1500); }
+        else { msg.style.color = 'var(--red)'; msg.textContent = '❌ Invalid token.'; }
+      } catch { msg.style.color = 'var(--red)'; msg.textContent = '❌ Network error.'; }
     });
+  }
+
+  // ─── User description dialog ──────────────────────────────────────────
+
+  function showDescriptionInput(data) {
+    let screenshotData = null;
+
+    const div = document.createElement('div');
+    div.className = 'start-card';
+    div.id = 'desc-input-card';
+    div.innerHTML = `
+      <p style="font-size:15px; font-weight:500; color:var(--text); margin-bottom:4px;">${T.whatsWrong}</p>
+      <p style="font-size:13px; color:var(--text2); margin-bottom:12px;">${T.descHint}</p>
+      <div class="desc-input-wrap">
+        <div class="desc-textarea-wrap">
+          <textarea class="desc-textarea" id="desc-text" placeholder="${T.descPlaceholder}"></textarea>
+          <button class="desc-camera-btn" id="desc-camera-btn" title="Add screenshot">📷</button>
+          <input type="file" id="screenshot-input" accept="image/*" style="display:none;" />
+        </div>
+        <div id="screenshot-preview-row" style="display:none;" class="screenshot-preview-row">
+          <img id="screenshot-thumb" src="" />
+          <span id="screenshot-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Screenshot attached</span>
+          <button class="spr-remove" id="screenshot-remove" title="Remove">✕</button>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="btn btn-primary" id="btn-desc-submit" disabled>${T.sendDiagnose}</button>
+        <button class="btn btn-green" id="btn-desc-skip">${T.justScan}</button>
+      </div>
+    `;
+    feed.appendChild(div);
+    scrollBottom();
+
+    const textarea = document.getElementById('desc-text');
+    const cameraBtn = document.getElementById('desc-camera-btn');
+    const fileInput = document.getElementById('screenshot-input');
+    const previewRow = document.getElementById('screenshot-preview-row');
+    const thumb = document.getElementById('screenshot-thumb');
+    const removeBtn = document.getElementById('screenshot-remove');
+    const submitBtn = document.getElementById('btn-desc-submit');
+
+    // Update submit button enabled state based on textarea content
+    function updateSubmitState() {
+      submitBtn.disabled = textarea.value.trim().length === 0;
+    }
+    textarea.addEventListener('input', updateSubmitState);
+    updateSubmitState();
+
+    function handleFile(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image too large (max 5MB)');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        screenshotData = e.target.result;
+        thumb.src = screenshotData;
+        previewRow.style.display = 'flex';
+        cameraBtn.classList.add('has-image');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    cameraBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', function(e) {
+      if (e.target.files[0]) handleFile(e.target.files[0]);
+    });
+
+    removeBtn.addEventListener('click', function() {
+      screenshotData = null;
+      previewRow.style.display = 'none';
+      thumb.src = '';
+      cameraBtn.classList.remove('has-image');
+      fileInput.value = '';
+    });
+
+    // Drag & drop on the whole textarea area
+    const textareaWrap = div.querySelector('.desc-textarea-wrap');
+    textareaWrap.addEventListener('dragover', function(e) { e.preventDefault(); textarea.style.borderColor = 'var(--blue)'; });
+    textareaWrap.addEventListener('dragleave', function() { textarea.style.borderColor = ''; });
+    textareaWrap.addEventListener('drop', function(e) {
+      e.preventDefault(); textarea.style.borderColor = '';
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+
+    // Paste support
+    document.addEventListener('paste', function onPaste(e) {
+      const items = e.clipboardData && e.clipboardData.items;
+      if (items) {
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.startsWith('image/')) {
+            handleFile(items[i].getAsFile());
+            break;
+          }
+        }
+      }
+    }, { once: false });
+
+    function submit(description) {
+      div.remove();
+      fetch('/api/input', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          field: 'userDescription',
+          value: description || '',
+          screenshot: screenshotData || undefined,
+        })
+      });
+    }
+
+    submitBtn.addEventListener('click', function() {
+      submit(textarea.value.trim());
+    });
+    document.getElementById('btn-desc-skip').addEventListener('click', function() {
+      submit('');
+    });
+    textarea.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        if (textarea.value.trim()) submit(textarea.value.trim());
+      }
+    });
+    textarea.focus();
   }
 
   function showApiKeyInput(data) {
-    if (data.instructions) $('apikey-instructions').textContent = data.instructions;
-    showOnly('apikey');
-    $('apikey-input').focus();
+    const div = document.createElement('div');
+    div.className = 'start-card';
+    div.innerHTML = `
+      <p style="font-size:14px; color:var(--text2); margin-bottom:12px;">${esc(data.instructions || 'Enter your OpenRouter API key.')}</p>
+      <input class="input-field" id="ak-input" type="password" placeholder="sk-or-..." autocomplete="off" />
+      <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">🔒 Local only. <a href="https://openrouter.ai/keys" target="_blank" style="color:var(--blue);">Get a key →</a></div>
+      <button class="btn btn-primary btn-big" id="ak-submit">Continue</button>
+    `;
+    feed.appendChild(div);
+
+    const submit = async () => {
+      const key = document.getElementById('ak-input').value.trim();
+      if (!key) return;
+      document.getElementById('ak-submit').disabled = true;
+      await fetch('/api/input', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId, field: 'apiKey', value: key }) });
+    };
+    document.getElementById('ak-submit').addEventListener('click', submit);
+    document.getElementById('ak-input').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    document.getElementById('ak-input').focus();
   }
 
-  function handleComplete(data) {
-    if (eventSource) {
-      eventSource.close();
-      eventSource = null;
-    }
+  // ─── Start ────────────────────────────────────────────────────────────────
 
-    if (data.healthy) {
-      $('healthy-explanation').textContent = data.explanation || 'Your system is running normally. No issues detected.';
-      // Show reasoning if any
-      const reasoning = data.reasoning || [];
-      if (reasoning.length > 0) {
-        $('healthy-reasoning').style.display = 'block';
-        const list = $('healthy-reasoning-list');
-        list.innerHTML = '';
-        reasoning.forEach(function(r, i) {
-          const div = document.createElement('div');
-          div.style.cssText = 'padding:4px 0; font-size:13px; color:#5f6368;';
-          div.textContent = (i+1) + '. ' + r;
-          list.appendChild(div);
-        });
-      }
-      // Show warnings if any
-      const warnings = data.warnings || [];
-      if (warnings.length > 0) {
-        $('healthy-warnings').style.display = 'block';
-        const list = $('healthy-warnings-list');
-        list.innerHTML = '';
-        warnings.forEach(function(w) {
-          const li = document.createElement('li');
-          li.style.cssText = 'font-size:13px; color:#5f6368; padding:6px 10px; background:#fef7e0; border-radius:6px; margin-bottom:6px; line-height:1.4;';
-          li.textContent = w;
-          list.appendChild(li);
-        });
-      }
-      showOnly('healthy');
-    } else if (data.fixed) {
-      // Populate result summary
-      const wrongEl = $('fixed-what-wrong');
-      const fixedEl = $('fixed-what-fixed');
-      if (wrongEl) wrongEl.textContent = (diagnosisData && diagnosisData.diagnosis) || data.explanation || 'An issue was detected and resolved.';
-      if (fixedEl && chosenOption) {
-        fixedEl.innerHTML = '<strong>' + chosenOption.title + '</strong><br><span style="color:#5f6368">' + (chosenOption.description || '') + '</span>';
-      } else if (fixedEl) {
-        fixedEl.textContent = data.explanation || 'OpenClaw has been repaired!';
-      }
-      $('fixed-explanation').textContent = data.explanation || 'OpenClaw has been repaired!';
-      showOnly('fixed');
-    } else {
-      $('notfixed-explanation').textContent = data.explanation || 'Could not automatically fix the issue.';
-      if (data.diagnosticReport) $('report-area').textContent = data.diagnosticReport;
-      showOnly('notfixed');
-    }
-  }
-
-  function showPaywall(data) {
-    // data.price may be an object { price, currency, isChinese, credits } or a string
-    let priceStr, isChinese, credits;
-    if (data.price && typeof data.price === 'object') {
-      priceStr = data.price.price || (data.price.currency === 'CNY' ? '¥9.9' : '$1.99');
-      isChinese = data.price.isChinese;
-      credits = data.price.credits || data.credits || 5;
-    } else {
-      priceStr = data.price || (data.isChinese ? '¥9.9' : '$1.99');
-      isChinese = Boolean(data.isChinese);
-      credits = data.credits || 5;
-    }
-
-    $('paywall-price').textContent = priceStr;
-    $('paywall-credits').textContent = isChinese
-      ? `包含 ${credits} 次修复`
-      : `Includes ${credits} fix credits`;
-
-    showOnly('paywall');
-  }
-
-  // Paywall activate button
-  $('paywall-activate-btn').addEventListener('click', async function() {
-    const token = $('paywall-token-input').value.trim();
-    if (!token) {
-      $('paywall-activate-msg').style.color = '#c5221f';
-      $('paywall-activate-msg').textContent = 'Please enter your activation token.';
-      return;
-    }
-
-    this.disabled = true;
-    this.textContent = 'Activating...';
-    $('paywall-activate-msg').style.color = '#5f6368';
-    $('paywall-activate-msg').textContent = 'Verifying token...';
-
-    try {
-      const resp = await fetch('/api/redeem', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      });
-      const result = await resp.json();
-
-      if (result.valid) {
-        $('paywall-activate-msg').style.color = '#137333';
-        $('paywall-activate-msg').textContent = `✅ Activated! Credits: ${result.credits || 0}. Restarting scan...`;
-        // Re-start the diagnosis after a brief delay
-        setTimeout(() => {
-          startDiagnosis();
-        }, 1500);
-      } else {
-        $('paywall-activate-msg').style.color = '#c5221f';
-        $('paywall-activate-msg').textContent = '❌ Invalid or expired token. Please try again.';
-        this.disabled = false;
-        this.textContent = '🔑 Activate Token';
-      }
-    } catch (e) {
-      $('paywall-activate-msg').style.color = '#c5221f';
-      $('paywall-activate-msg').textContent = '❌ Network error. Please check your connection.';
-      this.disabled = false;
-      this.textContent = '🔑 Activate Token';
-    }
-  });
-
-  $('paywall-token-input').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') $('paywall-activate-btn').click();
-  });
-
-  function escHtml(str) {
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  // API key submit
-  $('btn-submit-key').addEventListener('click', async function() {
-    const key = $('apikey-input').value.trim();
-    if (!key) {
-      $('apikey-input').focus();
-      $('apikey-input').style.borderColor = '#c5221f';
-      return;
-    }
-
-    $('apikey-input').style.borderColor = '';
-    this.disabled = true;
-    this.textContent = 'Starting...';
-
-    showOnly('scanning');
-    $('log-area').textContent = '';
-    $('scan-status-text').textContent = 'Initializing with API key...';
-
-    try {
-      await fetch('/api/input', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, field: 'apiKey', value: key }),
-      });
-    } catch(e) {
-      showOnly('apikey');
-      this.disabled = false;
-      this.textContent = 'Start Diagnosis';
-    }
-  });
-
-  $('apikey-input').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') $('btn-submit-key').click();
-  });
-
-  $('btn-copy-report').addEventListener('click', function() {
-    const text = $('report-area').textContent;
-    navigator.clipboard.writeText(text).then(() => {
-      this.textContent = 'Copied!';
-      setTimeout(() => { this.textContent = 'Copy'; }, 2000);
-    });
-  });
-
-  // Privacy notice — start scan on button click
-  $('btn-start-scan').addEventListener('click', function() {
-    startDiagnosis();
-  });
+  document.getElementById('btn-start').addEventListener('click', startDiagnosis);
 
 })();
 </script>

@@ -67,9 +67,9 @@ app.get('/api/diagnose', (req: Request, res: Response) => {
   });
 });
 
-// Endpoint to provide user input (e.g., API key)
+// Endpoint to provide user input (e.g., API key, user description)
 app.post('/api/input', (req: Request, res: Response) => {
-  const { sessionId, field, value } = req.body as { sessionId: string; field: string; value: string };
+  const { sessionId, field, value, screenshot } = req.body as { sessionId: string; field: string; value: string; screenshot?: string };
   
   const session = activeSessions.get(sessionId);
   if (!session) {
@@ -77,28 +77,24 @@ app.post('/api/input', (req: Request, res: Response) => {
     return;
   }
   
-  session.loop.provideInput(field, value).catch((err: Error) => {
+  session.loop.provideInput(field, value, screenshot ? { screenshot } : undefined).catch((err: Error) => {
     console.error('Error providing input:', err);
   });
   
   res.json({ ok: true });
 });
 
-// Endpoint to trigger fix after user clicks "Fix" button
-// Accepts optional optionId ("A", "B", "C") — defaults to recommended option
-app.post('/api/fix', (req: Request, res: Response) => {
-  const { sessionId, optionId } = req.body as { sessionId: string; optionId?: string };
-  
+// Endpoint to confirm or skip a medium/high-risk step
+app.post('/api/confirm', (req: Request, res: Response) => {
+  const { sessionId, confirmed } = req.body as { sessionId: string; confirmed: boolean };
   const session = activeSessions.get(sessionId);
-  if (!session) {
-    res.status(404).json({ error: 'Session not found' });
-    return;
-  }
-  
-  session.loop.startFix(optionId).catch((err: Error) => {
-    console.error('Error starting fix:', err);
-  });
-  
+  if (!session) { res.status(404).json({ error: 'Session not found' }); return; }
+  session.loop.confirmStep(confirmed).catch((err: Error) => { console.error('Error confirming step:', err); });
+  res.json({ ok: true });
+});
+
+// Legacy /api/fix endpoint — no-op in new design (loop runs automatically)
+app.post('/api/fix', (req: Request, res: Response) => {
   res.json({ ok: true });
 });
 
@@ -156,6 +152,23 @@ app.post('/api/redeem', (req: Request, res: Response) => {
 });
 
 // Health check
+app.post('/api/feedback', (req: Request, res: Response) => {
+  const { feedback, sessionId: sid } = req.body || {};
+  // Forward feedback to ClawAid backend
+  const https = require('https');
+  const body = JSON.stringify({ feedback, sessionId: sid, fingerprint: require('./diagnose').getMachineFingerprint() });
+  const fReq = https.request({
+    hostname: 'api.clawaid.app',
+    path: '/feedback',
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+  }, () => {});
+  fReq.on('error', () => {});
+  fReq.write(body);
+  fReq.end();
+  res.json({ ok: true });
+});
+
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({ ok: true, version: '1.0.0', name: 'ClawAid', sessions: activeSessions.size });
 });

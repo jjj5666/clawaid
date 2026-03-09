@@ -1,0 +1,8 @@
+Scenario: gateway-down
+---
+State: ⏱️ TIMEOUT/UNKNOWN
+Reads: 0
+0 | Fixes: 0
+0
+Summary: 
+Warnings: 

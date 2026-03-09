@@ -74,6 +74,53 @@ openclaw configure                     # interactive wizard
 openclaw onboard                       # full setup wizard
 ```
 
+## Model Management
+
+### ⚠️ CRITICAL: Exact command syntax — do NOT guess or add extra arguments
+
+```bash
+# Set default model (ONE argument only — the model id or alias)
+openclaw models set <model>
+# Examples:
+openclaw models set anthropic/claude-sonnet-4-5
+openclaw models set openrouter/anthropic/claude-sonnet-4.6
+openclaw models set default          # reset to system default
+
+# Set image model
+openclaw models set-image <model>
+
+# List configured models
+openclaw models list
+openclaw models list --all           # include unconfigured
+
+# Show model status
+openclaw models status
+openclaw models status --json
+
+# Manage aliases
+openclaw models aliases list
+openclaw models aliases set <alias> <model>
+openclaw models aliases unset <alias>
+
+# Manage fallbacks
+openclaw models fallbacks list
+openclaw models fallbacks add <model>
+openclaw models fallbacks remove <model>
+openclaw models fallbacks clear
+```
+
+### Common model fix patterns
+| Problem | Correct fix command |
+|---------|-------------------|
+| Default model 400 Bad Request / model not found | `openclaw models set <valid-model-id>` |
+| Need to reset model to default | `openclaw models set default` |
+| Model alias broken | `openclaw models aliases unset <alias>` then re-set |
+
+### Valid model id formats
+- `anthropic/claude-sonnet-4-5` (provider/model)
+- `openrouter/anthropic/claude-sonnet-4.6` (with provider prefix)
+- A registered alias (check `openclaw models aliases list`)
+
 ## Other Useful Commands
 
 ```bash

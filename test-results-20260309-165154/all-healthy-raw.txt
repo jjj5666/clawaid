@@ -1,0 +1,20 @@
+data: {"type":"session_start","data":{"sessionId":"1773049916630"},"sessionId":"1773049916630"}
+
+data: {"type":"state_change","data":{"state":"waiting_user_description"},"sessionId":"1773049916630"}
+
+data: {"type":"request_input","data":{"field":"userDescription","instructions":"What's going on? Describe the problem in a few words, or upload a screenshot. You can also skip and let ClawAid figure it out.","allowSkip":true,"allowScreenshot":true},"sessionId":"1773049916630"}
+
+data: {"type":"state_change","data":{"state":"observing"},"sessionId":"1773049916630"}
+
+data: {"type":"progress","data":{"message":"🔍 Scanning your system..."},"sessionId":"1773049916630"}
+
+data: {"type":"progress","data":{"message":"✓ Scan complete"},"sessionId":"1773049916630"}
+
+data: {"type":"state_change","data":{"state":"running"},"sessionId":"1773049916630"}
+
+data: {"type":"step_start","data":{"step":{"thinking":"Let me analyze all the data provided:\n\n1. Gateway: Running on 127.0.0.1:18789, pid 37224, uptime ~6.7 hours. RPC probe ok. ✅\n2. Doctor: All checks passed. ✅\n3. Config: Valid JSON, gateway mode local port 18789, default model set to 'anthropic/claude-sonnet-4-6', OpenRouter API key present. ✅\n4. LaunchAgent: Properly installed, RunAtLoad and KeepAlive set. ✅\n5. Port check: node process 37224 listening on 127.0.0.1:18789. ✅\n6. Processes: Single gateway process running. ✅\n7. Logs: Clean startup, regular heartbeats, no errors or warnings. ✅\n8. Versions: OpenClaw 2026.3.2, Desktop 2026.3.2 — in sync. ✅\n9. Node v25.6.1, npm 11.4.2 — fine. ✅\n\nOne minor observation: The config only has OpenRouter as a provider, but the default model is 'anthropic/claude-sonnet-4-6'. This is a valid OpenRouter model path (OpenRouter routes Anthropic models), so this is fine — not an issue.\n\nNo fallback models are configured, which is a minor observation but not a problem.\n\nEverything looks genuinely healthy. No issues to fix. I'll note the lack of fallback models as a minor warning.","type":"done","fixed":false,"summary":"System is fully healthy. The gateway is running (pid 37224, uptime ~6.7 hours), RPC is responsive, the config is valid, the LaunchAgent is properly installed, and logs show clean startup with regular heartbeats and no errors. All versions are in sync (OpenClaw 2026.3.2 / Desktop 2026.3.2). No issues were found.","warnings":["No fallback models are configured. If the default model 'anthropic/claude-sonnet-4-6' becomes unavailable, requests will fail with no fallback. Consider adding one with: openclaw models fallbacks add <model-id>"]},"index":0},"sessionId":"1773049916630"}
+
+data: {"type":"state_change","data":{"state":"healthy"},"sessionId":"1773049916630"}
+
+data: {"type":"complete","data":{"fixed":false,"healthy":true,"summary":"System is fully healthy. The gateway is running (pid 37224, uptime ~6.7 hours), RPC is responsive, the config is valid, the LaunchAgent is properly installed, and logs show clean startup with regular heartbeats and no errors. All versions are in sync (OpenClaw 2026.3.2 / Desktop 2026.3.2). No issues were found.","warnings":["No fallback models are configured. If the default model 'anthropic/claude-sonnet-4-6' becomes unavailable, requests will fail with no fallback. Consider adding one with: openclaw models fallbacks add <model-id>"],"history":[]},"sessionId":"1773049916630"}
+

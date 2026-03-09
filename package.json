@@ -1,6 +1,6 @@
 {
   "name": "clawaid",
-  "version": "1.1.2",
+  "version": "1.1.8",
   "description": "AI-powered diagnostic and repair tool for OpenClaw",
   "main": "dist/index.js",
   "bin": {
@@ -13,10 +13,22 @@
   },
   "keywords": [
     "openclaw",
+    "openclaw-fix",
+    "openclaw-repair",
+    "openclaw-diagnostic",
+    "openclaw-crash",
+    "openclaw-gateway",
+    "openclaw-config",
+    "openclaw-broken",
+    "openclaw-debug",
+    "openclaw-troubleshoot",
     "diagnostics",
     "repair",
     "ai",
-    "clawaid"
+    "clawaid",
+    "gateway-fix",
+    "launchagent",
+    "plist"
   ],
   "author": "clawaid",
   "license": "MIT",
