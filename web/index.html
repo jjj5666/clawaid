@@ -1544,6 +1544,7 @@
         break;
 
       case 'state_change':
+        _currentState = data.state;
         document.body.dataset.state = data.state;
         if (data.state === 'observing' && !scanBlockAdded) {
           addScanBlock();
@@ -1629,13 +1630,14 @@
   var _scanStartTime = null;
   var _currentStep = 0;
   var _confirmShownAt = 0;
+  var _currentState = 'idle';
   var _sessionEnded = false;
 
   window.addEventListener('beforeunload', function() {
     if (!_scanStartTime || _sessionEnded) return;
     navigator.sendBeacon('/api/event', JSON.stringify({
       event: 'session_end',
-      data: { reason: 'page_closed', duration_ms: Date.now() - _scanStartTime, steps_completed: _currentStep },
+      data: { reason: 'page_closed', duration_ms: Date.now() - _scanStartTime, steps_completed: _currentStep, closed_at_state: _currentState || 'unknown' },
       ts: Date.now()
     }));
   });
