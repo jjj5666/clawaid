@@ -1190,10 +1190,13 @@
   // ═══ Paywall ══════════════════════════════════════════════════════════════
   function showPaywall(data) {
     var STRIPE_URL = 'https://buy.stripe.com/8x26oJ6WrdNnd9T4hI0oM01';
-    var priceStr = data.price || '$1.99';
     var credits = data.credits || 5;
+    // Chinese users often use proxies (for OpenClaw API access), so CF-IPCountry
+    // may incorrectly report US/JP/etc. Use frontend language detection as override.
     var payMethod = data.payMethod || (data.isChinese ? 'xunhupay' : 'stripe');
+    if (isZh && payMethod !== 'xunhupay') payMethod = 'xunhupay';
     var isCN = payMethod === 'xunhupay';
+    var priceStr = isCN ? '¥9.9' : (data.price || '$1.99');
 
     var buyBtnHtml;
     if (isCN) {
