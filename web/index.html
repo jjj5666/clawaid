@@ -1086,10 +1086,9 @@
   // ═══ Paywall ══════════════════════════════════════════════════════════════
   function showPaywall(data) {
     var STRIPE_URL = 'https://buy.stripe.com/8x26oJ6WrdNnd9T4hI0oM01';
-    var priceData = data.price || data;
-    var priceStr = (typeof priceData === 'object') ? priceData.price : (data.price || '$1.99');
-    var credits = (typeof priceData === 'object') ? (priceData.credits || 5) : (data.credits || 5);
-    var payMethod = (typeof priceData === 'object') ? (priceData.payMethod || 'stripe') : 'stripe';
+    var priceStr = data.price || '$1.99';
+    var credits = data.credits || 5;
+    var payMethod = data.payMethod || (data.isChinese ? 'xunhupay' : 'stripe');
     var isCN = payMethod === 'xunhupay';
 
     var buyBtnHtml;

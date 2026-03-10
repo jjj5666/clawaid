@@ -22,14 +22,16 @@ export class PaywallError extends Error {
   readonly currency: string;
   readonly isChinese: boolean;
   readonly credits: number;
+  readonly payMethod: string;
 
-  constructor(opts: { price: string; currency: string; isChinese: boolean; credits: number }) {
+  constructor(opts: { price: string; currency: string; isChinese: boolean; credits: number; payMethod?: string }) {
     super('PaywallError');
     this.name = 'PaywallError';
     this.price = opts.price;
     this.currency = opts.currency;
     this.isChinese = opts.isChinese;
     this.credits = opts.credits;
+    this.payMethod = opts.payMethod || (opts.isChinese ? 'xunhupay' : 'stripe');
   }
 }
 
@@ -106,6 +108,7 @@ async function callBackend(
               currency: parsed.currency || (parsed.isChinese ? 'CNY' : 'USD'),
               isChinese: Boolean(parsed.isChinese),
               credits: parsed.credits || 0,
+              payMethod: parsed.payMethod,
             }));
             return;
           }

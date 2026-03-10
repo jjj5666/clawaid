@@ -180,7 +180,7 @@ export class DoctorLoop {
       } catch (err) {
         if (err instanceof PaywallError) {
           this.setState('paywall');
-          this.emit({ type: 'paywall', data: { price: err.price, currency: err.currency, isChinese: err.isChinese, credits: err.credits } });
+          this.emit({ type: 'paywall', data: { price: err.price, currency: err.currency, isChinese: err.isChinese, credits: err.credits, payMethod: err.payMethod } });
           return;
         }
         const msg = (err as Error).message;
@@ -350,6 +350,7 @@ export class DoctorLoop {
                 currency: parsed.price?.currency || 'USD',
                 isChinese: parsed.price?.isChinese || false,
                 credits: parsed.price?.credits || 5,
+                payMethod: parsed.price?.payMethod,
               }));
               return;
             }
