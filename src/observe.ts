@@ -58,12 +58,14 @@ async function runCommand(cmd: string, timeout = 10000): Promise<string> {
 }
 
 // v3: Read tail of a single file. Returns empty string on error.
+// v4: Truncate each line to maxLineLen chars to keep observation compact.
+const MAX_LINE_LEN = 500;
 function readTail(filePath: string, lines: number): string {
   try {
     if (!fs.existsSync(filePath)) return '';
     const content = fs.readFileSync(filePath, 'utf-8');
     const allLines = content.split('\n');
-    return allLines.slice(-lines).join('\n');
+    return allLines.slice(-lines).map(l => l.length > MAX_LINE_LEN ? l.slice(0, MAX_LINE_LEN) + '…[truncated]' : l).join('\n');
   } catch {
     return '';
   }
@@ -97,19 +99,19 @@ function collectLogs(): MultiLogResult {
   const parts: string[] = [];
   let primaryLogPath = '[none]';
 
-  // 1. Primary: /tmp/openclaw main log (50 lines) — most diagnostic value
+  // 1. Primary: /tmp/openclaw main log (30 lines) — most diagnostic value
   const tmpDir = '/tmp/openclaw';
   const mainLog = findLatestLogInDir(tmpDir);
   if (mainLog) {
     primaryLogPath = mainLog;
-    const tail = readTail(mainLog, 50);
-    if (tail) parts.push(`### Main log: ${mainLog} (last 50 lines)\n${tail}`);
+    const tail = readTail(mainLog, 30);
+    if (tail) parts.push(`### Main log: ${mainLog} (last 30 lines)\n${tail}`);
   }
 
-  // 2. gateway.err.log (50 lines) — critical errors live here
+  // 2. gateway.err.log (30 lines) — critical errors live here
   const gwErrLog = path.join(homeDir, '.openclaw', 'logs', 'gateway.err.log');
-  const gwErrTail = readTail(gwErrLog, 50);
-  if (gwErrTail) parts.push(`### Gateway errors: ${gwErrLog} (last 50 lines)\n${gwErrTail}`);
+  const gwErrTail = readTail(gwErrLog, 30);
+  if (gwErrTail) parts.push(`### Gateway errors: ${gwErrLog} (last 30 lines)\n${gwErrTail}`);
 
   // 3. gateway.log (20 lines) — runtime events
   const gwLog = path.join(homeDir, '.openclaw', 'logs', 'gateway.log');
@@ -356,9 +358,6 @@ Node: ${obs.nodeVersion} | npm: ${obs.npmVersion}
 Desktop app version: ${obs.desktopAppVersion}
 Desktop app running: ${obs.desktopAppRunning}
 System: ${obs.systemInfo}
-
-## Gateway status
-${obs.gatewayStatus}
 
 ## Gateway status (JSON)
 ${redactApiKeys(obs.gatewayStatusJson)}
