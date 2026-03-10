@@ -1230,7 +1230,7 @@
     var buyBtnHtml;
     if (isCN) {
       buyBtnHtml = '<button class="btn btn-primary btn-full" id="pw-buy" style="margin-bottom:0;">🔧 ' + esc(fixPrice) + ' — ' + (isZh ? '本次彻底解决' : 'Fix everything now') + '</button>'
-        + '<div style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:4px;">' + (isZh ? '所有问题一次修完 · 修不好退款' : 'Fix all issues · refund if not fixed') + '</div>'
+        + '<div style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:4px;">' + (isZh ? '所有问题一次修完 · 修不好带截图找客服退款' : 'Fix all issues · screenshot + refund if not fixed') + '</div>'
         + '<div id="pw-xhp-loading" style="display:none;text-align:center;padding:12px;color:var(--text-muted);font-size:13px;">' + (isZh ? '正在创建订单...' : 'Creating order...') + '</div>'
         + '<div id="pw-xhp-qr" style="display:none;text-align:center;padding:12px;">'
         + '<p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">' + (isZh ? '扫码支付 ' : 'Scan to pay ') + esc(fixPrice) + '</p>'
@@ -1238,13 +1238,13 @@
         + '</div>';
     } else {
       buyBtnHtml = '<a href="'+STRIPE_URL+'" target="_blank" class="btn btn-primary btn-full" id="pw-buy" style="text-decoration:none;margin-bottom:0;">🔧 ' + esc(fixPrice) + ' — Fix everything now</a>'
-        + '<div style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:4px;">Fix all issues · refund if not fixed</div>';
+        + '<div style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:4px;">Fix all issues · screenshot + refund if not fixed</div>';
     }
 
     // Waitlist button
     var waitlistHtml = '<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">'
       + '<button class="btn btn-ghost btn-full" id="pw-waitlist" style="margin-bottom:4px;">🛡️ ' + esc(subPrice) + ' — ' + (isZh ? '持续守护' : 'Always Protected') + '</button>'
-      + '<div style="text-align:center;font-size:12px;color:var(--text-muted);">' + (isZh ? '7×24 保障 OpenClaw 持续健康 · 加入等待名单' : '24/7 health monitoring · join waitlist') + '</div>'
+      + '<div style="text-align:center;font-size:12px;color:var(--text-muted);line-height:1.5;">' + (isZh ? 'OpenClaw 生命周期管家：安装 · 升级 · 修复 · API管理 · 记忆管理<br>7×24 持续健康保障 · 加入等待名单' : 'OpenClaw lifecycle butler: install · upgrade · fix · API mgmt · memory mgmt<br>24/7 health monitoring · join waitlist') + '</div>'
       + '<div id="pw-waitlist-form" style="display:none;margin-top:8px;">'
       + '<input class="pw-input" id="pw-waitlist-email" type="email" placeholder="' + (isZh ? '输入邮箱加入等待名单' : 'Email to join waitlist') + '" />'
       + '<button class="btn btn-ghost btn-full" id="pw-waitlist-submit" style="margin-top:6px;">' + (isZh ? '加入等待名单' : 'Join Waitlist') + '</button>'
@@ -1272,7 +1272,7 @@
       + '<button class="btn btn-ghost btn-full" id="pw-activate" style="margin-top:6px;">' + T.pwActivate + '</button>'
       + '</details>'
       + '<div class="pw-msg" id="pw-msg"></div>'
-      + '<div class="pw-contact">' + T.pwNeedHelp + ' WeChat: <b>oliver56666</b></div>';
+      + '<div class="pw-contact">' + (isZh ? '修不好？截图发微信 <b>oliver56666</b> 退款' : 'Not fixed? Screenshot + email <b>ollie56666@gmail.com</b> for refund') + '</div>';
     feed.appendChild(div);
 
     // Fetch fingerprint for buy URL (Stripe) or xunhupay order creation
