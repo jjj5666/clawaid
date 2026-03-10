@@ -8,6 +8,11 @@ import { getMachineFingerprint, PaywallError } from './diagnose';
 // ClawAid backend API URL
 const CLAWAID_API = process.env.CLAWAID_API || 'https://api.clawaid.app';
 
+// Package version for telemetry
+const clawaidVersion: string = (() => {
+  try { return (require('../package.json') as { version: string }).version; } catch { return 'unknown'; }
+})();
+
 // Max steps before giving up
 const MAX_STEPS = 20;
 // Max consecutive fix attempts before giving up
@@ -84,6 +89,31 @@ export class DoctorLoop {
   setToken(token: string) { this.token = token; }
   setLang(lang: string) { this.lang = lang || 'en'; }
 
+  private sendEvent(event: string, data?: Record<string, unknown>): void {
+    const fingerprint = getMachineFingerprint();
+    const body = JSON.stringify({
+      fingerprint,
+      sessionId: this.sbSessionId,
+      event,
+      data: data || {},
+      clientTs: new Date().toISOString(),
+    });
+    const url = new URL(`${CLAWAID_API}/event`);
+    const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+    const lib = isLocal ? require('http') : require('https');
+    const options = {
+      hostname: url.hostname,
+      port: parseInt(url.port) || (isLocal ? 3001 : 443),
+      path: url.pathname,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+    };
+    const req = lib.request(options, () => {});
+    req.on('error', () => {});
+    req.write(body);
+    req.end();
+  }
+
   private async callComplete(token: string): Promise<void> {
     const url = new URL(`${CLAWAID_API}/complete`);
     const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
@@ -127,6 +157,14 @@ export class DoctorLoop {
     this.userDescription = userInput.description || '';
     this.userScreenshot = userInput.screenshot;
 
+    this.sendEvent('scan_start', {
+      clawaid_version: clawaidVersion,
+      platform: os.platform(),
+      lang: this.lang,
+      has_description: Boolean(this.userDescription),
+      has_screenshot: Boolean(this.userScreenshot),
+    });
+
     await this.runLoop();
   }
 
@@ -153,6 +191,9 @@ export class DoctorLoop {
   }
 
   private async runLoop() {
+    const loopStartTime = Date.now();
+    let stepsCompleted = 0;
+
     // ── Phase 1: Observe ─────────────────────────────────────────────────────
     this.setState('observing');
     this.progress('🔍 Scanning your system...');
@@ -181,16 +222,19 @@ export class DoctorLoop {
         if (err instanceof PaywallError) {
           this.setState('paywall');
           this.emit({ type: 'paywall', data: { price: err.price, currency: err.currency, isChinese: err.isChinese, credits: err.credits, payMethod: err.payMethod } });
+          this.sendEvent('session_end', { reason: 'paywall', duration_ms: Date.now() - loopStartTime, steps_completed: stepsCompleted, outcome: 'paywall' });
           return;
         }
         const msg = (err as Error).message;
         if (msg.includes('paywall')) {
           this.setState('paywall');
           this.emit({ type: 'paywall', data: {} });
+          this.sendEvent('session_end', { reason: 'paywall', duration_ms: Date.now() - loopStartTime, steps_completed: stepsCompleted, outcome: 'paywall' });
           return;
         }
         this.setState('error');
         this.emit({ type: 'error', data: { message: msg } });
+        this.sendEvent('session_end', { reason: 'error', duration_ms: Date.now() - loopStartTime, steps_completed: stepsCompleted, outcome: 'error' });
         return;
       }
 
@@ -209,17 +253,21 @@ export class DoctorLoop {
             this.callComplete(this.token).catch(() => {});
           }
           this.emit({ type: 'complete', data: { ...baseData, fixed: true } });
+          this.sendEvent('session_end', { reason: 'done', duration_ms: Date.now() - loopStartTime, steps_completed: stepsCompleted, outcome: 'fixed' });
         } else if (degraded) {
           // System runs but has functional issues (auth errors, model failures, etc.)
           this.setState('degraded');
           this.emit({ type: 'complete', data: { ...baseData, fixed: false, degraded: true } });
+          this.sendEvent('session_end', { reason: 'done', duration_ms: Date.now() - loopStartTime, steps_completed: stepsCompleted, outcome: 'degraded' });
         } else if (this.fixAttempts === 0 && !step.fixed) {
           // Healthy — no fixes were needed
           this.setState('healthy');
           this.emit({ type: 'complete', data: { ...baseData, fixed: false, healthy: true } });
+          this.sendEvent('session_end', { reason: 'done', duration_ms: Date.now() - loopStartTime, steps_completed: stepsCompleted, outcome: 'healthy' });
         } else {
           this.setState('not_fixed');
           this.emit({ type: 'complete', data: { ...baseData, fixed: false } });
+          this.sendEvent('session_end', { reason: 'done', duration_ms: Date.now() - loopStartTime, steps_completed: stepsCompleted, outcome: 'not_fixed' });
         }
         return;
       }
@@ -233,13 +281,22 @@ export class DoctorLoop {
         if (this.fixAttempts > MAX_FIX_ATTEMPTS) {
           this.setState('not_fixed');
           this.emit({ type: 'complete', data: { fixed: false, summary: `Tried ${MAX_FIX_ATTEMPTS} fixes without success.`, history: this.history } });
+          this.sendEvent('session_end', { reason: 'max_steps', duration_ms: Date.now() - loopStartTime, steps_completed: stepsCompleted, outcome: 'not_fixed' });
           return;
         }
 
         // ALL fix steps require user confirmation — never auto-execute
         this.setState('waiting');
+        const confirmShownAt = Date.now();
         const confirmed = await this.waitForConfirm(step);
+        const decisionTimeMs = Date.now() - confirmShownAt;
         this.setState('running');
+
+        this.sendEvent('step_decided', {
+          step_number: stepIndex,
+          decision: confirmed ? 'confirmed' : 'skipped',
+          decision_time_ms: decisionTimeMs,
+        });
 
         if (!confirmed) {
           this.history.push({ step, output: '[Skipped by user]', skipped: true, timestamp: Date.now() });
@@ -248,6 +305,7 @@ export class DoctorLoop {
         }
       }
 
+      stepsCompleted++;
       // Execute the command
       const output = this.executeCommand(step.command || '');
       // Include thinking in history so AI can see its own reasoning chain
@@ -259,6 +317,7 @@ export class DoctorLoop {
     // Exhausted max steps
     this.setState('not_fixed');
     this.emit({ type: 'complete', data: { fixed: false, summary: `Reached maximum of ${MAX_STEPS} diagnostic steps.`, history: this.history } });
+    this.sendEvent('session_end', { reason: 'max_steps', duration_ms: Date.now() - loopStartTime, steps_completed: stepsCompleted, outcome: 'not_fixed' });
   }
 
   private waitForConfirm(step: AgentStep): Promise<boolean> {
@@ -321,7 +380,13 @@ export class DoctorLoop {
       fingerprint,
       lang: this.lang,
       ...(this.token ? { token: this.token } : {}),
-      ...(isFirst ? { sessionStart: true, userDescription: this.userDescription || undefined } : {}),
+      ...(isFirst ? {
+        sessionStart: true,
+        userDescription: this.userDescription || undefined,
+        clawaid_version: clawaidVersion,
+        platform: os.platform(),
+        openclaw_version: this.observation?.openclawVersion || undefined,
+      } : {}),
       ...(this.sbSessionId ? { supabaseSessionId: this.sbSessionId } : {}),
     });
 

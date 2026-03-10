@@ -7,13 +7,6 @@
   <meta http-equiv="Content-Language" content="en, zh">
   <title>ClawAid</title>
 
-  <!-- Mixpanel -->
-  <script>(function(f,b){if(!b.__SV){var e,g,i,h;window.mixpanel=b;b._i=[];b.init=function(e,f,c){function g(a,d){var b=d.split(".");2==b.length&&(a=a[b[0]],d=b[1]);a[d]=function(){a.push([d].concat(Array.prototype.slice.call(arguments,0)))}}var a=b;"undefined"!==typeof c?a=b[c]=[]:c="mixpanel";a.people=a.people||[];a.toString=function(a){var d="mixpanel";"mixpanel"!==c&&(d+="."+c);a||(d+=" (stub)");return d};a.people.toString=function(){return a.toString(1)+".people (stub)"};i="disable time_event track track_pageview track_links track_forms track_with_groups add_group set_group remove_group register register_once alias unregister identify name_tag set_config reset init people.set people.set_once people.unset people.increment people.append people.union people.track_charge people.clear_charges people.delete_user people.remove".split(" ");for(h=0;h<i.length;h++)g(a,i[h]);var j="set set_once union unset remove delete".split(" ");a.get_group=function(){function b(c){d[c]=function(){call2_args=arguments;call2=[c].concat(Array.prototype.slice.call(call2_args,0));a.push([e,call2])}}for(var d={},e=["get_group"].concat(Array.prototype.slice.call(arguments,0)),c=0;c<j.length;c++)b(j[c]);return d};b._i.push([e,f,c])};b.__SV=1.2;e=f.createElement("script");e.type="text/javascript";e.async=!0;e.src="https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";g=f.getElementsByTagName("script")[0];g.parentNode.insertBefore(e,g)}})(document,window.mixpanel||[]);
-  mixpanel.init('fb6af7e76538dfda2675ab13beaf2727',{track_pageview:"full-url"});</script>
-
-  <!-- Clarity -->
-  <script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script","vt5wimnmsf");</script>
-
   <style>
     /* ═══ CSS Variables ═══════════════════════════════════════════════════════ */
     :root {
@@ -362,6 +355,43 @@
     .fb-contact { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
     .fb-contact b { color: var(--text-secondary); }
 
+    /* ═══ Feedback Gate ════════════════════════════════════════════════════════ */
+    .feedback-gate {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 36px 28px 32px;
+      text-align: center;
+      animation: fadeUp .32s ease both;
+    }
+    .fb-gate-emoji { font-size: 40px; display: block; margin-bottom: 14px; }
+    .fb-gate-q { font-size: 18px; font-weight: 600; margin-bottom: 28px; letter-spacing: -0.2px; }
+    .fb-gate-btns { display: flex; gap: 14px; justify-content: center; }
+    .fb-gate-btn {
+      flex: 1; max-width: 210px; padding: 15px 20px; font-size: 15px; font-weight: 600;
+      font-family: var(--font); border-radius: var(--radius); cursor: pointer;
+      border: 2px solid transparent; transition: all var(--transition);
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .fb-gate-btn:hover { transform: translateY(-1px); }
+    .fb-gate-btn:active { transform: translateY(0) scale(.98); }
+    .fb-gate-btn-yes { background: var(--green); color: #fff; box-shadow: 0 2px 8px rgba(5,150,105,.25); }
+    .fb-gate-btn-yes:hover { background: #047857; }
+    .fb-gate-btn-no { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
+    .fb-gate-btn-no:hover { background: var(--surface-alt); }
+    .fb-gate-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+    .fb-gate-detail { margin-top: 20px; text-align: left; animation: fadeUp .2s ease both; }
+    .fb-gate-detail-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500; }
+    .fb-gate-detail textarea {
+      width: 100%; padding: 10px 12px; font-size: 13px; font-family: var(--font);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      resize: vertical; min-height: 72px; background: var(--surface); color: var(--text);
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .fb-gate-detail textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
+    .fb-gate-detail-row { display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end; }
+
     /* ═══ Description Input ═══════════════════════════════════════════════════ */
     .input-card { padding: 24px 22px; }
     .input-title { font-size: 17px; font-weight: 600; margin-bottom: 5px; }
@@ -625,7 +655,9 @@
   function esc(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
-  function mp(ev, p) { if (typeof mixpanel !== 'undefined') mixpanel.track(ev, p || {}); }
+  function ev(name, data) { fetch('/api/event', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ event: name, data: data || {}, ts: Date.now() }) }).catch(function(){}); }
+  // Compat alias
+  function mp(name, p) { ev(name, p); }
   function scrollDown() { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }
 
   var toastTimer = null;
@@ -783,13 +815,15 @@
     card.classList.add('open');
 
     document.getElementById('cfm-y-'+idx).addEventListener('click', function() {
-      mp('fix_confirm', { step_index: idx });
+      var dt = _confirmShownAt ? Date.now() - _confirmShownAt : 0;
+      ev('step_decided', { step_number: idx, decision: 'confirmed', decision_time_ms: dt });
       bar.remove();
       fetch('/api/confirm', { method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ sessionId: sessionId, confirmed: true }) });
     });
     document.getElementById('cfm-n-'+idx).addEventListener('click', function() {
-      mp('fix_skip', { step_index: idx });
+      var dt = _confirmShownAt ? Date.now() - _confirmShownAt : 0;
+      ev('step_decided', { step_number: idx, decision: 'skipped', decision_time_ms: dt });
       bar.remove();
       fetch('/api/confirm', { method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ sessionId: sessionId, confirmed: false }) });
@@ -978,6 +1012,76 @@
     });
 
     return div;
+  }
+
+  // ═══ Feedback Gate (shown before result) ═══════════════════════════════
+  function showFeedbackGate(data, outcome) {
+    finishScanBlock();
+    // For healthy systems, skip the gate — user didn't have a problem to solve
+    if (outcome === 'healthy') {
+      showResult(data);
+      return;
+    }
+    var isZh = (document.documentElement.lang || 'en') !== 'en' || /[\u4e00-\u9fff]/.test(document.title);
+    // Detect from existing T
+    var qText = isZh ? '问题解决了吗？' : 'Did this solve your problem?';
+    var yesText = isZh ? '✅ 解决了！' : '✅ Yes, fixed!';
+    var noText = isZh ? '❌ 没有' : '❌ No';
+    var detailLabel = isZh ? '能简单说说什么情况吗？（可选）' : 'What happened? (optional)';
+    var skipText = isZh ? '跳过' : 'Skip';
+    var submitText = isZh ? '提交' : 'Submit';
+
+    var el = document.createElement('div');
+    el.className = 'card feedback-gate';
+    el.innerHTML = '<span class="fb-gate-emoji">🩺</span>'
+      + '<div class="fb-gate-q">' + qText + '</div>'
+      + '<div class="fb-gate-btns">'
+      +   '<button class="btn fb-gate-btn fb-gate-btn-yes">' + yesText + '</button>'
+      +   '<button class="btn fb-gate-btn fb-gate-btn-no">' + noText + '</button>'
+      + '</div>'
+      + '<div class="fb-gate-detail" style="display:none;">'
+      +   '<div class="fb-gate-detail-label">' + detailLabel + '</div>'
+      +   '<textarea rows="3" placeholder="..."></textarea>'
+      +   '<div class="fb-gate-detail-row">'
+      +     '<button class="btn btn-ghost fb-gate-skip">' + skipText + '</button>'
+      +     '<button class="btn btn-accent fb-gate-submit">' + submitText + '</button>'
+      +   '</div>'
+      + '</div>';
+    document.getElementById('content').appendChild(el);
+    scrollDown();
+
+    function sendFb(val, detail) {
+      ev('feedback', { value: val, detail: detail || null });
+      fetch('/api/feedback', { method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ feedback: val, detail: detail || undefined, sessionId: sessionId, sbSessionId: sbSessionId }) }).catch(function(){});
+    }
+
+    el.querySelector('.fb-gate-btn-yes').addEventListener('click', function() {
+      sendFb('yes');
+      el.remove();
+      showResult(data);
+    });
+
+    el.querySelector('.fb-gate-btn-no').addEventListener('click', function() {
+      // Show detail textarea
+      el.querySelector('.fb-gate-btns').style.display = 'none';
+      el.querySelector('.fb-gate-detail').style.display = 'block';
+      var ta = el.querySelector('textarea');
+      setTimeout(function() { ta.focus(); }, 100);
+    });
+
+    el.querySelector('.fb-gate-skip').addEventListener('click', function() {
+      sendFb('no');
+      el.remove();
+      showResult(data);
+    });
+
+    el.querySelector('.fb-gate-submit').addEventListener('click', function() {
+      var detail = el.querySelector('textarea').value.trim();
+      sendFb('no', detail);
+      el.remove();
+      showResult(data);
+    });
   }
 
   // ═══ Result Pages ═════════════════════════════════════════════════════════
@@ -1334,17 +1438,29 @@
   }
 
   // ═══ SSE ══════════════════════════════════════════════════════════════════
+  var _sseRetries = 0;
+  var _sseMaxRetries = 3;
+  var _sseLastDataAt = 0;
+
   function startDiagnosis() {
     startScreen.classList.add('hidden');
     feed.classList.remove('hidden');
     feed.innerHTML = '';
     currentStepIndex = -1;
     scanBlockAdded = false;
+    _sseRetries = 0;
 
+    connectSSE();
+  }
+
+  function connectSSE() {
     var lang = isZh ? 'zh' : 'en';
     eventSource = new EventSource('/api/diagnose?lang=' + lang);
+    _sseLastDataAt = Date.now();
 
     eventSource.onmessage = function(e) {
+      _sseLastDataAt = Date.now();
+      _sseRetries = 0; // reset retries on any successful message
       var msg;
       try { msg = JSON.parse(e.data); } catch(x) { return; }
       if (msg.sessionId) sessionId = msg.sessionId;
@@ -1353,21 +1469,49 @@
 
     eventSource.onerror = function() {
       var terminal = ['fixed','not_fixed','healthy','degraded','paywall','error'];
-      if (terminal.indexOf(document.body.dataset.state || '') === -1) {
-        var card = document.createElement('div');
-        card.className = 'result-card';
-        card.innerHTML = '<span class="result-icon">⚠️</span>'
-          + '<div class="result-title">' + T.connLost + '</div>'
-          + '<div style="font-size:14px;color:var(--text-secondary);margin-bottom:18px;">' + T.serverStopped + '</div>';
-        var btn = document.createElement('button');
-        btn.className = 'btn btn-ghost btn-full';
-        btn.textContent = T.retry;
-        btn.addEventListener('click', function() { location.reload(); });
-        card.appendChild(btn);
-        feed.appendChild(card);
-        scrollDown();
+      var currentState = document.body.dataset.state || '';
+
+      // If we're in a terminal state, just clean up — no retry needed
+      if (terminal.indexOf(currentState) !== -1) {
+        if (eventSource) { eventSource.close(); eventSource = null; }
+        return;
       }
+
+      // SSE can fire transient errors (browser reconnecting) — don't panic immediately.
+      // If EventSource is CONNECTING (readyState=0), the browser is auto-reconnecting.
+      if (eventSource && eventSource.readyState === 0) {
+        // Browser is reconnecting on its own — but this creates a NEW /api/diagnose
+        // call which starts a new session. We need to close and handle manually.
+      }
+
       if (eventSource) { eventSource.close(); eventSource = null; }
+
+      _sseRetries++;
+      if (_sseRetries <= _sseMaxRetries) {
+        // Retry after a short delay (exponential backoff: 2s, 4s, 8s)
+        var delay = Math.min(2000 * Math.pow(2, _sseRetries - 1), 8000);
+        setTimeout(function() {
+          // Only reconnect if still not in a terminal state
+          if (terminal.indexOf(document.body.dataset.state || '') === -1) {
+            connectSSE();
+          }
+        }, delay);
+        return;
+      }
+
+      // Exhausted retries — show connection lost
+      var card = document.createElement('div');
+      card.className = 'result-card';
+      card.innerHTML = '<span class="result-icon">⚠️</span>'
+        + '<div class="result-title">' + T.connLost + '</div>'
+        + '<div style="font-size:14px;color:var(--text-secondary);margin-bottom:18px;">' + T.serverStopped + '</div>';
+      var btn = document.createElement('button');
+      btn.className = 'btn btn-ghost btn-full';
+      btn.textContent = T.retry;
+      btn.addEventListener('click', function() { location.reload(); });
+      card.appendChild(btn);
+      feed.appendChild(card);
+      scrollDown();
     };
   }
 
@@ -1395,9 +1539,10 @@
 
       case 'step_start': {
         currentStepIndex = data.index;
+        _currentStep = data.index;
         var step = data.step || {};
         stepTypes[data.index] = step.type || 'read';
-        mp('diagnosis_step', { step_index: data.index, type: step.type, risk: step.risk || 'low' });
+        ev('step_viewed', { step_number: data.index, type: step.type, risk: step.risk || 'low' });
 
         if (step.type === 'read') {
           if (!document.getElementById('scan-block')) {
@@ -1423,24 +1568,28 @@
       }
 
       case 'confirm_needed':
+        _confirmShownAt = Date.now();
         addConfirmBar(data.step || {}, currentStepIndex);
         break;
 
       case 'complete': {
         if (eventSource) { eventSource.close(); eventSource = null; }
+        _sessionEnded = true;
         sbSessionId = data.sbSessionId || null;
         var outcome = data.fixed ? 'fixed'
           : data.degraded ? 'degraded'
           : data.healthy  ? 'healthy'
           : 'not_fixed';
-        mp('scan_complete', { outcome: outcome, steps: currentStepIndex + 1 });
-        showResult(data);
+        var durMs = _scanStartTime ? Date.now() - _scanStartTime : 0;
+        ev('scan_complete', { outcome: outcome, steps: currentStepIndex + 1, duration_ms: durMs });
+        showFeedbackGate(data, outcome);
         break;
       }
 
       case 'paywall':
         if (eventSource) { eventSource.close(); eventSource = null; }
-        mp('paywall_hit');
+        _sessionEnded = true;
+        ev('paywall_shown');
         showPaywall(data);
         break;
 
@@ -1455,9 +1604,25 @@
     }
   }
 
+  // ═══ Session tracking ═══════════════════════════════════════════════════
+  var _scanStartTime = null;
+  var _currentStep = 0;
+  var _confirmShownAt = 0;
+  var _sessionEnded = false;
+
+  window.addEventListener('beforeunload', function() {
+    if (!_scanStartTime || _sessionEnded) return;
+    navigator.sendBeacon('/api/event', JSON.stringify({
+      event: 'session_end',
+      data: { reason: 'page_closed', duration_ms: Date.now() - _scanStartTime, steps_completed: _currentStep },
+      ts: Date.now()
+    }));
+  });
+
   // ═══ Boot ═════════════════════════════════════════════════════════════════
   document.getElementById('btn-start').addEventListener('click', function() {
-    mp('scan_start');
+    _scanStartTime = Date.now();
+    ev('scan_start');
     startDiagnosis();
   });
 

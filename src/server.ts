@@ -42,6 +42,11 @@ app.get('/api/diagnose', (req: Request, res: Response) => {
     res.write(`data: ${json}\n\n`);
   };
 
+  // SSE keepalive — send a comment every 15s to prevent browsers/proxies from closing idle connections
+  const heartbeatTimer = setInterval(() => {
+    try { res.write(': heartbeat\n\n'); } catch {}
+  }, 15000);
+
   const loop = new DoctorLoop((event: LoopEvent) => {
     sendEvent(event.type, event.data);
   });
@@ -64,6 +69,7 @@ app.get('/api/diagnose', (req: Request, res: Response) => {
 
   // Handle client disconnect
   req.on('close', () => {
+    clearInterval(heartbeatTimer);
     loop.stop();
     activeSessions.delete(sessionId);
   });
@@ -177,6 +183,33 @@ app.post('/api/feedback', (req: Request, res: Response) => {
   res.json({ ok: true });
 });
 
+// Forward analytics event to Worker (fire-and-forget)
+app.post('/api/event', (req: Request, res: Response) => {
+  const { event, data, ts, sessionId: sid } = req.body || {};
+  const fingerprint = require('./diagnose').getMachineFingerprint();
+  const body = JSON.stringify({
+    fingerprint,
+    sessionId: sid || undefined,
+    event,
+    data: data || {},
+    clientTs: ts ? new Date(ts).toISOString() : new Date().toISOString(),
+  });
+  const url = new URL(`${CLAWAID_API}/event`);
+  const lib = url.protocol === 'http:' ? require('http') : require('https');
+  const options = {
+    hostname: url.hostname,
+    port: url.port ? parseInt(url.port) : (url.protocol === 'http:' ? 80 : 443),
+    path: url.pathname,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+  };
+  const fReq = lib.request(options, () => {});
+  fReq.on('error', () => {});
+  fReq.write(body);
+  fReq.end();
+  res.json({ ok: true });
+});
+
 // Poll endpoint — frontend checks if a token was created for this machine's fingerprint
 // Used after Stripe payment: frontend polls until a token is found, then auto-activates
 app.get('/api/poll-token', (_req: Request, res: Response) => {
@@ -247,6 +280,8 @@ app.post('/api/lookup', (req: Request, res: Response) => {
   request.write(body);
   request.end();
 });
+
+// (duplicate /api/event route removed — handled above)
 
 // Return machine fingerprint so frontend can include it in Stripe payment link
 app.get('/api/fingerprint', (_req: Request, res: Response) => {
