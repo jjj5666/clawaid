@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="notranslate" translate="no">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="google" content="notranslate">
+  <meta http-equiv="Content-Language" content="en, zh">
   <title>ClawAid</title>
   <!-- Mixpanel -->
   <script>(function(f,b){if(!b.__SV){var e,g,i,h;window.mixpanel=b;b._i=[];b.init=function(e,f,c){function g(a,d){var b=d.split(".");2==b.length&&(a=a[b[0]],d=b[1]);a[d]=function(){a.push([d].concat(Array.prototype.slice.call(arguments,0)))}}var a=b;"undefined"!==typeof c?a=b[c]=[]:c="mixpanel";a.people=a.people||[];a.toString=function(a){var d="mixpanel";"mixpanel"!==c&&(d+="."+c);a||(d+=" (stub)");return d};a.people.toString=function(){return a.toString(1)+".people (stub)"};i="disable time_event track track_pageview track_links track_forms track_with_groups add_group set_group remove_group register register_once alias unregister identify name_tag set_config reset init people.set people.set_once people.unset people.increment people.append people.union people.track_charge people.clear_charges people.delete_user people.remove".split(" ");for(h=0;h<i.length;h++)g(a,i[h]);var j="set set_once union unset remove delete".split(" ");a.get_group=function(){function b(c){d[c]=function(){call2_args=arguments;call2=[c].concat(Array.prototype.slice.call(call2_args,0));a.push([e,call2])}}for(var d={},e=["get_group"].concat(Array.prototype.slice.call(arguments,0)),c=0;c<j.length;c++)b(j[c]);return d};b._i.push([e,f,c])};b.__SV=1.2;e=f.createElement("script");e.type="text/javascript";e.async=!0;e.src="https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";g=f.getElementsByTagName("script")[0];g.parentNode.insertBefore(e,g)}})(document,window.mixpanel||[]);
@@ -20,7 +22,7 @@
       --yellow: #ca8a04; --yellow-bg: #fefce8; --yellow-border: #fde68a;
       --r: 12px; --rs: 8px;
     }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px 16px 80px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px 16px 80px; }
     .wrap { max-width: 540px; margin: 0 auto; }
 
     /* Header */
@@ -205,6 +207,29 @@
     }
     .screenshot-preview-row .spr-remove:hover { color: var(--red); }
 
+    /* Anti-garbling: protect technical content from browser translation plugins */
+    code, .step-cmd, .step-output, .input-field, [translate="no"] {
+      font-family: 'SF Mono', 'Menlo', 'Consolas', 'Microsoft YaHei', monospace !important;
+    }
+
+    /* Warning action buttons */
+    .wi-action {
+      display: inline-flex; align-items: center; gap: 4px;
+      margin-top: 6px; padding: 4px 10px; font-size: 11px; font-weight: 500;
+      background: var(--surface); border: 1px solid var(--yellow-border); border-radius: 4px;
+      cursor: pointer; color: var(--yellow); transition: background 0.15s;
+    }
+    .wi-action:hover { background: var(--yellow-bg); }
+    .wi-action.copied { color: var(--green); border-color: var(--green-border); }
+    .wi-rec { font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
+    .wi-rec-fix { background: var(--yellow-bg); color: var(--yellow); }
+    .wi-rec-review { background: var(--blue-bg); color: var(--blue); }
+    .wi-rec-ignore { background: #f3f3f3; color: var(--muted); }
+
+    /* Degraded result card */
+    .result-degraded { border-color: var(--yellow-border); }
+    .result-degraded .result-icon { color: var(--yellow); }
+
     /* Hide sections */
     .hidden { display: none; }
   </style>
@@ -363,7 +388,7 @@
       </div>
       <div class="step-detail" id="step-detail-${index}">
         ${reasoningHtml}
-        ${step.command ? `<div class="step-cmd">$ ${esc(step.command)}</div>` : ''}
+        ${step.command ? `<div class="step-cmd" translate="no">$ ${esc(step.command)}</div>` : ''}
         <div id="step-output-area-${index}"></div>
       </div>
     `;
@@ -380,7 +405,7 @@
       const trimmed = output.length > 800 ? output.slice(0, 800) + '\n...' : output;
       outputArea.innerHTML = `
         <div class="step-output-label">Output</div>
-        <div class="step-output">${esc(trimmed)}</div>
+        <div class="step-output" translate="no">${esc(trimmed)}</div>
       `;
     }
   }
@@ -444,7 +469,32 @@
     if (!warnings || warnings.length === 0) return '';
     let html = '<div class="warnings-list"><div class="warnings-title">' + T.warnings + '</div>';
     for (const w of warnings) {
-      html += `<div class="warning-item"><span class="wi-icon">💡</span><span class="wi-text">${esc(w)}</span><button class="wi-dismiss" title="Dismiss" onclick="(function(btn){var item=btn.closest('.warning-item');item.classList.add('dismissing');setTimeout(function(){item.remove();},300);})(this)">×</button></div>`;
+      // Support both string warnings (legacy) and structured {text, recommendation, fixCommand, reason}
+      const isStructured = typeof w === 'object' && w !== null;
+      const text = isStructured ? (w.text || '') : String(w);
+      const rec = isStructured ? (w.recommendation || 'review') : 'review';
+      const fixCmd = isStructured ? (w.fixCommand || null) : null;
+      const reason = isStructured ? (w.reason || '') : '';
+
+      // Recommendation badge
+      const recLabel = rec === 'fix' ? (isZh ? '建议修复' : 'Fix') : rec === 'ignore' ? (isZh ? '可忽略' : 'Ignore') : (isZh ? '检查' : 'Review');
+      const recClass = rec === 'fix' ? 'wi-rec-fix' : rec === 'ignore' ? 'wi-rec-ignore' : 'wi-rec-review';
+      const icon = rec === 'fix' ? '🔧' : rec === 'ignore' ? '💡' : '👀';
+
+      html += `<div class="warning-item">`;
+      html += `<span class="wi-icon">${icon}</span>`;
+      html += `<span class="wi-text">`;
+      html += esc(text);
+      if (reason) html += `<br><span style="font-size:12px;color:var(--muted);">${esc(reason)}</span>`;
+      if (fixCmd) {
+        const btnId = 'wcopy-' + Math.random().toString(36).slice(2, 8);
+        html += `<br><button class="wi-action" id="${btnId}" onclick="(function(btn){navigator.clipboard.writeText('${esc(fixCmd).replace(/'/g, "\\'")}');btn.textContent='✓ ${isZh ? '已复制' : 'Copied'}';btn.classList.add('copied');setTimeout(function(){btn.textContent='📋 ${isZh ? '复制命令' : 'Copy command'}';btn.classList.remove('copied');},2000);})(this)">📋 ${isZh ? '复制命令' : 'Copy command'}</button>`;
+        html += ` <code translate="no" style="font-size:11px;background:#f0f0f0;padding:2px 6px;border-radius:3px;color:var(--text2);word-break:break-all;">${esc(fixCmd)}</code>`;
+      }
+      html += `</span>`;
+      html += `<span class="wi-rec ${recClass}">${recLabel}</span>`;
+      html += `<button class="wi-dismiss" title="Dismiss" onclick="(function(btn){var item=btn.closest('.warning-item');item.classList.add('dismissing');setTimeout(function(){item.remove();},300);})(this)">×</button>`;
+      html += `</div>`;
     }
     html += '</div>';
     return html;
@@ -487,11 +537,42 @@
         ${feedbackHtml}
         <button class="btn btn-ghost btn-big" onclick="location.reload()" style="margin-top:14px;">${T.scanAgain}</button>
       `;
+    } else if (data.degraded) {
+      div.classList.add('result-degraded');
+      const degradedTitle = isZh ? '⚠️ 系统运行中，但有功能异常' : '⚠️ Running, but with issues';
+      const degradedDesc = isZh ? '你的 OpenClaw 能启动，但部分功能不正常。' : 'Your OpenClaw is running, but some features aren\'t working correctly.';
+      // Show problem/fix short sentences if available
+      let problemFixHtml = '';
+      if (data.problem) {
+        problemFixHtml += `<div style="margin:10px 0;padding:10px 14px;background:var(--yellow-bg);border:1px solid var(--yellow-border);border-radius:8px;text-align:left;font-size:13px;">`;
+        problemFixHtml += `<div style="font-weight:600;margin-bottom:4px;">${isZh ? '问题' : 'Problem'}:</div><div>${esc(data.problem)}</div>`;
+        if (data.fix) {
+          problemFixHtml += `<div style="font-weight:600;margin-top:8px;margin-bottom:4px;">${isZh ? '建议' : 'Suggestion'}:</div><div>${esc(data.fix)}</div>`;
+        }
+        problemFixHtml += `</div>`;
+      }
+      div.innerHTML = `
+        <div class="result-icon">⚠️</div>
+        <div class="result-title">${degradedTitle}</div>
+        <div class="result-desc">${esc(data.summary || degradedDesc)}</div>
+        ${problemFixHtml}
+        ${warningsHtml}
+        ${feedbackHtml}
+        <button class="btn btn-ghost btn-big" onclick="location.reload()" style="margin-top:14px;">${T.scanAgain}</button>
+      `;
     } else {
+      // Not fixed — show problem/fix short sentences
+      let problemFixHtml = '';
+      if (data.problem) {
+        problemFixHtml += `<div style="margin:10px 0;padding:10px 14px;background:var(--red-bg);border:1px solid var(--red-border);border-radius:8px;text-align:left;font-size:13px;">`;
+        problemFixHtml += `<div style="font-weight:600;margin-bottom:4px;">${isZh ? '问题' : 'Problem'}:</div><div>${esc(data.problem)}</div>`;
+        problemFixHtml += `</div>`;
+      }
       div.innerHTML = `
         <div class="result-icon">😔</div>
         <div class="result-title">${T.notFixed}</div>
         <div class="result-desc">${esc(data.summary || T.notFixedDesc)}</div>
+        ${problemFixHtml}
         ${warningsHtml}
         ${feedbackHtml}
         <button class="btn btn-ghost btn-big" onclick="location.reload()" style="margin-top:14px;">${T.tryAgain}</button>
@@ -515,7 +596,8 @@
     currentStepIndex = -1;
     scanBlockAdded = false;
 
-    eventSource = new EventSource('/api/diagnose');
+    const langParam = isZh ? 'zh' : 'en';
+    eventSource = new EventSource('/api/diagnose?lang=' + langParam);
 
     eventSource.onmessage = function(e) {
       let msg;
@@ -592,7 +674,8 @@
       case 'complete': {
         if (eventSource) { eventSource.close(); eventSource = null; }
         finishScanBlock();
-        mp('scan_complete', { outcome: data.healthy ? 'healthy' : data.fixed ? 'fixed' : 'not_fixed', steps: currentStepIndex + 1 });
+        const outcome = data.healthy ? 'healthy' : data.fixed ? 'fixed' : data.degraded ? 'degraded' : 'not_fixed';
+        mp('scan_complete', { outcome: outcome, steps: currentStepIndex + 1 });
         showResult(data);
         break;
       }
@@ -633,10 +716,11 @@
     const isCN = price && price.isChinese;
     const credits = (price && price.credits) || 5;
 
-    const STRIPE_URL = 'https://buy.stripe.com/8x26oJ6WrdNnd9T4hI0oM01';
+    const STRIPE_BASE_URL = 'https://buy.stripe.com/8x26oJ6WrdNnd9T4hI0oM01';
 
     const div = document.createElement('div');
     div.className = 'start-card';
+    div.id = 'paywall-card';
 
     // Emoji + headline
     let html = `
@@ -651,17 +735,25 @@
       </div>
     `;
 
-    // Primary buy button — Stripe (works for everyone)
-    html += `<a href="${STRIPE_URL}" target="_blank" class="btn btn-primary btn-big" style="text-decoration:none; margin-bottom:10px;">${isZh ? '💳 立即购买' : '💳 Buy Now'}</a>`;
+    // Primary buy button — Stripe (works for everyone). URL updated dynamically with fingerprint below.
+    html += `<a href="${STRIPE_BASE_URL}" target="_blank" class="btn btn-primary btn-big" id="pw-buy-btn" style="text-decoration:none; margin-bottom:10px;">${isZh ? '💳 立即购买' : '💳 Buy Now'}</a>`;
+
+    // Auto-detection notice (hidden until user clicks Buy)
+    html += `<div id="pw-auto-detect" style="display:none; text-align:center; padding:10px; margin-bottom:10px; background:var(--blue-bg); border:1px solid var(--blue-border); border-radius:8px; font-size:13px; color:var(--blue);">
+      <div class="spinner" style="display:inline-block; margin-right:8px; vertical-align:middle;"></div>
+      <span>${isZh ? '等待支付完成，完成后自动激活...' : 'Waiting for payment — will activate automatically...'}</span>
+    </div>`;
 
     // Divider
     html += `<hr style="border:none; border-top:1px solid var(--border); margin:14px 0;">`;
 
-    // Token redemption section
+    // Token redemption section (collapsed by default, for users who already have a token)
     html += `
-      <p style="font-size:13px; color:var(--text2); margin-bottom:8px;">${isZh ? '已购买？输入激活码或邮箱：' : 'Already purchased? Enter your token or email:'}</p>
-      <input class="input-field" id="pw-token" type="text" placeholder="${isZh ? '激活码 CA-XXXX 或购买邮箱' : 'Token CA-XXXX or purchase email'}" />
-      <button class="btn btn-ghost btn-big" id="pw-activate" style="margin-top:6px;">${isZh ? '🔑 激活' : '🔑 Activate'}</button>
+      <details style="margin-bottom:8px;">
+        <summary style="font-size:13px; color:var(--text2); cursor:pointer; margin-bottom:8px;">${isZh ? '已有激活码？点击输入' : 'Already have a token? Click here'}</summary>
+        <input class="input-field" id="pw-token" type="text" placeholder="${isZh ? '激活码 CA-XXXX 或购买邮箱' : 'Token CA-XXXX or purchase email'}" />
+        <button class="btn btn-ghost btn-big" id="pw-activate" style="margin-top:6px;">${isZh ? '🔑 激活' : '🔑 Activate'}</button>
+      </details>
       <div id="pw-msg" style="font-size:12px; text-align:center; margin-top:6px; min-height:16px;"></div>
     `;
 
@@ -675,6 +767,55 @@
     div.innerHTML = html;
     feed.appendChild(div);
 
+    // Fetch fingerprint and update buy button URL to include client_reference_id
+    // This lets Stripe webhook bind the token to this machine
+    fetch('/api/fingerprint').then(function(r) { return r.json(); }).then(function(d) {
+      var btn = document.getElementById('pw-buy-btn');
+      if (btn && d.fingerprint) {
+        btn.href = STRIPE_BASE_URL + '?client_reference_id=' + encodeURIComponent(d.fingerprint);
+      }
+    }).catch(function() {});
+
+    // ── Auto-detection: poll for token after user clicks Buy ──
+    let pollTimer = null;
+    let pollCount = 0;
+    const MAX_POLLS = 60; // 5 minutes max (every 5 seconds)
+
+    function startPolling() {
+      const autoDetect = document.getElementById('pw-auto-detect');
+      if (autoDetect) autoDetect.style.display = 'block';
+      pollCount = 0;
+
+      pollTimer = setInterval(async () => {
+        pollCount++;
+        if (pollCount > MAX_POLLS) {
+          clearInterval(pollTimer);
+          if (autoDetect) autoDetect.innerHTML = `<span style="color:var(--muted);">${isZh ? '自动检测超时，请手动输入激活码' : 'Auto-detect timed out. Please enter your token manually.'}</span>`;
+          return;
+        }
+        try {
+          const r = await (await fetch('/api/poll-token')).json();
+          // If a token was found for this fingerprint (Stripe payment completed), activate
+          if (r.found && r.token) {
+            clearInterval(pollTimer);
+            mp('auto_activate_success');
+            if (autoDetect) autoDetect.innerHTML = `<span style="color:var(--green);">✅ ${isZh ? '支付成功！自动激活中...' : 'Payment received! Activating...'}</span>`;
+            // Redeem the token to cache it locally
+            fetch('/api/redeem', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: r.token }) }).catch(() => {});
+            setTimeout(() => location.reload(), 1500);
+            return;
+          }
+        } catch { /* silent */ }
+      }, 5000);
+    }
+
+    document.getElementById('pw-buy-btn').addEventListener('click', () => {
+      mp('buy_clicked');
+      // Start polling after a short delay (give user time to complete payment)
+      setTimeout(startPolling, 3000);
+    });
+
+    // Manual token activation
     document.getElementById('pw-activate').addEventListener('click', async () => {
       const token = document.getElementById('pw-token').value.trim();
       const msg = document.getElementById('pw-msg');
@@ -684,6 +825,7 @@
       try {
         const r = await (await fetch('/api/redeem', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })).json();
         if (r.valid) {
+          if (pollTimer) clearInterval(pollTimer);
           mp('token_redeem_success');
           msg.style.color = 'var(--green)';
           msg.textContent = isZh ? '✅ 激活成功！重新扫描中...' : '✅ Activated! Restarting scan...';

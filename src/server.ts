@@ -128,14 +128,16 @@ app.post('/api/redeem', (req: Request, res: Response) => {
       try {
         const parsed = JSON.parse(data);
         if (parsed.valid) {
+          // Use the real CA-XXXX token returned by Worker (not the user's input which might be an email)
+          const realToken = parsed.token || token.trim();
           // Cache the token for this server process
-          verifiedToken = token.trim();
+          verifiedToken = realToken;
           // Also propagate to any active sessions
           activeSessions.forEach(({ loop }) => {
-            loop.setToken(token.trim());
+            loop.setToken(realToken);
           });
         }
-        res.json({ valid: Boolean(parsed.valid), credits: parsed.credits || 0 });
+        res.json({ valid: Boolean(parsed.valid), credits: parsed.credits || 0, token: parsed.token || undefined });
       } catch {
         res.status(500).json({ valid: false, error: 'Failed to parse backend response' });
       }
@@ -173,6 +175,82 @@ app.post('/api/feedback', (req: Request, res: Response) => {
   fReq.write(body);
   fReq.end();
   res.json({ ok: true });
+});
+
+// Poll endpoint — frontend checks if a token was created for this machine's fingerprint
+// Used after Stripe payment: frontend polls until a token is found, then auto-activates
+app.get('/api/poll-token', (_req: Request, res: Response) => {
+  const fingerprint = require('./diagnose').getMachineFingerprint();
+  const url = new URL(`${CLAWAID_API}/poll/${fingerprint}`);
+  const lib = url.protocol === 'http:' ? require('http') : require('https');
+  const options = {
+    hostname: url.hostname,
+    port: url.port ? parseInt(url.port) : (url.protocol === 'http:' ? 80 : 443),
+    path: url.pathname,
+    method: 'GET',
+  };
+  const request = lib.request(options, (backendRes: any) => {
+    let data = '';
+    backendRes.on('data', (chunk: string) => { data += chunk; });
+    backendRes.on('end', () => {
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed.found && parsed.token) {
+          // Auto-activate: cache the token and propagate to active sessions
+          verifiedToken = parsed.token;
+          activeSessions.forEach(({ loop }) => { loop.setToken(parsed.token); });
+        }
+        res.json(parsed);
+      } catch {
+        res.json({ found: false });
+      }
+    });
+  });
+  request.on('error', () => { res.json({ found: false }); });
+  request.setTimeout(10000, () => { request.destroy(); res.json({ found: false }); });
+  request.end();
+});
+
+// Lookup endpoint — proxy to Worker /lookup to find token by email
+app.post('/api/lookup', (req: Request, res: Response) => {
+  const { email } = req.body as { email: string };
+  if (!email) { res.status(400).json({ found: false }); return; }
+  const body = JSON.stringify({ email });
+  const url = new URL(`${CLAWAID_API}/lookup`);
+  const lib = url.protocol === 'http:' ? require('http') : require('https');
+  const options = {
+    hostname: url.hostname,
+    port: url.port ? parseInt(url.port) : (url.protocol === 'http:' ? 80 : 443),
+    path: url.pathname,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+  };
+  const request = lib.request(options, (backendRes: any) => {
+    let data = '';
+    backendRes.on('data', (chunk: string) => { data += chunk; });
+    backendRes.on('end', () => {
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed.found && parsed.token) {
+          // Auto-activate the token
+          verifiedToken = parsed.token;
+          activeSessions.forEach(({ loop }) => { loop.setToken(parsed.token); });
+        }
+        res.json(parsed);
+      } catch {
+        res.json({ found: false });
+      }
+    });
+  });
+  request.on('error', () => { res.json({ found: false }); });
+  request.setTimeout(10000, () => { request.destroy(); res.json({ found: false }); });
+  request.write(body);
+  request.end();
+});
+
+// Return machine fingerprint so frontend can include it in Stripe payment link
+app.get('/api/fingerprint', (_req: Request, res: Response) => {
+  res.json({ fingerprint: require('./diagnose').getMachineFingerprint() });
 });
 
 app.get('/api/health', (_req: Request, res: Response) => {
