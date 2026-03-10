@@ -28,6 +28,10 @@ export interface ObservationResult {
   officialDoctorOutput: string;
   desktopAppVersion: string;
   desktopAppRunning: string;
+  // v3: new data sources
+  devicesList: string;
+  sessionIntegrity: string;
+  versionGap: string;
   errors: string[];
   ruleFindings?: RuleFinding[];
 }
@@ -91,8 +95,8 @@ async function findRecentLog(): Promise<{ content: string; logPath: string }> {
         // Direct file path
         const content = fs.readFileSync(p, 'utf-8');
         const lines = content.split('\n');
-        const last200 = lines.slice(-200).join('\n');
-        return { content: last200, logPath: p };
+        const last2000 = lines.slice(-2000).join('\n');
+        return { content: last2000, logPath: p };
       } else if (stat.isDirectory()) {
         // Find most recent log file
         const files = fs.readdirSync(p)
@@ -108,8 +112,8 @@ async function findRecentLog(): Promise<{ content: string; logPath: string }> {
           const latestLog = files[0].fullPath;
           const content = fs.readFileSync(latestLog, 'utf-8');
           const lines = content.split('\n');
-          const last200 = lines.slice(-200).join('\n');
-          return { content: last200, logPath: latestLog };
+          const last2000 = lines.slice(-2000).join('\n');
+          return { content: last2000, logPath: latestLog };
         }
       }
     } catch {
@@ -156,6 +160,10 @@ export function loadMockObservation(scenario: string): ObservationResult {
   const scenarioPath = path.join(__dirname, '..', 'test-scenarios', scenario + '.json');
   const content = fs.readFileSync(scenarioPath, 'utf-8');
   const obs = JSON.parse(content) as ObservationResult;
+  // Backfill v3 fields for older mock scenarios
+  if (!obs.devicesList) obs.devicesList = '(not collected)';
+  if (!obs.sessionIntegrity) obs.sessionIntegrity = '(not collected)';
+  if (!obs.versionGap) obs.versionGap = '(not collected)';
   // Run rules on mock data too
   obs.ruleFindings = runRules(obs);
   return obs;
@@ -210,6 +218,42 @@ export async function observe(onProgress?: (msg: string) => void): Promise<Obser
   progress('Gathering system info...');
   const systemInfo = await runCommand('sw_vers 2>/dev/null || uname -a');
 
+  // v3: new data sources
+  progress('Checking device pairing...');
+  const devicesList = await runCommand('openclaw devices list 2>&1');
+
+  progress('Checking session integrity...');
+  const sessionDir = path.join(homeDir, '.openclaw', 'sessions');
+  let sessionIntegrity = 'no sessions directory';
+  try {
+    if (fs.existsSync(sessionDir)) {
+      const sessionFiles = fs.readdirSync(sessionDir).filter(f => f.endsWith('.json')).slice(-5);
+      if (sessionFiles.length === 0) {
+        sessionIntegrity = 'sessions directory exists but no .json files';
+      } else {
+        const checks: string[] = [];
+        for (const sf of sessionFiles) {
+          try {
+            const content = fs.readFileSync(path.join(sessionDir, sf), 'utf-8');
+            // Quick integrity check: valid JSON + no orphaned messages
+            JSON.parse(content);
+            const hasOrphaned = /orphaned/i.test(content);
+            checks.push(`${sf}: ${hasOrphaned ? 'ORPHANED MESSAGES DETECTED' : 'ok'}`);
+          } catch {
+            checks.push(`${sf}: PARSE ERROR`);
+          }
+        }
+        sessionIntegrity = checks.join('\n');
+      }
+    }
+  } catch {
+    sessionIntegrity = 'error checking sessions';
+  }
+
+  progress('Checking version gap...');
+  const latestVersion = await runCommand('npm view openclaw version 2>&1');
+  const versionGap = `current: ${openclawVersion} | latest: ${latestVersion}`;
+
   const obs: ObservationResult = {
     timestamp: new Date().toISOString(),
     openclawStatus,
@@ -231,6 +275,9 @@ export async function observe(onProgress?: (msg: string) => void): Promise<Obser
     officialDoctorOutput,
     desktopAppVersion,
     desktopAppRunning,
+    devicesList,
+    sessionIntegrity,
+    versionGap,
     errors,
   };
 
@@ -245,27 +292,41 @@ function extractLogEssentials(logs: string): string {
   if (!logs) return '(no logs)';
   const lines = logs.split('\n');
 
-  // Always keep last 20 lines (most recent context)
-  const tail = lines.slice(-20);
+  // Part 1: Last 50 lines — unfiltered, full context
+  const tail = lines.slice(-50);
 
-  // Find error/warning lines from the rest
-  const errorPattern = /error|fail|400|404|timeout|refused|crash|panic|EADDRINUSE|uncaught|unhandled|FATAL|died|exit code/i;
-  const errorLines = lines.slice(0, -20).filter(l => errorPattern.test(l));
+  // Part 2: Older lines — extract warn/error signals, deduplicated
+  const olderLines = lines.slice(0, Math.max(0, lines.length - 50));
+  const signalPattern = /error|warn|fail|400|401|403|404|timeout|refused|crash|panic|EADDRINUSE|uncaught|unhandled|FATAL|died|exit code|mismatch|pairing|orphaned|blocked|ENOENT|EACCES|EPERM|deprecat|disconnect|reconnect/i;
 
-  // Keep up to 30 error lines
-  const topErrors = errorLines.slice(-30);
+  const seen = new Set<string>();
+  const uniqueSignals: string[] = [];
+
+  for (const line of olderLines) {
+    if (!signalPattern.test(line)) continue;
+    // Deduplicate: strip timestamp, compare the rest
+    const normalized = line.replace(/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}[.\d]*Z?\s*/, '').trim();
+    if (normalized.length < 5) continue;
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    uniqueSignals.push(line);
+  }
 
   const parts: string[] = [];
-  if (topErrors.length > 0) {
-    parts.push(`### Error/warning lines (${topErrors.length} of ${errorLines.length} total)`);
-    parts.push(topErrors.join('\n'));
+
+  if (uniqueSignals.length > 0) {
+    // Keep up to 30 unique signals (most recent ones)
+    const topSignals = uniqueSignals.slice(-30);
+    parts.push(`### Unique warn/error signals from older logs (${topSignals.length} unique of ${uniqueSignals.length} total)`);
+    parts.push(topSignals.join('\n'));
   }
-  parts.push(`### Last 20 lines`);
+
+  parts.push(`### Last 50 lines (unfiltered)`);
   parts.push(tail.join('\n'));
 
-  const result = parts.join('\n');
-  // Hard cap at 15KB
-  return result.length > 15000 ? result.slice(0, 15000) + '\n...[truncated]' : result;
+  const result = parts.join('\n\n');
+  // Hard cap at 20KB (50 lines ≈ 5KB + 30 signals ≈ 3KB, normally ~8KB)
+  return result.length > 20000 ? result.slice(0, 20000) + '\n...[truncated]' : result;
 }
 
 function truncate(text: string, maxChars: number): string {
@@ -279,49 +340,8 @@ function redactApiKeys(text: string): string {
              .replace(/(sk-[a-zA-Z0-9]{8})[a-zA-Z0-9]+/g, '$1...[REDACTED]');
 }
 
-function extractGatewayEssentials(statusJson: string): string {
-  // Try to parse and extract only diagnostically relevant fields
-  try {
-    const parsed = JSON.parse(statusJson);
-    const essentials: Record<string, unknown> = {};
-    // Keep only diagnostic fields, skip session data
-    for (const key of ['runtime', 'gateway', 'version', 'pid', 'uptime', 'mode', 'status', 'error', 'errors', 'channels', 'channelSummary', 'heartbeat']) {
-      if (key in parsed) essentials[key] = parsed[key];
-    }
-    return JSON.stringify(essentials, null, 2);
-  } catch {
-    return truncate(statusJson, 3000);
-  }
-}
-
-function extractConfigEssentials(configContent: string): string {
-  // Try to parse and extract only diagnostically relevant fields (no sessions, no API keys in full)
-  try {
-    const parsed = JSON.parse(configContent);
-    const essentials: Record<string, unknown> = {};
-    // Keep structure but remove large/sensitive data
-    for (const key of ['gateway', 'models', 'channels', 'tools', 'security', 'logging', 'agent']) {
-      if (key in parsed) essentials[key] = parsed[key];
-    }
-    // Include provider names but redact keys
-    if (parsed.providers) {
-      const providers: Record<string, unknown> = {};
-      for (const [name, val] of Object.entries(parsed.providers as Record<string, unknown>)) {
-        if (val && typeof val === 'object') {
-          const p = { ...(val as Record<string, unknown>) };
-          if (p.apiKey && typeof p.apiKey === 'string') {
-            p.apiKey = (p.apiKey as string).slice(0, 12) + '...[REDACTED]';
-          }
-          providers[name] = p;
-        }
-      }
-      essentials.providers = providers;
-    }
-    return JSON.stringify(essentials, null, 2);
-  } catch {
-    return truncate(redactApiKeys(configContent), 4000);
-  }
-}
+// extractGatewayEssentials and extractConfigEssentials removed in v3.
+// AI gets raw data now (only API keys redacted). Don't filter for AI.
 
 export function formatObservation(obs: ObservationResult): string {
   // Give AI ALL the data upfront. This is their evidence to work with.
@@ -370,16 +390,25 @@ System: ${obs.systemInfo}
 ${obs.gatewayStatus}
 
 ## Gateway status (JSON)
-${extractGatewayEssentials(obs.gatewayStatusJson)}
+${redactApiKeys(obs.gatewayStatusJson)}
 
 ## Official openclaw doctor output
 ${obs.officialDoctorOutput}
 
 ## Config file (${obs.configPath})
-${extractConfigEssentials(obs.configContent)}
+${redactApiKeys(obs.configContent)}
 
 ## LaunchAgent plist (${obs.plistPath})
 ${obs.plistContent}
+
+## Device pairing
+${obs.devicesList}
+
+## Session integrity
+${obs.sessionIntegrity}
+
+## Version gap
+${obs.versionGap}
 
 ## Port 18789 check
 ${obs.portCheck}
