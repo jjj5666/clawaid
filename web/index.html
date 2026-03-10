@@ -166,6 +166,52 @@
     .schk-icon.pending { color: var(--text-muted); }
     .schk-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+    /* ═══ AI Thinking Card ══════════════════════════════════════════════════ */
+    .ai-thinking-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      padding: 20px;
+      animation: fadeUp .24s ease both;
+      margin-bottom: 12px;
+    }
+    .ai-thinking-hd {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+    }
+    .ai-thinking-icon {
+      font-size: 24px; animation: pulse-glow 2s ease-in-out infinite;
+    }
+    .ai-thinking-title { font-size: 14px; font-weight: 600; }
+    .ai-thinking-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .ai-thinking-steps {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .ai-step-row {
+      display: flex; align-items: center; gap: 10px; font-size: 12px;
+      color: var(--text-secondary); opacity: 0;
+      animation: fadeIn .4s ease forwards;
+    }
+    .ai-step-row .dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+      animation: pulse-dot 1.5s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    .ai-step-row.done .dot { background: var(--green); animation: none; }
+    .ai-step-row.done { color: var(--green); }
+    @keyframes pulse-glow {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.1); opacity: .8; }
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .4; transform: scale(.7); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     /* ═══ Fix Step Cards ══════════════════════════════════════════════════════ */
     .fix-card {
       background: var(--surface);
@@ -558,7 +604,7 @@
   <!-- Steps feed -->
   <div id="feed" class="hidden"></div>
 
-  <div class="footer">ClawAid v2.1.0</div>
+  <div class="footer">ClawAid v1.1.28</div>
 
 </div>
 
@@ -714,6 +760,44 @@
   function updateScanProgress(msg) {
     var sub = document.getElementById('scan-sub');
     if (sub) sub.textContent = msg || '';
+
+    // Show AI thinking card when AI starts analyzing
+    if (msg && msg.indexOf('AI') !== -1 && !document.getElementById('ai-thinking-card')) {
+      var aiCard = document.createElement('div');
+      aiCard.className = 'ai-thinking-card';
+      aiCard.id = 'ai-thinking-card';
+      var thinkTitle = isZh ? '🤖 AI 正在分析你的系统...' : '🤖 AI is analyzing your system...';
+      var thinkSub = isZh ? '通常需要 10-20 秒' : 'Usually takes 10-20 seconds';
+      var steps = isZh
+        ? ['读取配置文件和日志', '检查 Gateway 状态', '分析错误模式', '生成诊断方案']
+        : ['Reading config files & logs', 'Checking gateway status', 'Analyzing error patterns', 'Generating diagnosis'];
+      aiCard.innerHTML = '<div class="ai-thinking-hd">'
+        + '<div class="ai-thinking-icon">🧠</div>'
+        + '<div><div class="ai-thinking-title">' + thinkTitle + '</div>'
+        + '<div class="ai-thinking-sub">' + thinkSub + '</div></div>'
+        + '</div>'
+        + '<div class="ai-thinking-steps" id="ai-thinking-steps"></div>';
+      feed.appendChild(aiCard);
+      scrollDown();
+      // Animate steps appearing one by one
+      var stepsEl = aiCard.querySelector('#ai-thinking-steps');
+      steps.forEach(function(s, i) {
+        setTimeout(function() {
+          if (!document.getElementById('ai-thinking-card')) return;
+          var row = document.createElement('div');
+          row.className = 'ai-step-row';
+          row.style.animationDelay = '0s';
+          row.innerHTML = '<span class="dot"></span> ' + s;
+          stepsEl.appendChild(row);
+          scrollDown();
+          // Mark previous step as done
+          if (i > 0) {
+            var prev = stepsEl.children[i - 1];
+            if (prev) prev.className = 'ai-step-row done';
+          }
+        }, i * 3000);
+      });
+    }
   }
 
   function addReadStep(step, idx) {
@@ -1022,7 +1106,7 @@
       showResult(data);
       return;
     }
-    var isZh = (document.documentElement.lang || 'en') !== 'en' || /[\u4e00-\u9fff]/.test(document.title);
+    var isZh = /^zh/i.test(navigator.language || '');
     // Detect from existing T
     var qText = isZh ? '问题解决了吗？' : 'Did this solve your problem?';
     var yesText = isZh ? '✅ 解决了！' : '✅ Yes, fixed!';
@@ -1047,7 +1131,7 @@
       +     '<button class="btn btn-accent fb-gate-submit">' + submitText + '</button>'
       +   '</div>'
       + '</div>';
-    document.getElementById('content').appendChild(el);
+    document.getElementById('feed').appendChild(el);
     scrollDown();
 
     function sendFb(val, detail) {
@@ -1187,9 +1271,17 @@
     scrollDown();
   }
 
-  // ═══ Paywall ══════════════════════════════════════════════════════════════
+  // ═══ Paywall (v4: ClawAid is now completely FREE — this should never be shown) ══
   function showPaywall(data) {
-    var STRIPE_URL = 'https://buy.stripe.com/8x26oJ6WrdNnd9T4hI0oM01';
+    // v4: ClawAid is completely free. If this function is called, show a friendly message.
+    var freeMsg = isZh
+      ? '<div style="text-align:center;padding:40px 20px;"><div style="font-size:48px;margin-bottom:16px;">🎉</div><h2 style="margin-bottom:12px;">ClawAid 完全免费！</h2><p style="color:var(--text-secondary);">请重新运行 <code>npx clawaid@latest</code> 获取最新版本</p></div>'
+      : '<div style="text-align:center;padding:40px 20px;"><div style="font-size:48px;margin-bottom:16px;">🎉</div><h2 style="margin-bottom:12px;">ClawAid is Completely Free!</h2><p style="color:var(--text-secondary);">Please run <code>npx clawaid@latest</code> to get the latest version</p></div>';
+    resultEl.innerHTML = freeMsg;
+    return; // Skip all payment UI below
+
+    // === Legacy payment code kept for reference (unreachable) ===
+    var STRIPE_URL = 'https://buy.stripe.com/bJe8wReoT7oZ9XH7tU0oM02';
     var payMethod = data.payMethod || (data.isChinese ? 'xunhupay' : 'stripe');
     if (isZh && payMethod !== 'xunhupay') payMethod = 'xunhupay';
     var isCN = payMethod === 'xunhupay';
@@ -1201,14 +1293,21 @@
     var diagnosisHtml = '';
     var pendingFix = data.pendingFix;
     if (pendingFix && pendingFix.description) {
-      diagnosisHtml = '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">'
+      var cmdHtml = '';
+      if (pendingFix.command) {
+        cmdHtml = '<div style="margin-top:8px;padding:8px 10px;background:var(--surface-alt);border-radius:6px;font-family:var(--mono);font-size:11px;color:var(--text-secondary);word-break:break-all;">'
+          + '🔧 ' + (isZh ? '修复方案：' : 'Fix: ') + '<code>' + esc(pendingFix.command) + '</code></div>';
+      }
+      diagnosisHtml = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">'
         + '<div style="font-weight:700;font-size:14px;margin-bottom:8px;">'
         + (isZh ? '🔍 已找到问题：' : '🔍 Issue found:')
         + '</div>'
         + '<div style="display:flex;align-items:flex-start;gap:8px;">'
         + '<span style="flex-shrink:0;">⚠️</span>'
         + '<div style="font-size:13px;">' + esc(pendingFix.description) + '</div>'
-        + '</div></div>';
+        + '</div>'
+        + cmdHtml
+        + '</div>';
     }
 
     // Also show rule findings if available
@@ -1220,7 +1319,7 @@
           + '<div><div style="font-weight:600;font-size:13px;">' + esc(f.title) + '</div></div>'
           + '</div>';
       }).join('');
-      diagnosisHtml = '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">'
+      diagnosisHtml = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">'
         + '<div style="font-weight:700;font-size:14px;margin-bottom:8px;">'
         + (isZh ? '🔍 扫描发现以下问题：' : '🔍 Issues found:')
         + '</div>' + items + '</div>';
@@ -1255,8 +1354,8 @@
     div.className = 'card pw-card';
     div.innerHTML = '<div class="pw-hd">'
       + '<span class="pw-emoji">🩺</span>'
-      + '<div class="pw-title">' + (isZh ? '免费诊断完成' : 'Free scan complete') + '</div>'
-      + '<div class="pw-sub">' + (isZh ? '解锁修复，让 ClawAid 帮你搞定' : 'Unlock fixes to resolve your issues') + '</div>'
+      + '<div class="pw-title">' + (isZh ? '🎯 问题已定位，修复方案已就绪' : '🎯 Issue identified, fix ready') + '</div>'
+      + '<div class="pw-sub">' + (isZh ? '付费解锁 → AI 自动执行修复 → 30秒搞定（自己排查可能要 1-2 小时）' : 'Pay to unlock → AI auto-fixes → 30s done (vs 1-2 hours manual debugging)') + '</div>'
       + '</div>'
       + diagnosisHtml
       + buyBtnHtml
@@ -1277,13 +1376,22 @@
 
     // Fetch fingerprint for buy URL (Stripe) or xunhupay order creation
     var _pwFingerprint = '';
+    var _fpReady = false;
+    // Disable buy button until fingerprint is loaded
+    var _buyBtn = document.getElementById('pw-buy');
+    if (_buyBtn && !isCN) { _buyBtn.style.opacity = '0.5'; _buyBtn.style.pointerEvents = 'none'; }
     fetch('/api/fingerprint').then(function(r){return r.json();}).then(function(d) {
       _pwFingerprint = d.fingerprint || '';
+      _fpReady = true;
       if (!isCN) {
         var btn = document.getElementById('pw-buy');
-        if (btn && d.fingerprint) btn.href = STRIPE_URL + '?client_reference_id=' + encodeURIComponent(d.fingerprint);
+        if (btn && d.fingerprint) {
+          btn.href = STRIPE_URL + '?client_reference_id=' + encodeURIComponent(d.fingerprint);
+          btn.style.opacity = '1';
+          btn.style.pointerEvents = 'auto';
+        }
       }
-    }).catch(function(){});
+    }).catch(function(){ _fpReady = true; });
 
     // Auto-poll after buy (works for both Stripe and Xunhupay)
     var pollTimer = null, pollCount = 0, MAX_POLLS = 120;
@@ -1619,6 +1727,10 @@
         var step = data.step || {};
         stepTypes[data.index] = step.type || 'read';
         ev('step_viewed', { step_number: data.index, type: step.type, risk: step.risk || 'low' });
+
+        // Remove AI thinking card when first real step arrives
+        var aiCard = document.getElementById('ai-thinking-card');
+        if (aiCard) aiCard.remove();
 
         if (step.type === 'read') {
           if (!document.getElementById('scan-block')) {

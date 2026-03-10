@@ -312,7 +312,7 @@ app.get('/api/fingerprint', (_req: Request, res: Response) => {
 });
 
 app.get('/api/health', (_req: Request, res: Response) => {
-  res.json({ ok: true, version: '1.0.0', name: 'ClawAid', sessions: activeSessions.size });
+  res.json({ ok: true, version: '1.1.28', name: 'ClawAid', sessions: activeSessions.size });
 });
 
 export function createServer(port: number): Promise<void> {

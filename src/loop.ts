@@ -88,7 +88,7 @@ export class DoctorLoop {
     this.callback = callback;
   }
 
-  setToken(token: string) { this.token = token; }
+  setToken(token: string) { this.token = token; this.sessionPaid = true; }
   setLang(lang: string) { this.lang = lang || 'en'; }
 
   private sendEvent(event: string, data?: Record<string, unknown>): void {
@@ -218,6 +218,7 @@ export class DoctorLoop {
 
       // Ask AI for next step
       let step: AgentStep;
+      this.progress(stepIndex === 0 ? '🤖 AI is analyzing your system...' : '🤖 AI is thinking...');
       try {
         step = await this.callStep(stepIndex === 0);
       } catch (err) {
@@ -370,17 +371,12 @@ export class DoctorLoop {
 
     let modeContext = '';
     if (this.userDescription) {
-      modeContext = `MODE: USER_REPORTED_PROBLEM\nUser says: "${this.userDescription}"\n${rulesSummary}\nYour goal: Solve the user's problem. Use the system data and rule findings as clues. If you find other unrelated issues, put them in warnings.`;
+      modeContext = `The user says: "${this.userDescription}"\n${rulesSummary}\nYour goal: Fix the user's specific problem. Use the system data and rule findings as clues. If you find other unrelated issues, put them in warnings.`;
       if (this.userScreenshot) {
         modeContext += '\nUser also provided a screenshot of the issue.';
       }
     } else {
-      const hasRuleIssues = findings.some(f => f.severity === 'critical' || f.severity === 'high');
-      if (hasRuleIssues) {
-        modeContext = `MODE: FULL_SCAN\n${rulesSummary}\nYour goal: Confirm and fix the issues identified above. Use the system data as evidence.`;
-      } else {
-        modeContext = `MODE: FULL_SCAN (verification)\n${rulesSummary}\nThe rule engine found no critical issues. Verify by checking the full system data. If you agree the system is healthy, return done immediately with healthy=true — don't run extra read steps. Only investigate further if you spot a real problem in the data above. Put minor observations in warnings.`;
-      }
+      modeContext = `The user didn't describe a specific problem — they want a full health check.\n${rulesSummary}\nYour goal: Check if OpenClaw is truly working end-to-end. Don't just check if gateway is running — verify the system can actually handle user messages. Do at least one verification step before concluding.`;
     }
 
     const body = JSON.stringify({
