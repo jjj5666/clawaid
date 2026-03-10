@@ -28,6 +28,7 @@ const activeSessions = new Map<string, { res: Response; loop: DoctorLoop }>();
 
 app.get('/api/diagnose', (req: Request, res: Response) => {
   const sessionId = Date.now().toString();
+  const lang = (req.query.lang as string) || 'en';
   
   // Set SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
@@ -45,7 +46,8 @@ app.get('/api/diagnose', (req: Request, res: Response) => {
     sendEvent(event.type, event.data);
   });
 
-  // Restore verified token if available
+  // Set language and restore verified token if available
+  loop.setLang(lang);
   if (verifiedToken) {
     loop.setToken(verifiedToken);
   }
@@ -151,12 +153,16 @@ app.post('/api/redeem', (req: Request, res: Response) => {
   request.end();
 });
 
-// Health check
+// Feedback — forward to backend with fingerprint
 app.post('/api/feedback', (req: Request, res: Response) => {
-  const { feedback, sessionId: sid } = req.body || {};
-  // Forward feedback to ClawAid backend
+  const { feedback, sessionId: sid, sbSessionId } = req.body || {};
   const https = require('https');
-  const body = JSON.stringify({ feedback, sessionId: sid, fingerprint: require('./diagnose').getMachineFingerprint() });
+  const body = JSON.stringify({
+    feedback,
+    sessionId: sid,
+    sbSessionId,
+    fingerprint: require('./diagnose').getMachineFingerprint(),
+  });
   const fReq = https.request({
     hostname: 'api.clawaid.app',
     path: '/feedback',

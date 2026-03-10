@@ -3,7 +3,7 @@ import * as http from 'http';
 import * as os from 'os';
 import { execSync } from 'child_process';
 import { observe, loadMockObservation, formatObservation, ObservationResult } from './observe';
-import { extractApiKey, getMachineFingerprint, PaywallError } from './diagnose';
+import { getMachineFingerprint, PaywallError } from './diagnose';
 
 // ClawAid backend API URL
 const CLAWAID_API = process.env.CLAWAID_API || 'https://api.clawaid.app';
@@ -22,7 +22,6 @@ export type LoopState =
   | 'fixed'
   | 'not_fixed'
   | 'healthy'
-  | 'needs_api_key'
   | 'paywall'
   | 'error';
 
@@ -65,8 +64,8 @@ export class DoctorLoop {
   private callback: EventCallback;
   private state: LoopState = 'idle';
   private stopped = false;
-  private apiKey = '';
   private token?: string;
+  private lang = 'en';
   private userDescription = '';
   private userScreenshot?: string; // base64 data URL
   private observation?: ObservationResult;
@@ -82,6 +81,27 @@ export class DoctorLoop {
   }
 
   setToken(token: string) { this.token = token; }
+  setLang(lang: string) { this.lang = lang || 'en'; }
+
+  private async callComplete(token: string): Promise<void> {
+    const url = new URL(`${CLAWAID_API}/complete`);
+    const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+    const lib = isLocal ? require('http') : require('https');
+    const body = JSON.stringify({ token });
+    return new Promise((resolve) => {
+      const req = lib.request({
+        hostname: url.hostname,
+        port: parseInt(url.port) || (isLocal ? 3001 : 443),
+        path: url.pathname,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+      }, () => resolve());
+      req.on('error', () => resolve());
+      req.setTimeout(10000, () => { req.destroy(); resolve(); });
+      req.write(body);
+      req.end();
+    });
+  }
   stop() { this.stopped = true; }
 
   private emit(event: LoopEvent) { this.callback(event); }
@@ -89,22 +109,6 @@ export class DoctorLoop {
   private progress(msg: string) { this.emit({ type: 'progress', data: { message: msg } }); }
 
   async start() {
-    // Auto-extract API key from OpenClaw config
-    const autoKey = extractApiKey();
-    if (autoKey) {
-      this.apiKey = autoKey;
-    } else if (!this.apiKey) {
-      this.setState('needs_api_key');
-      this.emit({
-        type: 'request_input',
-        data: {
-          field: 'apiKey',
-          instructions: 'ClawAid needs an OpenRouter API key to run diagnostics.',
-        }
-      });
-      return;
-    }
-
     // Ask user to describe their problem (or skip)
     this.setState('waiting_user_description');
     this.emit({
@@ -126,10 +130,7 @@ export class DoctorLoop {
   }
 
   async provideInput(field: string, value: string, extra?: { screenshot?: string }) {
-    if (field === 'apiKey') {
-      this.apiKey = value;
-      await this.runLoop();
-    } else if (field === 'userDescription') {
+    if (field === 'userDescription') {
       if (this.pendingDescription) {
         this.pendingDescription.resolve({ description: value, screenshot: extra?.screenshot });
         this.pendingDescription = undefined;
@@ -196,16 +197,23 @@ export class DoctorLoop {
       if (step.type === 'done') {
         this.emit({ type: 'step_start', data: { step, index: stepIndex } });
         const warnings = step.warnings || [];
+        const problem = (step as any).problem || null;
+        const fix = (step as any).fix || null;
+        const baseData = { summary: step.summary, warnings, problem, fix, history: this.history, sbSessionId: this.sbSessionId };
         if (step.fixed) {
           this.setState('fixed');
-          this.emit({ type: 'complete', data: { fixed: true, summary: step.summary, warnings, history: this.history } });
+          // Deduct 1 credit if using a paid token
+          if (this.token) {
+            this.callComplete(this.token).catch(() => {});
+          }
+          this.emit({ type: 'complete', data: { ...baseData, fixed: true } });
         } else if (this.fixAttempts === 0 && !step.fixed) {
           // Healthy — no fixes were needed
           this.setState('healthy');
-          this.emit({ type: 'complete', data: { fixed: false, healthy: true, summary: step.summary, warnings, history: this.history } });
+          this.emit({ type: 'complete', data: { ...baseData, fixed: false, healthy: true } });
         } else {
           this.setState('not_fixed');
-          this.emit({ type: 'complete', data: { fixed: false, summary: step.summary, warnings, history: this.history } });
+          this.emit({ type: 'complete', data: { ...baseData, fixed: false } });
         }
         return;
       }
@@ -305,6 +313,7 @@ export class DoctorLoop {
       modeContext,
       history: this.history.map(h => ({ step: h.step, output: h.output, skipped: h.skipped })),
       fingerprint,
+      lang: this.lang,
       ...(this.token ? { token: this.token } : {}),
       ...(isFirst ? { sessionStart: true, userDescription: this.userDescription || undefined } : {}),
       ...(this.sbSessionId ? { supabaseSessionId: this.sbSessionId } : {}),
