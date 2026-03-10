@@ -1210,6 +1210,23 @@
       buyBtnHtml = '<a href="'+STRIPE_URL+'" target="_blank" class="btn btn-primary btn-full" id="pw-buy" style="text-decoration:none;margin-bottom:0;">' + T.pwBuyNow + '</a>';
     }
 
+    // v3: Show findings from rule engine so user sees value
+    var findingsHtml = '';
+    var findings = data.findings || [];
+    if (findings.length > 0) {
+      var items = findings.map(function(f) {
+        return '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">'
+          + '<span style="flex-shrink:0;">⚠️</span>'
+          + '<div><div style="font-weight:600;font-size:13px;">' + esc(f.title) + '</div>'
+          + '<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">' + esc(f.description).slice(0,120) + '</div></div>'
+          + '</div>';
+      }).join('');
+      findingsHtml = '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">'
+        + '<div style="font-weight:700;font-size:14px;margin-bottom:8px;">'
+        + (isZh ? '🔍 扫描发现以下问题：' : '🔍 Issues found during scan:')
+        + '</div>' + items + '</div>';
+    }
+
     var div = document.createElement('div');
     div.className = 'card pw-card';
     div.innerHTML = '<div class="pw-hd">'
@@ -1217,6 +1234,7 @@
       + '<div class="pw-title">' + T.pwFreeUsed + '</div>'
       + '<div class="pw-sub">' + T.pwGetPack + '</div>'
       + '</div>'
+      + findingsHtml
       + '<div class="pw-price-box">'
       + '<div class="pw-price" translate="no">' + esc(priceStr) + '</div>'
       + '<div class="pw-price-sub">' + T.pwFixesPer(credits) + '</div>'

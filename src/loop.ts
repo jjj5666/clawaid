@@ -257,7 +257,9 @@ export class DoctorLoop {
       } catch (err) {
         if (err instanceof PaywallError) {
           this.setState('paywall');
-          this.emit({ type: 'paywall', data: { price: err.price, currency: err.currency, isChinese: err.isChinese, credits: err.credits, payMethod: err.payMethod } });
+          // v3: Include rule findings so paywall page can show what was found
+          const findings = this.observation?.ruleFindings || [];
+          this.emit({ type: 'paywall', data: { price: err.price, currency: err.currency, isChinese: err.isChinese, credits: err.credits, payMethod: err.payMethod, findings } });
           this.sendEvent('session_end', { reason: 'paywall', duration_ms: Date.now() - loopStartTime, steps_completed: stepsCompleted, outcome: 'paywall' });
           return;
         }
