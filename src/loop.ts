@@ -22,6 +22,7 @@ export type LoopState =
   | 'fixed'
   | 'not_fixed'
   | 'healthy'
+  | 'degraded'    // system runs but has functional issues (auth errors, model failures, timeouts)
   | 'paywall'
   | 'error';
 
@@ -199,6 +200,7 @@ export class DoctorLoop {
         const warnings = step.warnings || [];
         const problem = (step as any).problem || null;
         const fix = (step as any).fix || null;
+        const degraded = (step as any).degraded || false;
         const baseData = { summary: step.summary, warnings, problem, fix, history: this.history, sbSessionId: this.sbSessionId };
         if (step.fixed) {
           this.setState('fixed');
@@ -207,6 +209,10 @@ export class DoctorLoop {
             this.callComplete(this.token).catch(() => {});
           }
           this.emit({ type: 'complete', data: { ...baseData, fixed: true } });
+        } else if (degraded) {
+          // System runs but has functional issues (auth errors, model failures, etc.)
+          this.setState('degraded');
+          this.emit({ type: 'complete', data: { ...baseData, fixed: false, degraded: true } });
         } else if (this.fixAttempts === 0 && !step.fixed) {
           // Healthy — no fixes were needed
           this.setState('healthy');

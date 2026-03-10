@@ -259,11 +259,131 @@ const gatewayAuthConflict: Rule = (obs) => {
   return [];
 };
 
+// ─── Functional-layer Rules (does the system actually WORK, not just "run") ──
+
+const recentAuthFailure: Rule = (obs) => {
+  const logs = obs.recentLogs || '';
+  const lines = logs.split('\n');
+  // Look for 401/403 errors in recent logs
+  const authErrorLines = lines.filter(l =>
+    /\b(401|403)\b/.test(l) &&
+    /invalid.*(key|auth|token)|unauthorized|forbidden|authentication.*fail/i.test(l)
+  );
+  if (authErrorLines.length >= 2) {
+    // Try to extract provider name
+    let provider = '';
+    for (const line of authErrorLines) {
+      const m = line.match(/(openrouter|anthropic|openai|google|moonshot|deepseek|siliconflow|groq|mistral|together)/i);
+      if (m) { provider = m[1]; break; }
+    }
+    return [{
+      id: 'recent-auth-failure',
+      severity: 'high',
+      title: 'API authentication errors detected' + (provider ? ` (${provider})` : ''),
+      description:
+        `Found ${authErrorLines.length} authentication errors (401/403) in recent logs. ` +
+        (provider
+          ? `The "${provider}" provider's API key may be invalid, expired, or missing.`
+          : 'One or more provider API keys may be invalid, expired, or missing.') +
+        ' This means AI requests are failing right now.',
+    }];
+  }
+  return [];
+};
+
+const nodeTooOld: Rule = (obs) => {
+  const nodeVer = obs.nodeVersion || '';
+  const match = nodeVer.match(/v?(\d+)\./);
+  if (match) {
+    const major = parseInt(match[1], 10);
+    if (major < 18) {
+      return [{
+        id: 'node-too-old',
+        severity: 'critical',
+        title: `Node.js ${nodeVer.trim()} is too old — CLI will not work`,
+        description:
+          `OpenClaw requires Node.js 18 or newer. Your current version (${nodeVer.trim()}) ` +
+          'is not supported. The CLI will fail with syntax errors or missing APIs.',
+        fix: 'curl -fsSL https://fnm.vercel.app/install | bash && fnm install --lts && fnm use lts-latest',
+      }];
+    }
+  }
+  return [];
+};
+
+const providerMissingKey: Rule = (obs) => {
+  const config = obs.configContent || '';
+  const logs = obs.recentLogs || '';
+  // Only flag if a provider has empty apiKey AND recent logs show failures for that provider
+  const findings: RuleFinding[] = [];
+  
+  // Find providers with empty or placeholder keys in config
+  const providerPattern = /"(\w+)"\s*:\s*\{[^}]*"apiKey"\s*:\s*""\s*[^}]*\}/g;
+  let m;
+  while ((m = providerPattern.exec(config)) !== null) {
+    const provName = m[1];
+    // Check if this provider appears in recent error logs
+    if (new RegExp(provName, 'i').test(logs) && /error|fail|401|403/i.test(logs)) {
+      findings.push({
+        id: 'provider-missing-key',
+        severity: 'high',
+        title: `Provider "${provName}" has empty API key`,
+        description:
+          `The "${provName}" provider is configured but has an empty API key, ` +
+          'and recent logs show errors from this provider. Requests to this provider will always fail.',
+      });
+    }
+  }
+  return findings;
+};
+
+const recentTimeoutLoop: Rule = (obs) => {
+  const logs = obs.recentLogs || '';
+  const lines = logs.split('\n');
+  const timeoutLines = lines.filter(l => /timeout|ETIMEDOUT|ECONNREFUSED|ECONNRESET/i.test(l));
+  if (timeoutLines.length >= 4) {
+    return [{
+      id: 'recent-timeout-loop',
+      severity: 'high',
+      title: 'Repeated connection timeouts detected',
+      description:
+        `Found ${timeoutLines.length} timeout/connection errors in recent logs. ` +
+        'This usually means a network issue, proxy misconfiguration, or the AI provider is unreachable. ' +
+        'The system may be in a backoff loop.',
+    }];
+  }
+  return [];
+};
+
+const fallbackNotAvailable: Rule = (obs) => {
+  const logs = obs.recentLogs || '';
+  // Look for fallback failures in logs
+  const fallbackErrors = logs.split('\n').filter(l =>
+    /fallback.*fail|fallback.*error|all.*fallback.*exhaust|no.*fallback.*available/i.test(l)
+  );
+  if (fallbackErrors.length >= 2) {
+    return [{
+      id: 'fallback-not-available',
+      severity: 'high',
+      title: 'Fallback models are failing',
+      description:
+        'Recent logs show multiple fallback model failures. When the primary model fails, ' +
+        'the fallback chain is also broken. The system has no working recovery path.',
+    }];
+  }
+  return [];
+};
+
 // ─── Warning Rules ───────────────────────────────────────────────────────────
 
 const versionMismatch: Rule = (obs) => {
   const desktopVer = obs.desktopAppVersion || '';
   const cliVer = obs.openclawVersion || '';
+
+  // If desktop app is not installed (error reading plist, "does not exist", etc.), don't report
+  if (/not exist|does not|error|command not found/i.test(desktopVer)) {
+    return [];
+  }
 
   // Extract version numbers (e.g., "3.7.1" or "2026.2.22")
   const desktopMatch = desktopVer.match(/(\d+)\.(\d+)\.?(\d*)/);
@@ -296,6 +416,15 @@ const versionMismatch: Rule = (obs) => {
 const whatsappAllowlistEmpty: Rule = (obs) => {
   const config = obs.configContent || '';
 
+  // Only check if WhatsApp is actually configured as a channel
+  // Skip if the channel doesn't exist or is disabled
+  const hasWhatsappChannel = /["']?whatsapp["']?\s*:\s*\{/i.test(config);
+  if (!hasWhatsappChannel) return [];
+
+  // Check if disabled
+  const whatsappSection = config.match(/["']?whatsapp["']?\s*:\s*\{([^}]*)\}/s);
+  if (whatsappSection && /["']?enabled["']?\s*:\s*false/i.test(whatsappSection[1])) return [];
+
   // Check for groupPolicy: "allowlist" 
   const hasAllowlist = /["']?groupPolicy["']?\s*:\s*["']allowlist["']/i.test(config);
   if (hasAllowlist) {
@@ -325,11 +454,17 @@ const ALL_RULES: Rule[] = [
   configParseError,
   gatewayNotRunning,
   portConflict,
+  nodeTooOld,
 
-  // High
+  // High — functional layer (does it actually WORK?)
   zombieGateway,
   badModel,
   gatewayAuthConflict,
+  recentAuthFailure,
+  providerMissingKey,
+  recentTimeoutLoop,
+  fallbackNotAvailable,
+
   // Warning
   versionMismatch,
   whatsappAllowlistEmpty,
