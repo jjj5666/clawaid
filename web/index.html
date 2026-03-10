@@ -2,593 +2,1287 @@
 <html lang="en" class="notranslate" translate="no">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="google" content="notranslate">
   <meta http-equiv="Content-Language" content="en, zh">
   <title>ClawAid</title>
+
   <!-- Mixpanel -->
   <script>(function(f,b){if(!b.__SV){var e,g,i,h;window.mixpanel=b;b._i=[];b.init=function(e,f,c){function g(a,d){var b=d.split(".");2==b.length&&(a=a[b[0]],d=b[1]);a[d]=function(){a.push([d].concat(Array.prototype.slice.call(arguments,0)))}}var a=b;"undefined"!==typeof c?a=b[c]=[]:c="mixpanel";a.people=a.people||[];a.toString=function(a){var d="mixpanel";"mixpanel"!==c&&(d+="."+c);a||(d+=" (stub)");return d};a.people.toString=function(){return a.toString(1)+".people (stub)"};i="disable time_event track track_pageview track_links track_forms track_with_groups add_group set_group remove_group register register_once alias unregister identify name_tag set_config reset init people.set people.set_once people.unset people.increment people.append people.union people.track_charge people.clear_charges people.delete_user people.remove".split(" ");for(h=0;h<i.length;h++)g(a,i[h]);var j="set set_once union unset remove delete".split(" ");a.get_group=function(){function b(c){d[c]=function(){call2_args=arguments;call2=[c].concat(Array.prototype.slice.call(call2_args,0));a.push([e,call2])}}for(var d={},e=["get_group"].concat(Array.prototype.slice.call(arguments,0)),c=0;c<j.length;c++)b(j[c]);return d};b._i.push([e,f,c])};b.__SV=1.2;e=f.createElement("script");e.type="text/javascript";e.async=!0;e.src="https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";g=f.getElementsByTagName("script")[0];g.parentNode.insertBefore(e,g)}})(document,window.mixpanel||[]);
   mixpanel.init('fb6af7e76538dfda2675ab13beaf2727',{track_pageview:"full-url"});</script>
+
   <!-- Clarity -->
   <script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script","vt5wimnmsf");</script>
+
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    /* ═══ CSS Variables ═══════════════════════════════════════════════════════ */
     :root {
-      --bg: #f5f5f5; --surface: #fff; --border: #e5e5e5;
-      --text: #111; --text2: #555; --muted: #999;
-      --blue: #2563eb; --blue-bg: #eff6ff; --blue-border: #bfdbfe;
-      --green: #16a34a; --green-bg: #f0fdf4; --green-border: #bbf7d0;
-      --red: #dc2626; --red-bg: #fef2f2; --red-border: #fecaca;
-      --yellow: #ca8a04; --yellow-bg: #fefce8; --yellow-border: #fde68a;
-      --r: 12px; --rs: 8px;
+      --bg:            #f8f8fa;
+      --surface:       #ffffff;
+      --surface-alt:   #f4f5f7;
+      --border:        #e8e8ec;
+      --border-strong: #d1d1d6;
+      --text:          #1a1a1a;
+      --text-secondary:#6b6b76;
+      --text-muted:    #9b9ba4;
+
+      --accent:        #4f46e5;
+      --accent-hover:  #4338ca;
+      --accent-bg:     #eef2ff;
+      --accent-border: #c7d2fe;
+
+      --green:         #059669;
+      --green-bg:      #ecfdf5;
+      --green-border:  #a7f3d0;
+
+      --red:           #dc2626;
+      --red-bg:        #fef2f2;
+      --red-border:    #fecaca;
+
+      --amber:         #d97706;
+      --amber-bg:      #fffbeb;
+      --amber-border:  #fde68a;
+
+      --blue:          #2563eb;
+      --blue-bg:       #eff6ff;
+      --blue-border:   #bfdbfe;
+
+      --radius:        14px;
+      --radius-sm:     10px;
+      --radius-xs:     6px;
+
+      --shadow-sm:     0 1px 2px rgba(0,0,0,.04), 0 1px 3px rgba(0,0,0,.03);
+      --shadow:        0 2px 6px rgba(0,0,0,.06), 0 1px 4px rgba(0,0,0,.04);
+      --shadow-lg:     0 4px 16px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.04);
+
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei',
+              'PingFang SC', 'Noto Sans SC', sans-serif;
+      --mono: 'SF Mono', 'Menlo', 'Consolas', 'Microsoft YaHei', monospace;
+
+      --transition: 0.18s ease;
     }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px 16px 80px; }
-    .wrap { max-width: 540px; margin: 0 auto; }
 
-    /* Header */
+    /* ═══ Reset ═══════════════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ═══ Base ════════════════════════════════════════════════════════════════ */
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 32px 16px 96px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ═══ Layout ══════════════════════════════════════════════════════════════ */
+    .wrap { max-width: 520px; margin: 0 auto; }
+    .hidden { display: none !important; }
+    #feed { display: flex; flex-direction: column; gap: 12px; }
+
+    /* ═══ Header ══════════════════════════════════════════════════════════════ */
     .hdr { text-align: center; margin-bottom: 28px; }
-    .hdr .logo { font-size: 40px; line-height: 1; margin-bottom: 6px; }
-    .hdr h1 { font-size: 22px; font-weight: 600; }
-    .hdr p { font-size: 13px; color: var(--text2); margin-top: 2px; }
+    .hdr-logo { font-size: 48px; line-height: 1; display: block; margin-bottom: 10px; }
+    .hdr h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
+    .hdr-sub { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
 
-    /* Steps feed */
-    #feed { display: flex; flex-direction: column; gap: 8px; }
-
-    /* Step card */
-    .step {
+    /* ═══ Cards ═══════════════════════════════════════════════════════════════ */
+    .card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: var(--r);
-      overflow: hidden;
-      animation: fadeUp 0.2s ease;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      animation: fadeUp .24s ease both;
     }
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
-    .step-top {
-      display: flex; align-items: center; gap: 10px;
-      padding: 14px 16px; cursor: pointer; user-select: none;
-    }
-    .step-icon { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; }
-    .step-title { font-size: 14px; font-weight: 500; flex: 1; color: var(--text); }
-    .step-badge {
-      font-size: 10px; font-weight: 600; padding: 2px 7px;
-      border-radius: 4px; text-transform: uppercase;
-    }
-    .badge-read { background: var(--blue-bg); color: var(--blue); }
-    .badge-fix  { background: var(--yellow-bg); color: var(--yellow); }
-    .badge-done { background: var(--green-bg); color: var(--green); }
-    .badge-risk-medium { background: var(--yellow-bg); color: var(--yellow); }
-    .badge-risk-high   { background: var(--red-bg); color: var(--red); }
+    /* ═══ Start Screen ═══════════════════════════════════════════════════════ */
+    .start-card { padding: 28px 24px; }
+    .start-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 12px; }
+    .start-card ul { padding-left: 20px; font-size: 13px; color: var(--text-secondary); line-height: 2; margin-bottom: 20px; }
+    .start-card ul li { list-style: disc; }
 
-    .step-status { font-size: 18px; flex-shrink: 0; }
-
-    /* Expandable detail */
-    .step-detail { display: none; padding: 0 16px 14px; }
-    .step.open .step-detail { display: block; }
-    .step-reason { font-size: 13px; color: var(--text2); line-height: 1.5; margin-bottom: 8px; }
-    .step-cmd {
-      font-family: 'SF Mono', monospace; font-size: 12px;
-      background: #f8f8f8; border: 1px solid var(--border); border-radius: var(--rs);
-      padding: 8px 10px; color: var(--text2); word-break: break-all;
-      margin-bottom: 8px;
-    }
-    .step-output {
-      font-family: 'SF Mono', monospace; font-size: 11px;
-      background: #fafafa; border: 1px solid var(--border); border-radius: var(--rs);
-      padding: 8px 10px; color: var(--text2); max-height: 160px;
-      overflow-y: auto; white-space: pre-wrap; word-break: break-all; line-height: 1.4;
-    }
-    .step-output-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-
-    /* Confirm bar */
-    .confirm-bar {
-      display: flex; gap: 8px; padding: 12px 16px;
-      background: var(--yellow-bg); border-top: 1px solid var(--yellow-border);
-    }
-    .confirm-bar.risk-high { background: var(--red-bg); border-top-color: var(--red-border); }
-
-    /* Spinner */
-    .spinner { width: 16px; height: 16px; border: 2px solid #e0e0e0; border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Buttons */
+    /* ═══ Buttons ═════════════════════════════════════════════════════════════ */
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 8px 16px; font-size: 13px; font-weight: 500;
-      border: none; border-radius: var(--rs); cursor: pointer;
+      padding: 9px 18px; font-size: 13px; font-weight: 600; font-family: var(--font);
+      border: none; border-radius: var(--radius-sm); cursor: pointer;
+      transition: all var(--transition); white-space: nowrap; letter-spacing: -0.1px;
     }
-    .btn:hover:not(:disabled) { opacity: 0.85; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-primary { background: var(--blue); color: #fff; }
-    .btn-green   { background: var(--green); color: #fff; }
-    .btn-ghost   { background: transparent; color: var(--text2); border: 1px solid var(--border); }
-    .btn-big { width: 100%; padding: 12px 20px; font-size: 15px; border-radius: var(--r); }
-    /* .btn-coffee removed */
+    .btn:hover:not(:disabled) { transform: translateY(-0.5px); }
+    .btn:active:not(:disabled) { transform: translateY(0) scale(.98); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
 
-    /* Result card */
-    .result {
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
-      padding: 24px 20px; text-align: center; animation: fadeUp 0.3s ease;
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-green:hover:not(:disabled) { background: #047857; }
+    .btn-amber { background: var(--amber); color: #fff; }
+    .btn-ghost {
+      background: var(--surface); color: var(--text);
+      border: 1px solid var(--border);
     }
-    .result-icon { font-size: 40px; margin-bottom: 10px; }
-    .result-title { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
-    .result-desc { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 16px; }
+    .btn-ghost:hover:not(:disabled) { background: var(--surface-alt); border-color: var(--border-strong); }
 
-    /* Start card */
-    .start-card {
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
-      padding: 24px 20px;
+    .btn-full { width: 100%; padding: 13px 20px; font-size: 15px; border-radius: var(--radius); }
+    .btn-primary.btn-full { box-shadow: 0 1px 3px rgba(79,70,229,.25); }
+
+    /* ═══ Spinner ═════════════════════════════════════════════════════════════ */
+    .spin {
+      width: 16px; height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .65s linear infinite;
+      flex-shrink: 0; display: inline-block;
     }
-    .start-card p { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 12px; }
-    .start-card ul { padding-left: 18px; font-size: 13px; color: var(--text2); line-height: 1.8; margin-bottom: 16px; }
+    .spin-sm { width: 13px; height: 13px; border-width: 1.5px; }
 
-    /* Input */
-    .input-field { width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid var(--border); border-radius: var(--rs); font-family: monospace; margin-bottom: 8px; }
-    .input-field:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(37,99,235,.12); }
+    /* ═══ Scan Block ═════════════════════════════════════════════════════════ */
+    .scan-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      animation: fadeUp .24s ease both;
+    }
+    .scan-hd {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 20px;
+    }
+    .scan-emoji { font-size: 24px; flex-shrink: 0; }
+    .scan-body { flex: 1; min-width: 0; }
+    .scan-title { font-size: 14px; font-weight: 600; }
+    .scan-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .scan-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .scan-toggle {
+      font-size: 12px; color: var(--accent); background: none; border: none;
+      cursor: pointer; padding: 2px 0; white-space: nowrap;
+    }
+    .scan-toggle:hover { text-decoration: underline; }
+    .scan-details { border-top: 1px solid var(--border); padding: 10px 20px 14px; display: none; }
+    .scan-details.open { display: block; }
+    .schk { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 12px; color: var(--text-secondary); }
+    .schk-icon { width: 16px; text-align: center; flex-shrink: 0; font-size: 13px; }
+    .schk-icon.done { color: var(--green); }
+    .schk-icon.pending { color: var(--text-muted); }
+    .schk-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    /* desc-textarea now defined in the integrated input card section below */
+    /* ═══ Fix Step Cards ══════════════════════════════════════════════════════ */
+    .fix-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      animation: fadeUp .24s ease both;
+    }
+    .fix-hd {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px; cursor: pointer; user-select: none;
+      transition: background var(--transition);
+    }
+    .fix-hd:hover { background: var(--surface-alt); }
+    .fix-icon { font-size: 20px; width: 26px; text-align: center; flex-shrink: 0; }
+    .fix-info { flex: 1; min-width: 0; }
+    .fix-title { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fix-badges { display: flex; gap: 5px; margin-top: 3px; flex-wrap: wrap; }
 
-    /* .screenshot-area removed — replaced by integrated camera button approach */
+    .badge {
+      font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px;
+      text-transform: uppercase; letter-spacing: .3px;
+    }
+    .badge-fix    { background: var(--amber-bg); color: var(--amber); }
+    .badge-medium { background: var(--amber-bg); color: var(--amber); }
+    .badge-high   { background: var(--red-bg);   color: var(--red); }
+    .badge-done   { background: var(--green-bg); color: var(--green); }
 
-    .btn-row { display: flex; gap: 8px; }
+    .fix-status { font-size: 16px; flex-shrink: 0; }
+    .fix-detail { display: none; border-top: 1px solid var(--border); padding: 14px 18px; }
+    .fix-card.open .fix-detail { display: block; }
+
+    .fix-reason { font-size: 13px; color: var(--text-secondary); line-height: 1.55; margin-bottom: 10px; }
+    .fix-cmd {
+      font-family: var(--mono); font-size: 12px;
+      background: var(--surface-alt); border: 1px solid var(--border);
+      border-radius: var(--radius-xs); padding: 9px 12px;
+      color: var(--text-secondary); word-break: break-all; margin-bottom: 10px;
+    }
+    .fix-output-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .6px; color: var(--text-muted); margin-bottom: 4px;
+    }
+    .fix-output {
+      font-family: var(--mono); font-size: 11px;
+      background: var(--surface-alt); border: 1px solid var(--border);
+      border-radius: var(--radius-xs); padding: 9px 12px;
+      color: var(--text-secondary); max-height: 180px; overflow-y: auto;
+      white-space: pre-wrap; word-break: break-all; line-height: 1.5;
+    }
+    .fix-thinking-btn {
+      font-size: 12px; color: var(--text-muted); cursor: pointer;
+      margin-bottom: 8px; user-select: none; text-decoration: underline dotted;
+      background: none; border: none; padding: 0; font-family: var(--font);
+    }
+    .fix-thinking-btn:hover { color: var(--text-secondary); }
+    .fix-thinking-text {
+      display: none; font-size: 12px; color: var(--text-muted);
+      background: var(--surface-alt); border: 1px solid var(--border);
+      border-radius: var(--radius-xs); padding: 9px 12px;
+      margin-bottom: 10px; white-space: pre-wrap; word-break: break-word; line-height: 1.55;
+    }
+
+    /* ═══ Confirm Bar ════════════════════════════════════════════════════════ */
+    .confirm-bar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 18px; background: var(--amber-bg);
+      border-top: 1px solid var(--amber-border);
+    }
+    .confirm-bar.risk-high { background: var(--red-bg); border-top-color: var(--red-border); }
+    .confirm-label { font-size: 13px; color: var(--text); flex: 1; font-weight: 500; }
+
+    /* ═══ Result Cards ════════════════════════════════════════════════════════ */
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 32px 28px 24px;
+      text-align: center;
+      animation: fadeUp .32s ease both;
+    }
+    .result-icon { font-size: 52px; line-height: 1; display: block; margin-bottom: 14px; }
+    .result-title { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 16px; }
+
+    .result-meta {
+      text-align: left; background: var(--surface-alt);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 14px 16px; margin-bottom: 18px;
+    }
+    .rmr { display: flex; gap: 10px; font-size: 13px; line-height: 1.55; }
+    .rmr + .rmr { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .rmr-label { font-weight: 600; color: var(--text-secondary); flex-shrink: 0; min-width: 56px; }
+    .rmr-value { color: var(--text); }
+
+    .problem-box {
+      text-align: left; border-radius: var(--radius-sm);
+      padding: 14px 16px; margin-bottom: 18px; font-size: 13px; line-height: 1.6;
+    }
+    .problem-box-amber { background: var(--amber-bg); border: 1px solid var(--amber-border); border-left: 4px solid var(--amber); }
+    .problem-box-red { background: var(--red-bg); border: 1px solid var(--red-border); border-left: 4px solid var(--red); }
+    .problem-box-label { font-weight: 700; color: var(--text-secondary); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; }
+
+    .contact-block {
+      font-size: 13px; color: var(--text-secondary); line-height: 1.7;
+      padding: 14px 16px; background: var(--surface-alt);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      text-align: left; margin-bottom: 16px;
+    }
+    .contact-block b { color: var(--text); }
+
+    /* ═══ Warning Cards ══════════════════════════════════════════════════════ */
+    .warnings-section { text-align: left; margin-bottom: 18px; }
+    .warnings-heading {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .7px; color: var(--text-muted);
+      margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    }
+    .wc {
+      background: var(--surface); border: 1px solid var(--border); border-left-width: 4px;
+      border-radius: var(--radius-sm); padding: 14px 16px 12px; margin-bottom: 8px;
+      box-shadow: var(--shadow-sm); animation: fadeUp .2s ease both; overflow: hidden;
+      transition: opacity .25s, transform .25s, max-height .35s ease .15s, margin .35s ease .15s, padding .35s ease .15s;
+    }
+    .wc:last-child { margin-bottom: 0; }
+    .wc-fix    { border-left-color: var(--amber); }
+    .wc-review { border-left-color: var(--blue); }
+    .wc-ignore { border-left-color: var(--border-strong); background: var(--surface-alt); opacity: .85; }
+
+    .wc-hd { display: flex; align-items: flex-start; gap: 10px; }
+    .wc-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .wc-title { font-size: 13px; font-weight: 600; flex: 1; line-height: 1.5; }
+    .wc-ignorable {
+      font-size: 10px; font-weight: 600; color: var(--text-muted);
+      background: var(--border); border-radius: 4px; padding: 1px 6px;
+      flex-shrink: 0; margin-top: 2px;
+    }
+    .wc-dismiss {
+      background: none; border: none; cursor: pointer; font-size: 14px;
+      color: var(--text-muted); line-height: 1; padding: 0 0 0 4px;
+      flex-shrink: 0; margin-top: 1px; transition: color var(--transition);
+    }
+    .wc-dismiss:hover { color: var(--text); }
+    .wc-reason { font-size: 12px; color: var(--text-secondary); margin-top: 6px; line-height: 1.55; padding-left: 26px; }
+
+    .wc-actions { margin-top: 10px; padding-left: 26px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .wc-action-btn {
+      font-size: 12px; font-weight: 600; padding: 5px 14px;
+      border-radius: 100px; cursor: pointer; transition: all var(--transition);
+      font-family: var(--font); border: 1px solid var(--border);
+    }
+    .wc-action-primary { background: var(--amber-bg); border-color: var(--amber-border); color: var(--amber); }
+    .wc-action-primary:hover { background: #fef3c7; }
+    .wc-action-secondary { background: var(--surface); color: var(--text-secondary); }
+    .wc-action-secondary:hover { background: var(--surface-alt); }
+    .wc-action-btn.copied { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
+
+    .wc-code-area { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding-left: 26px; }
+    .wc-code {
+      font-family: var(--mono); font-size: 11px;
+      background: var(--surface-alt); border: 1px solid var(--border);
+      border-radius: var(--radius-xs); padding: 5px 9px;
+      color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .wc-copy {
+      background: none; border: 1px solid var(--border); border-radius: var(--radius-xs);
+      padding: 4px 9px; font-size: 12px; cursor: pointer; flex-shrink: 0;
+      color: var(--text-secondary); transition: all var(--transition);
+    }
+    .wc-copy:hover { background: var(--surface-alt); }
+    .wc-copy.copied { color: var(--green); border-color: var(--green-border); }
+
+    /* ═══ Feedback ════════════════════════════════════════════════════════════ */
+    .fb-card {
+      background: var(--surface-alt); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 18px 20px; text-align: center;
+      margin-top: 18px; margin-bottom: 6px;
+    }
+    .fb-q { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500; }
+    .fb-btns { display: flex; gap: 8px; transition: opacity .25s, transform .25s; }
+    .fb-btns .btn { flex: 1; }
+    .fb-done { display: none; }
+    .fb-done.visible { display: block; animation: fadeUp .28s ease both; }
+    .fb-emoji { font-size: 32px; margin-bottom: 8px; display: block; }
+    .fb-text { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .fb-contact { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+    .fb-contact b { color: var(--text-secondary); }
+
+    /* ═══ Description Input ═══════════════════════════════════════════════════ */
+    .input-card { padding: 24px 22px; }
+    .input-title { font-size: 17px; font-weight: 600; margin-bottom: 5px; }
+    .input-hint { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.55; }
+    .input-textarea-wrap { position: relative; margin-bottom: 10px; }
+    .input-textarea {
+      width: 100%; padding: 12px 14px 38px; font-size: 14px;
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      font-family: var(--font); resize: vertical; min-height: 92px;
+      line-height: 1.55; background: var(--surface); color: var(--text);
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .input-textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
+    .input-textarea::placeholder { color: var(--text-muted); }
+    .input-camera {
+      position: absolute; bottom: 9px; right: 9px;
+      background: none; border: none; cursor: pointer; font-size: 18px;
+      color: var(--text-muted); border-radius: var(--radius-xs); padding: 3px;
+      transition: all var(--transition);
+    }
+    .input-camera:hover { color: var(--text); background: var(--border); }
+    .input-camera.has-img { color: var(--green); }
+
+    .ss-preview {
+      display: none; align-items: center; gap: 10px; margin-bottom: 10px;
+      padding: 8px 12px; background: var(--green-bg); border: 1px solid var(--green-border);
+      border-radius: var(--radius-sm); font-size: 12px; color: var(--green);
+    }
+    .ss-preview.visible { display: flex; }
+    .ss-preview img { height: 38px; border-radius: 5px; }
+    .ss-preview-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ss-preview-rm { background: none; border: none; cursor: pointer; font-size: 14px; color: var(--text-muted); transition: color var(--transition); }
+    .ss-preview-rm:hover { color: var(--red); }
+
+    .btn-row { display: flex; gap: 8px; margin-top: 12px; }
     .btn-row .btn { flex: 1; }
 
-    /* Warnings list */
-    .warnings-list { margin-top: 14px; text-align: left; }
-    .warning-item {
-      display: flex; align-items: flex-start; gap: 8px;
-      padding: 10px 12px; margin-bottom: 6px;
-      background: var(--yellow-bg); border: 1px solid var(--yellow-border);
-      border-radius: var(--rs); font-size: 13px; color: var(--text); line-height: 1.5;
-      transition: opacity 0.3s, max-height 0.3s;
+    /* ═══ Paywall ═════════════════════════════════════════════════════════════ */
+    .pw-card { padding: 28px 24px; }
+    .pw-hd { text-align: center; margin-bottom: 22px; }
+    .pw-emoji { font-size: 40px; display: block; margin-bottom: 10px; }
+    .pw-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .pw-sub { font-size: 13px; color: var(--text-secondary); }
+    .pw-price-box { text-align: center; margin-bottom: 22px; }
+    .pw-price { font-size: 36px; font-weight: 700; color: var(--accent); line-height: 1; }
+    .pw-price-sub { font-size: 13px; color: var(--text-muted); margin-top: 5px; }
+    .pw-divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+    .pw-auto-detect {
+      display: none; text-align: center; padding: 10px 16px; margin-top: 12px;
+      background: var(--accent-bg); border: 1px solid var(--accent-border);
+      border-radius: var(--radius-sm); font-size: 13px; color: var(--accent);
     }
-    .warning-item .wi-icon { flex-shrink: 0; font-size: 15px; margin-top: 1px; }
-    .warning-item .wi-text { flex: 1; }
-    .warning-item .wi-dismiss {
-      flex-shrink: 0; background: none; border: none; cursor: pointer;
-      font-size: 14px; color: var(--muted); padding: 0 0 0 6px; line-height: 1;
-      align-self: flex-start; margin-top: 1px;
+    .pw-msg { font-size: 12px; text-align: center; margin-top: 10px; min-height: 18px; }
+    .pw-contact { text-align: center; margin-top: 18px; font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+    .pw-input {
+      width: 100%; padding: 10px 14px; font-size: 14px; font-family: var(--mono);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--surface); color: var(--text); margin-bottom: 8px;
     }
-    .warning-item .wi-dismiss:hover { color: var(--text); }
-    .warning-item.dismissing { opacity: 0; pointer-events: none; }
-    .warnings-title { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .pw-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
 
-    /* Footer */
-    .footer { text-align: center; font-size: 12px; color: var(--muted); margin-top: 28px; }
-    .footer a { color: var(--blue); text-decoration: none; }
+    /* ═══ Toast ═══════════════════════════════════════════════════════════════ */
+    #toast {
+      position: fixed; bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(0);
+      background: #1a1a1a; color: #fff;
+      font-size: 13px; font-weight: 500; font-family: var(--font);
+      padding: 9px 20px; border-radius: 100px;
+      box-shadow: var(--shadow-lg); opacity: 0; pointer-events: none;
+      transition: opacity .3s, transform .3s; z-index: 9999; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
 
-    /* AI reasoning toggle */
-    .step-reasoning-toggle {
-      display: inline-block; font-size: 12px; color: var(--muted);
-      cursor: pointer; margin-bottom: 8px; user-select: none;
-      text-decoration: underline dotted;
-    }
-    .step-reasoning-toggle:hover { color: var(--text2); }
-    .step-reasoning-text {
-      display: none; font-size: 12px; color: var(--muted); line-height: 1.5;
-      background: #fafafa; border: 1px solid var(--border); border-radius: var(--rs);
-      padding: 8px 10px; margin-bottom: 8px; white-space: pre-wrap; word-break: break-word;
-    }
-
-    /* Integrated input card */
-    .desc-input-wrap {
-      position: relative;
-    }
-    .desc-textarea-wrap {
-      position: relative;
-    }
-    .desc-textarea {
-      width: 100%; padding: 10px 12px; padding-bottom: 36px; font-size: 14px;
-      border: 1px solid var(--border); border-radius: var(--rs);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      resize: vertical; min-height: 80px; line-height: 1.5;
-    }
-    .desc-textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(37,99,235,.12); }
-    .desc-textarea::placeholder { color: var(--muted); }
-    .desc-camera-btn {
-      position: absolute; bottom: 8px; right: 8px;
-      background: none; border: none; cursor: pointer; font-size: 18px;
-      line-height: 1; padding: 4px; color: var(--muted); border-radius: 6px;
-      transition: color 0.15s, background 0.15s;
-    }
-    .desc-camera-btn:hover { color: var(--text); background: var(--bg); }
-    .desc-camera-btn.has-image { color: var(--green); }
-
-    .screenshot-preview-row {
-      display: flex; align-items: center; gap: 8px;
-      margin-top: 6px; margin-bottom: 8px;
-      padding: 6px 10px; background: var(--green-bg); border: 1px solid var(--green-border);
-      border-radius: var(--rs); font-size: 12px; color: var(--green);
-    }
-    .screenshot-preview-row img { height: 40px; border-radius: 4px; }
-    .screenshot-preview-row .spr-remove {
-      margin-left: auto; background: none; border: none; cursor: pointer;
-      font-size: 14px; color: var(--muted);
-    }
-    .screenshot-preview-row .spr-remove:hover { color: var(--red); }
-
-    /* Anti-garbling: protect technical content from browser translation plugins */
-    code, .step-cmd, .step-output, .input-field, [translate="no"] {
-      font-family: 'SF Mono', 'Menlo', 'Consolas', 'Microsoft YaHei', monospace !important;
+    /* ═══ Confetti ════════════════════════════════════════════════════════════ */
+    #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 8000; overflow: hidden; }
+    .confetti-p { position: absolute; top: -24px; will-change: transform, opacity; }
+    @keyframes confetti-fall {
+      0%   { transform: translateY(-24px) rotate(0deg) scale(1); opacity: 1; }
+      75%  { opacity: 1; }
+      100% { transform: translateY(110vh) rotate(800deg) scale(.7); opacity: 0; }
     }
 
-    /* Warning action buttons */
-    .wi-action {
-      display: inline-flex; align-items: center; gap: 4px;
-      margin-top: 6px; padding: 4px 10px; font-size: 11px; font-weight: 500;
-      background: var(--surface); border: 1px solid var(--yellow-border); border-radius: 4px;
-      cursor: pointer; color: var(--yellow); transition: background 0.15s;
+    /* ═══ Footer ══════════════════════════════════════════════════════════════ */
+    .footer { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 36px; }
+
+    /* ═══ Animations ═════════════════════════════════════════════════════════ */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+    /* ═══ Anti-garbling ══════════════════════════════════════════════════════ */
+    code, .fix-cmd, .fix-output, .wc-code, .pw-input, [translate="no"] {
+      font-family: var(--mono) !important;
     }
-    .wi-action:hover { background: var(--yellow-bg); }
-    .wi-action.copied { color: var(--green); border-color: var(--green-border); }
-    .wi-rec { font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
-    .wi-rec-fix { background: var(--yellow-bg); color: var(--yellow); }
-    .wi-rec-review { background: var(--blue-bg); color: var(--blue); }
-    .wi-rec-ignore { background: #f3f3f3; color: var(--muted); }
 
-    /* Degraded result card */
-    .result-degraded { border-color: var(--yellow-border); }
-    .result-degraded .result-icon { color: var(--yellow); }
+    /* ═══ Dark Mode ══════════════════════════════════════════════════════════ */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:            #0c0c0e;
+        --surface:       #18181b;
+        --surface-alt:   #1f1f24;
+        --border:        #2a2a30;
+        --border-strong: #3a3a42;
+        --text:          #f0f0f2;
+        --text-secondary:#8a8a96;
+        --text-muted:    #555560;
 
-    /* Hide sections */
-    .hidden { display: none; }
+        --accent:        #818cf8;
+        --accent-hover:  #6366f1;
+        --accent-bg:     rgba(99,102,241,.12);
+        --accent-border: rgba(129,140,248,.25);
+
+        --green-bg:      rgba(5,150,105,.1);
+        --green-border:  rgba(52,211,153,.2);
+        --red-bg:        rgba(220,38,38,.1);
+        --red-border:    rgba(252,165,165,.15);
+        --amber-bg:      rgba(217,119,6,.1);
+        --amber-border:  rgba(253,230,138,.15);
+        --blue-bg:       rgba(37,99,235,.1);
+        --blue-border:   rgba(147,197,253,.15);
+      }
+      .wc-ignore { background: #141416; }
+      .fix-cmd, .fix-output, .wc-code { background: #111113; }
+      #toast { background: #f0f0f2; color: #111; }
+    }
+
+    /* ═══ Mobile ═════════════════════════════════════════════════════════════ */
+    @media (max-width: 480px) {
+      body { padding: 22px 12px 72px; }
+      .result-card { padding: 26px 20px 20px; }
+      .start-card  { padding: 22px 18px; }
+      .hdr-logo    { font-size: 42px; }
+      .hdr h1      { font-size: 20px; }
+    }
   </style>
 </head>
 <body>
-<div class="wrap">
 
+<div id="confetti" aria-hidden="true"></div>
+<div id="toast"></div>
+
+<div class="wrap notranslate">
+
+  <!-- Header -->
   <div class="hdr">
-    <div class="logo">🦞🩹</div>
-    <h1 id="hdr-title">ClawAid</h1>
-    <p id="hdr-subtitle">Automatic diagnostics & repair for OpenClaw</p>
+    <span class="hdr-logo">🦞🩹</span>
+    <h1>ClawAid</h1>
+    <p class="hdr-sub" id="hdr-sub">Automatic diagnostics &amp; repair for OpenClaw</p>
   </div>
 
   <!-- Start screen -->
   <div id="start-screen">
-    <div class="start-card">
+    <div class="card start-card">
       <p id="privacy-text">ClawAid reads your OpenClaw config, gateway status, and logs to find and fix problems.</p>
       <ul id="privacy-list">
         <li>API keys are redacted before leaving your machine</li>
         <li>Data is sent to our diagnostic service — never stored</li>
         <li>All commands run locally on your machine</li>
       </ul>
-      <button class="btn btn-primary btn-big" id="btn-start">🩺 Start Scan</button>
+      <button class="btn btn-primary btn-full" id="btn-start">🩺 Start Scan</button>
     </div>
   </div>
 
   <!-- Steps feed -->
   <div id="feed" class="hidden"></div>
 
-  <div class="footer">ClawAid v2.0.0 · <a href="https://clawaid.app" target="_blank">clawaid.app</a></div>
+  <div class="footer">ClawAid v2.1.0</div>
 
 </div>
 
 <script>
-(function() {
+(function () {
   'use strict';
 
+  // ═══ State ════════════════════════════════════════════════════════════════
   let sessionId = null;
+  let sbSessionId = null;
   let eventSource = null;
+  let scanBlockAdded = false;
+  let currentStepIndex = -1;
+  const stepTypes = {};
+  const sCheckEls = {};
+
   const feed = document.getElementById('feed');
   const startScreen = document.getElementById('start-screen');
 
-  // ─── i18n ─────────────────────────────────────────────────────────────────
+  // ═══ i18n ═════════════════════════════════════════════════════════════════
   const isZh = /^zh/i.test(navigator.language || '');
+
   const T = {
-    startScan: isZh ? '🩺 开始扫描' : '🩺 Start Scan',
-    title: 'ClawAid',
-    subtitle: isZh ? '一条命令，自动诊断并修复 OpenClaw' : 'One command to diagnose and fix OpenClaw',
-    privacy: isZh ? 'ClawAid 会读取你的 OpenClaw 配置、gateway 状态和日志来诊断问题。' : 'ClawAid reads your OpenClaw config, gateway status, and logs to find and fix problems.',
-    scanning: isZh ? '正在扫描你的系统...' : 'Scanning your system...',
-    scanned: isZh ? '系统数据已收集' : 'System data collected',
-    allClear: isZh ? '一切正常！' : 'All clear!',
-    fixed: isZh ? '已修复！' : 'Fixed!',
-    notFixed: isZh ? '无法自动修复' : "Couldn't fix automatically",
-    healthyDesc: isZh ? '你的 OpenClaw 运行正常。' : 'Your OpenClaw is running normally.',
-    fixedDesc: isZh ? 'OpenClaw 已修复。' : 'OpenClaw has been repaired.',
-    notFixedDesc: isZh ? '多次尝试后问题仍然存在。' : 'After multiple attempts, the issue persists.',
-    scanAgain: isZh ? '🔄 重新扫描' : '🔄 Scan Again',
-    tryAgain: isZh ? '🔄 再试一次' : '🔄 Try Again',
-    warnings: isZh ? '⚠️ 其他需要注意的' : '⚠️ Other things to know',
-    wasHelpful: isZh ? '问题解决了吗？' : 'Was this helpful?',
-    feedbackYes: isZh ? '👍 解决了' : '👍 Yes',
-    feedbackNo: isZh ? '👎 没解决' : '👎 No',
-    thanksYes: isZh ? '太好了！很高兴帮到你 🎉' : 'Thanks! Glad it helped 🎉',
-    thanksNo: isZh ? '抱歉没解决，联系我们帮你搞定 👇' : "Sorry to hear that. Reach out below — we'll help! 👇",
-    contact: isZh ? '💬 有问题？' : '💬 Questions or feedback?',
-    allowQ: isZh ? '这将修改你的系统，允许执行吗？' : 'This will modify your system. Allow?',
-    allow: isZh ? '✓ 允许' : '✓ Allow',
-    skip: isZh ? '跳过' : 'Skip',
-    whatsWrong: isZh ? '遇到什么问题？' : "What's going on?",
-    descHint: isZh ? '描述你的问题，或者直接扫描——ClawAid 会自动诊断。' : 'Describe the problem, or just scan — ClawAid will figure it out.',
-    descPlaceholder: isZh ? '例如：更新后 OpenClaw 就不响应了...（可选）' : 'e.g. OpenClaw stopped responding after I updated... (optional)',
-    sendDiagnose: isZh ? '📝 发送并诊断' : '📝 Send & diagnose',
-    justScan: isZh ? '🔍 直接扫描修复' : '🔍 Just scan & fix',
-    privacyList: isZh
+    startScan:       isZh ? '🩺 开始扫描' : '🩺 Start Scan',
+    subtitle:        isZh ? '自动诊断并修复 OpenClaw' : 'Automatic diagnostics & repair for OpenClaw',
+    privacy:         isZh ? 'ClawAid 会读取你的 OpenClaw 配置、gateway 状态和日志来诊断问题。' : 'ClawAid reads your OpenClaw config, gateway status, and logs to find and fix problems.',
+    privacyList:     isZh
       ? ['API 密钥在发送前已脱敏', '数据发送到诊断服务，不会存储', '所有命令在你的本机执行']
       : ['API keys are redacted before leaving your machine', 'Data is sent to our diagnostic service — never stored', 'All commands run locally on your machine'],
+    scanning:        isZh ? '正在诊断...' : 'Diagnosing...',
+    scanned:         isZh ? '系统检测完成' : 'System checked',
+    viewDetails:     isZh ? '查看详情' : 'View details',
+    hideDetails:     isZh ? '收起' : 'Collapse',
+    allClear:        isZh ? '一切正常！' : 'All clear!',
+    fixed:           isZh ? '已修复！' : 'Fixed!',
+    notFixed:        isZh ? '无法自动修复' : "Couldn't fix automatically",
+    degradedTitle:   isZh ? '系统在运行但存在问题' : 'Running, but with issues',
+    scanAgain:       isZh ? '🔄 重新扫描' : '🔄 Scan Again',
+    tryAgain:        isZh ? '🔄 再试一次' : '🔄 Try Again',
+    findingsTitle:   isZh ? '其他发现' : 'Other findings',
+    suggestionsTitle:isZh ? '建议' : 'Suggestions',
+    wasHelpful:      isZh ? '问题解决了吗？' : 'Was this helpful?',
+    feedbackYes:     isZh ? '👍 解决了' : '👍 Yes',
+    feedbackNo:      isZh ? '👎 没解决' : '👎 No',
+    thanksYes:       isZh ? '太好了！很高兴帮到你' : 'Great! Glad it helped.',
+    thanksNo:        isZh ? '抱歉没解决，联系我们帮你搞定' : "Sorry to hear that. Reach out — we'll help.",
+    contact:         isZh ? '有问题？' : 'Questions?',
+    allowQ:          isZh ? '这将修改你的系统，允许执行吗？' : 'This will modify your system. Allow?',
+    allow:           isZh ? '✓ 允许' : '✓ Allow',
+    skip:            isZh ? '跳过' : 'Skip',
+    whatsWrong:      isZh ? '遇到什么问题？' : "What's going on?",
+    descHint:        isZh ? '描述你的问题，或直接扫描——ClawAid 会自动诊断。' : 'Describe the problem, or just scan — ClawAid will figure it out.',
+    descPlaceholder: isZh ? '例如：更新后 OpenClaw 就不响应了...（可选）' : 'e.g. OpenClaw stopped responding after I updated... (optional)',
+    sendDiagnose:    isZh ? '📝 发送并诊断' : '📝 Send & diagnose',
+    justScan:        isZh ? '🔍 直接扫描修复' : '🔍 Just scan & fix',
+    problem:         isZh ? '问题' : 'Problem',
+    fixedLabel:      isZh ? '修复' : 'Fixed',
+    quickFix:        isZh ? '⚡ 一键修复' : '⚡ Quick fix',
+    copied:          isZh ? '✓ 已复制' : '✓ Copied',
+    ignorable:       isZh ? '可忽略' : 'Ignorable',
+    showThinking:    isZh ? '💭 查看 AI 推理' : '💭 Show AI reasoning',
+    hideThinking:    isZh ? '▲ 收起' : '▲ Hide',
+    connLost:        isZh ? '连接中断' : 'Connection lost',
+    serverStopped:   isZh ? '服务器可能已停止。' : 'The server may have stopped.',
+    retry:           isZh ? '🔄 重试' : '🔄 Retry',
+    error:           isZh ? '出错了' : 'Error',
+    pwFreeUsed:      isZh ? '免费次数已用完' : 'Free scans used up',
+    pwGetPack:       isZh ? '购买修复包继续使用' : 'Get a fix pack to continue',
+    pwFixesPer:      (n) => isZh ? `${n} 次修复 · 修不好不扣次` : `${n} fixes · only charged on success`,
+    pwBuyNow:        isZh ? '💳 立即购买' : '💳 Buy Now',
+    pwWaiting:       isZh ? '等待支付完成，完成后自动激活...' : 'Waiting for payment — will activate automatically...',
+    pwAutoTimeout:   isZh ? '自动检测超时，请手动输入激活码' : 'Auto-detect timed out. Please enter your token manually.',
+    pwPaySuccess:    isZh ? '✅ 支付成功！自动激活中...' : '✅ Payment received! Activating...',
+    pwHaveToken:     isZh ? '已有激活码？点击输入' : 'Already have a token? Click here',
+    pwTokenHint:     isZh ? '激活码 CA-XXXX 或购买邮箱' : 'Token CA-XXXX or purchase email',
+    pwActivate:      isZh ? '🔑 激活' : '🔑 Activate',
+    pwChecking:      isZh ? '验证中...' : 'Checking...',
+    pwSuccess:       isZh ? '✅ 激活成功！重新扫描中...' : '✅ Activated! Restarting scan...',
+    pwEnterToken:    isZh ? '请输入激活码或邮箱' : 'Enter your token or email.',
+    pwInvalid:       isZh ? '❌ 无效的激活码或邮箱' : '❌ Invalid token or email.',
+    pwNetErr:        isZh ? '❌ 网络错误' : '❌ Network error.',
+    pwNeedHelp:      isZh ? '有问题？' : 'Need help?',
   };
 
-  // Apply i18n to static elements
+  // Apply i18n to static HTML
+  document.getElementById('hdr-sub').textContent = T.subtitle;
   if (isZh) {
-    const sub = document.getElementById('hdr-subtitle');
-    if (sub) sub.textContent = '自动诊断并修复 OpenClaw';
-    const pv = document.getElementById('privacy-text');
-    if (pv) pv.textContent = T.privacy;
-    const pl = document.getElementById('privacy-list');
-    if (pl) pl.innerHTML = T.privacyList.map(t => '<li>' + t + '</li>').join('');
-    const btn = document.getElementById('btn-start');
-    if (btn) btn.textContent = T.startScan;
+    document.getElementById('privacy-text').textContent = T.privacy;
+    document.getElementById('privacy-list').innerHTML = T.privacyList.map(t => '<li>' + t + '</li>').join('');
   }
+  document.getElementById('btn-start').textContent = T.startScan;
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-
+  // ═══ Helpers ══════════════════════════════════════════════════════════════
   function esc(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
+  function mp(ev, p) { if (typeof mixpanel !== 'undefined') mixpanel.track(ev, p || {}); }
+  function scrollDown() { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }
 
-  // ─── Mixpanel helper ────────────────────────────────────────────────────
-  function mp(event, props) {
-    if (typeof mixpanel !== 'undefined') mixpanel.track(event, props);
+  var toastTimer = null;
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { t.classList.remove('show'); }, 2400);
   }
 
-  function sendFeedback(value, btn) {
-    mp('feedback', { value: value });
-    const container = btn.parentElement.parentElement;
-    if (value === 'yes') {
-      container.innerHTML = '<div style="text-align:center;padding:12px;"><div style="font-size:32px;margin-bottom:8px;">🎉</div><div style="color:#34a853;font-size:15px;font-weight:600;">' + T.thanksYes + '</div></div>';
-    } else {
-      container.innerHTML = '<div style="text-align:center;padding:12px;"><div style="font-size:32px;margin-bottom:8px;">🙏</div><div style="color:#ea4335;font-size:15px;font-weight:600;margin-bottom:8px;">' + T.thanksNo + '</div><div style="font-size:12px;color:#888;line-height:1.5;">' + T.contact + '<br>WeChat: <b>oliver56666</b> · <a href="https://github.com/jjj5666/clawaid/issues" target="_blank" style="color:#1a73e8;">GitHub Issues</a></div></div>';
+  // ═══ Confetti ═════════════════════════════════════════════════════════════
+  function triggerConfetti() {
+    var c = document.getElementById('confetti'); c.innerHTML = '';
+    var colors = ['#4f46e5','#059669','#d97706','#dc2626','#7c3aed','#0891b2','#f59e0b','#ec4899','#10b981'];
+    for (var i = 0; i < 75; i++) {
+      var p = document.createElement('div');
+      p.className = 'confetti-p';
+      var color = colors[Math.floor(Math.random() * colors.length)];
+      var w = 5 + Math.random() * 7, h = 9 + Math.random() * 13;
+      var left = Math.random() * 100;
+      var dur = 1.6 + Math.random() * 2.2, delay = Math.random() * 1.8;
+      var r = Math.random() > .45 ? '50%' : '2px';
+      p.style.cssText = 'left:'+left+'%;width:'+w+'px;height:'+h+'px;background:'+color+';border-radius:'+r+';animation:confetti-fall '+dur+'s ease-in '+delay+'s both;transform:rotate('+Math.floor(Math.random()*360)+'deg)';
+      c.appendChild(p);
     }
-    fetch('/api/feedback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ feedback: value, sessionId })
-    }).catch(() => {});
+    setTimeout(function() { c.innerHTML = ''; }, 6000);
   }
 
-  function scrollBottom() {
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-  }
-
-  // ─── Step rendering ───────────────────────────────────────────────────────
-
-  function iconForStep(step) {
-    if (step.type === 'read') return '🔍';
-    if (step.type === 'fix') return '🔧';
-    if (step.type === 'done') return step.fixed ? '✅' : '😔';
-    return '⚙️';
-  }
-
-  function badgeForStep(step) {
-    let html = '';
-    if (step.type === 'read') html += '<span class="step-badge badge-read">read</span>';
-    if (step.type === 'fix') html += '<span class="step-badge badge-fix">fix</span>';
-    if (step.type === 'done') html += '<span class="step-badge badge-done">done</span>';
-    if (step.risk === 'medium') html += ' <span class="step-badge badge-risk-medium">medium risk</span>';
-    if (step.risk === 'high') html += ' <span class="step-badge badge-risk-high">⚠ high risk</span>';
-    return html;
-  }
-
-  function addStepCard(step, index) {
-    const card = document.createElement('div');
-    card.className = 'step';
-    card.id = 'step-' + index;
-    const reasoningContent = step.thinking || step.reason || '';
-    const reasoningHtml = reasoningContent ? `
-      <span class="step-reasoning-toggle" onclick="(function(el){var t=el.nextElementSibling;t.style.display=t.style.display==='block'?'none':'block';el.textContent=t.style.display==='block'?'▲ Hide AI reasoning':'💭 Show AI reasoning';})(this)">💭 Show AI reasoning</span>
-      <div class="step-reasoning-text">${esc(reasoningContent)}</div>
-    ` : '';
-    card.innerHTML = `
-      <div class="step-top" onclick="this.parentElement.classList.toggle('open')">
-        <div class="step-icon">${iconForStep(step)}</div>
-        <div class="step-title">${esc(step.description || step.summary || 'Working...')}</div>
-        ${badgeForStep(step)}
-        <div class="step-status" id="step-status-${index}"><div class="spinner"></div></div>
-      </div>
-      <div class="step-detail" id="step-detail-${index}">
-        ${reasoningHtml}
-        ${step.command ? `<div class="step-cmd" translate="no">$ ${esc(step.command)}</div>` : ''}
-        <div id="step-output-area-${index}"></div>
-      </div>
-    `;
-    feed.appendChild(card);
-    scrollBottom();
-    return card;
-  }
-
-  function finishStepCard(index, output, skipped) {
-    const statusEl = document.getElementById('step-status-' + index);
-    if (statusEl) statusEl.innerHTML = skipped ? '⏭️' : '✓';
-    const outputArea = document.getElementById('step-output-area-' + index);
-    if (outputArea && output && !skipped) {
-      const trimmed = output.length > 800 ? output.slice(0, 800) + '\n...' : output;
-      outputArea.innerHTML = `
-        <div class="step-output-label">Output</div>
-        <div class="step-output" translate="no">${esc(trimmed)}</div>
-      `;
-    }
-  }
-
-  function addConfirmBar(step, index) {
-    const card = document.getElementById('step-' + index);
-    if (!card) return;
-    const risk = step.risk || 'medium';
-    const bar = document.createElement('div');
-    bar.className = 'confirm-bar' + (risk === 'high' ? ' risk-high' : '');
-    bar.id = 'confirm-bar-' + index;
-    bar.innerHTML = `
-      <span style="font-size:13px; color:var(--text); flex:1;">${T.allowQ}</span>
-      <button class="btn btn-green" id="btn-yes-${index}">${T.allow}</button>
-      <button class="btn btn-ghost" id="btn-no-${index}">${T.skip}</button>
-    `;
-    card.appendChild(bar);
-    card.classList.add('open'); // auto-expand so user sees what's about to run
-
-    document.getElementById('btn-yes-' + index).addEventListener('click', () => {
-      mp('fix_confirm', { step_index: index });
-      bar.remove();
-      fetch('/api/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId, confirmed: true }) });
-    });
-    document.getElementById('btn-no-' + index).addEventListener('click', () => {
-      mp('fix_skip', { step_index: index });
-      bar.remove();
-      fetch('/api/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId, confirmed: false }) });
-    });
-
-    scrollBottom();
-  }
-
-  // ─── Scan block (initial observation phase) ───────────────────────────────
-
+  // ═══ Scan Block ═══════════════════════════════════════════════════════════
   function addScanBlock() {
-    const div = document.createElement('div');
-    div.className = 'step';
-    div.id = 'scan-block';
-    div.innerHTML = `
-      <div class="step-top" onclick="this.parentElement.classList.toggle('open')">
-        <div class="step-icon">📡</div>
-        <div class="step-title" id="scan-title">${T.scanning}</div>
-        <div class="step-status" id="scan-status"><div class="spinner"></div></div>
-      </div>
-      <div class="step-detail" id="scan-detail"></div>
-    `;
-    feed.appendChild(div);
+    var el = document.createElement('div');
+    el.className = 'scan-block'; el.id = 'scan-block';
+    el.innerHTML = '<div class="scan-hd">'
+      + '<div class="scan-emoji">📡</div>'
+      + '<div class="scan-body">'
+      +   '<div class="scan-title" id="scan-title">' + T.scanning + '</div>'
+      +   '<div class="scan-sub" id="scan-sub"></div>'
+      + '</div>'
+      + '<div class="scan-right">'
+      +   '<div id="scan-status"><div class="spin spin-sm"></div></div>'
+      +   '<button class="scan-toggle" id="scan-toggle">' + T.viewDetails + '</button>'
+      + '</div>'
+      + '</div>'
+      + '<div class="scan-details" id="scan-details"></div>';
+    feed.appendChild(el);
+    document.getElementById('scan-toggle').addEventListener('click', function() {
+      var d = document.getElementById('scan-details');
+      var open = d.classList.toggle('open');
+      this.textContent = open ? T.hideDetails : T.viewDetails;
+    });
+    scrollDown();
+  }
+
+  function updateScanProgress(msg) {
+    var sub = document.getElementById('scan-sub');
+    if (sub) sub.textContent = msg || '';
+  }
+
+  function addReadStep(step, idx) {
+    var d = document.getElementById('scan-details');
+    if (!d) return;
+    var row = document.createElement('div');
+    row.className = 'schk'; row.id = 'schk-' + idx;
+    var desc = step.description || step.command || 'Checking...';
+    row.innerHTML = '<span class="schk-icon pending" id="schk-i-'+idx+'"><div class="spin spin-sm"></div></span>'
+      + '<span class="schk-text" translate="no">' + esc(desc) + '</span>';
+    d.appendChild(row);
+    sCheckEls[idx] = row;
+  }
+
+  function doneReadStep(idx, skipped) {
+    var el = document.getElementById('schk-i-' + idx);
+    if (!el) return;
+    el.innerHTML = skipped ? '⏭' : '✓';
+    el.classList.remove('pending');
+    el.classList.add('done');
+    if (skipped) el.style.color = 'var(--text-muted)';
   }
 
   function finishScanBlock() {
-    const el = document.getElementById('scan-status');
-    if (el) el.innerHTML = '✓';
-    const title = document.getElementById('scan-title');
-    if (title) title.textContent = T.scanned;
+    var s = document.getElementById('scan-status');
+    if (s) s.innerHTML = '<span style="font-size:16px;color:var(--green)">✓</span>';
+    var t = document.getElementById('scan-title');
+    if (t) t.textContent = T.scanned;
+    var sub = document.getElementById('scan-sub');
+    if (sub) sub.textContent = '';
   }
 
-  // ─── Result cards ─────────────────────────────────────────────────────────
+  // ═══ Fix Step Cards ═══════════════════════════════════════════════════════
+  function addFixCard(step, idx) {
+    var card = document.createElement('div');
+    card.className = 'fix-card'; card.id = 'step-' + idx;
+    var badges = '<span class="badge badge-fix">fix</span>';
+    if (step.risk === 'medium') badges += '<span class="badge badge-medium">medium risk</span>';
+    if (step.risk === 'high') badges += '<span class="badge badge-high">⚠ high risk</span>';
 
-  function renderWarnings(warnings) {
-    if (!warnings || warnings.length === 0) return '';
-    let html = '<div class="warnings-list"><div class="warnings-title">' + T.warnings + '</div>';
-    for (const w of warnings) {
-      // Support both string warnings (legacy) and structured {text, recommendation, fixCommand, reason}
-      const isStructured = typeof w === 'object' && w !== null;
-      const text = isStructured ? (w.text || '') : String(w);
-      const rec = isStructured ? (w.recommendation || 'review') : 'review';
-      const fixCmd = isStructured ? (w.fixCommand || null) : null;
-      const reason = isStructured ? (w.reason || '') : '';
-
-      // Recommendation badge
-      const recLabel = rec === 'fix' ? (isZh ? '建议修复' : 'Fix') : rec === 'ignore' ? (isZh ? '可忽略' : 'Ignore') : (isZh ? '检查' : 'Review');
-      const recClass = rec === 'fix' ? 'wi-rec-fix' : rec === 'ignore' ? 'wi-rec-ignore' : 'wi-rec-review';
-      const icon = rec === 'fix' ? '🔧' : rec === 'ignore' ? '💡' : '👀';
-
-      html += `<div class="warning-item">`;
-      html += `<span class="wi-icon">${icon}</span>`;
-      html += `<span class="wi-text">`;
-      html += esc(text);
-      if (reason) html += `<br><span style="font-size:12px;color:var(--muted);">${esc(reason)}</span>`;
-      if (fixCmd) {
-        const btnId = 'wcopy-' + Math.random().toString(36).slice(2, 8);
-        html += `<br><button class="wi-action" id="${btnId}" onclick="(function(btn){navigator.clipboard.writeText('${esc(fixCmd).replace(/'/g, "\\'")}');btn.textContent='✓ ${isZh ? '已复制' : 'Copied'}';btn.classList.add('copied');setTimeout(function(){btn.textContent='📋 ${isZh ? '复制命令' : 'Copy command'}';btn.classList.remove('copied');},2000);})(this)">📋 ${isZh ? '复制命令' : 'Copy command'}</button>`;
-        html += ` <code translate="no" style="font-size:11px;background:#f0f0f0;padding:2px 6px;border-radius:3px;color:var(--text2);word-break:break-all;">${esc(fixCmd)}</code>`;
-      }
-      html += `</span>`;
-      html += `<span class="wi-rec ${recClass}">${recLabel}</span>`;
-      html += `<button class="wi-dismiss" title="Dismiss" onclick="(function(btn){var item=btn.closest('.warning-item');item.classList.add('dismissing');setTimeout(function(){item.remove();},300);})(this)">×</button>`;
-      html += `</div>`;
+    var reasoning = step.thinking || step.reason || '';
+    var thinkHtml = '';
+    if (reasoning) {
+      thinkHtml = '<button class="fix-thinking-btn" id="think-btn-'+idx+'">' + T.showThinking + '</button>'
+        + '<div class="fix-thinking-text" id="think-text-'+idx+'">' + esc(reasoning) + '</div>';
     }
-    html += '</div>';
-    return html;
+
+    card.innerHTML = '<div class="fix-hd" onclick="this.parentElement.classList.toggle(\'open\')">'
+      + '<div class="fix-icon">🔧</div>'
+      + '<div class="fix-info">'
+      +   '<div class="fix-title">' + esc(step.description || 'Running fix...') + '</div>'
+      +   '<div class="fix-badges">' + badges + '</div>'
+      + '</div>'
+      + '<div class="fix-status" id="fix-st-'+idx+'"><div class="spin spin-sm"></div></div>'
+      + '</div>'
+      + '<div class="fix-detail" id="fix-det-'+idx+'">'
+      + thinkHtml
+      + (step.command ? '<div class="fix-cmd" translate="no">$ ' + esc(step.command) + '</div>' : '')
+      + '<div id="fix-out-'+idx+'"></div>'
+      + '</div>';
+    feed.appendChild(card);
+
+    if (reasoning) {
+      document.getElementById('think-btn-'+idx).addEventListener('click', function() {
+        var txt = document.getElementById('think-text-'+idx);
+        var open = txt.style.display === 'block';
+        txt.style.display = open ? 'none' : 'block';
+        this.textContent = open ? T.showThinking : T.hideThinking;
+      });
+    }
+
+    scrollDown();
+    return card;
   }
 
-  function showResult(data) {
-    const div = document.createElement('div');
-    div.className = 'result';
-    const warningsHtml = renderWarnings(data.warnings);
+  function finishFixCard(idx, output, skipped) {
+    var st = document.getElementById('fix-st-' + idx);
+    if (st) st.innerHTML = skipped ? '⏭' : '<span style="color:var(--green)">✓</span>';
+    var area = document.getElementById('fix-out-' + idx);
+    if (area && output && !skipped) {
+      var trimmed = output.length > 900 ? output.slice(0, 900) + '\n...' : output;
+      area.innerHTML = '<div class="fix-output-label">Output</div>'
+        + '<div class="fix-output" translate="no">' + esc(trimmed) + '</div>';
+    }
+  }
 
-    const feedbackHtml = `
-      <div style="margin-top:18px;padding:14px;background:#f8f9fa;border-radius:10px;border:1px solid #e0e0e0;">
-        <div style="font-size:13px;color:#555;margin-bottom:8px;">${T.wasHelpful}</div>
-        <div style="display:flex;gap:8px;margin-bottom:12px;">
-          <button class="btn btn-ghost" onclick="sendFeedback('yes',this)" style="flex:1;">${T.feedbackYes}</button>
-          <button class="btn btn-ghost" onclick="sendFeedback('no',this)" style="flex:1;">${T.feedbackNo}</button>
-        </div>
-        <div style="font-size:12px;color:#888;line-height:1.5;">
-          ${T.contact}<br>
-          WeChat: <b>oliver56666</b> · <a href="https://github.com/jjj5666/clawaid/issues" target="_blank" style="color:#1a73e8;">GitHub Issues</a>
-        </div>
-      </div>
-    `;
+  // ═══ Confirm Bar ══════════════════════════════════════════════════════════
+  function addConfirmBar(step, idx) {
+    var card = document.getElementById('step-' + idx);
+    if (!card) return;
+    var risk = step.risk || 'medium';
+    var bar = document.createElement('div');
+    bar.className = 'confirm-bar' + (risk === 'high' ? ' risk-high' : '');
+    bar.id = 'cfm-' + idx;
+    bar.innerHTML = '<span class="confirm-label">' + T.allowQ + '</span>'
+      + '<button class="btn btn-green" id="cfm-y-'+idx+'">' + T.allow + '</button>'
+      + '<button class="btn btn-ghost" id="cfm-n-'+idx+'">' + T.skip + '</button>';
+    card.appendChild(bar);
+    card.classList.add('open');
 
-    if (data.healthy) {
-      div.innerHTML = `
-        <div class="result-icon">💚</div>
-        <div class="result-title">${T.allClear}</div>
-        <div class="result-desc">${esc(data.summary || T.healthyDesc)}</div>
-        ${warningsHtml}
-        ${feedbackHtml}
-        <button class="btn btn-ghost btn-big" onclick="location.reload()" style="margin-top:14px;">${T.scanAgain}</button>
-      `;
-    } else if (data.fixed) {
-      div.innerHTML = `
-        <div class="result-icon">✅</div>
-        <div class="result-title">${T.fixed}</div>
-        <div class="result-desc">${esc(data.summary || T.fixedDesc)}</div>
-        ${warningsHtml}
-        ${feedbackHtml}
-        <button class="btn btn-ghost btn-big" onclick="location.reload()" style="margin-top:14px;">${T.scanAgain}</button>
-      `;
-    } else if (data.degraded) {
-      div.classList.add('result-degraded');
-      const degradedTitle = isZh ? '⚠️ 系统运行中，但有功能异常' : '⚠️ Running, but with issues';
-      const degradedDesc = isZh ? '你的 OpenClaw 能启动，但部分功能不正常。' : 'Your OpenClaw is running, but some features aren\'t working correctly.';
-      // Show problem/fix short sentences if available
-      let problemFixHtml = '';
-      if (data.problem) {
-        problemFixHtml += `<div style="margin:10px 0;padding:10px 14px;background:var(--yellow-bg);border:1px solid var(--yellow-border);border-radius:8px;text-align:left;font-size:13px;">`;
-        problemFixHtml += `<div style="font-weight:600;margin-bottom:4px;">${isZh ? '问题' : 'Problem'}:</div><div>${esc(data.problem)}</div>`;
-        if (data.fix) {
-          problemFixHtml += `<div style="font-weight:600;margin-top:8px;margin-bottom:4px;">${isZh ? '建议' : 'Suggestion'}:</div><div>${esc(data.fix)}</div>`;
+    document.getElementById('cfm-y-'+idx).addEventListener('click', function() {
+      mp('fix_confirm', { step_index: idx });
+      bar.remove();
+      fetch('/api/confirm', { method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ sessionId: sessionId, confirmed: true }) });
+    });
+    document.getElementById('cfm-n-'+idx).addEventListener('click', function() {
+      mp('fix_skip', { step_index: idx });
+      bar.remove();
+      fetch('/api/confirm', { method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ sessionId: sessionId, confirmed: false }) });
+    });
+    scrollDown();
+  }
+
+  // ═══ Warning Cards ══════════════════════════════════════════════════════
+  function dismissWarnCard(card) {
+    var h = card.scrollHeight;
+    card.style.maxHeight = h + 'px';
+    card.style.overflow = 'hidden';
+    card.style.opacity = '0';
+    card.style.transform = 'translateX(8px)';
+    setTimeout(function() {
+      card.style.maxHeight = '0';
+      card.style.marginBottom = '0';
+      card.style.paddingTop = '0';
+      card.style.paddingBottom = '0';
+      setTimeout(function() { card.remove(); }, 350);
+    }, 200);
+  }
+
+  function copyCmd(cmd, btn, origText) {
+    navigator.clipboard.writeText(cmd).then(function() {
+      mp('warning_fix_copy', { command: cmd });
+      showToast(isZh ? '✓ 已复制到剪贴板' : '✓ Copied to clipboard');
+      btn.textContent = T.copied;
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = origText; btn.classList.remove('copied'); }, 2200);
+    }).catch(function() { showToast(isZh ? '请手动复制命令' : 'Please copy manually'); });
+  }
+
+  function createWarnings(warnings, title) {
+    if (!warnings || warnings.length === 0) return null;
+
+    var section = document.createElement('div');
+    section.className = 'warnings-section';
+
+    if (title) {
+      var heading = document.createElement('div');
+      heading.className = 'warnings-heading';
+      heading.textContent = title;
+      section.appendChild(heading);
+    }
+
+    for (var wi = 0; wi < warnings.length; wi++) {
+      var w = warnings[wi];
+      var isObj = typeof w === 'object' && w !== null;
+      var text = isObj ? (w.text || '') : String(w);
+      var rec = isObj ? (w.recommendation || 'review') : 'review';
+      var fixCmd2 = isObj ? (w.fixCommand || null) : null;
+      var reason = isObj ? (w.reason || '') : '';
+      var actions = isObj ? (w.actions || null) : null;
+
+      var icon = rec === 'fix' ? '🔧' : rec === 'ignore' ? '💡' : '👀';
+
+      var card = document.createElement('div');
+      card.className = 'wc wc-' + rec;
+
+      // Header
+      var hd = document.createElement('div');
+      hd.className = 'wc-hd';
+      hd.innerHTML = '<span class="wc-icon">' + icon + '</span>'
+        + '<span class="wc-title">' + esc(text) + '</span>';
+
+      if (rec === 'ignore') {
+        hd.innerHTML += '<span class="wc-ignorable">' + T.ignorable + '</span>';
+      }
+
+      var dismissBtn = document.createElement('button');
+      dismissBtn.className = 'wc-dismiss';
+      dismissBtn.title = 'Dismiss';
+      dismissBtn.textContent = '✕';
+      (function(c) { dismissBtn.addEventListener('click', function() { dismissWarnCard(c); }); })(card);
+      hd.appendChild(dismissBtn);
+      card.appendChild(hd);
+
+      // Reason
+      if (reason) {
+        var reasonEl = document.createElement('div');
+        reasonEl.className = 'wc-reason';
+        reasonEl.textContent = reason;
+        card.appendChild(reasonEl);
+      }
+
+      // Actions array (choice buttons)
+      if (actions && Array.isArray(actions) && actions.length > 0) {
+        var actionsArea = document.createElement('div');
+        actionsArea.className = 'wc-actions';
+        for (var ai = 0; ai < actions.length; ai++) {
+          var act = actions[ai];
+          var actBtn = document.createElement('button');
+          actBtn.className = 'wc-action-btn ' + (act.command ? 'wc-action-primary' : 'wc-action-secondary');
+          actBtn.textContent = act.label || (act.command ? T.quickFix : T.skip);
+          if (act.command) {
+            (function(cmd, btn) {
+              btn.addEventListener('click', function() { copyCmd(cmd, btn, btn.textContent); });
+            })(act.command, actBtn);
+          } else {
+            (function(c) { actBtn.addEventListener('click', function() { dismissWarnCard(c); }); })(card);
+          }
+          actionsArea.appendChild(actBtn);
         }
-        problemFixHtml += `</div>`;
+        card.appendChild(actionsArea);
       }
-      div.innerHTML = `
-        <div class="result-icon">⚠️</div>
-        <div class="result-title">${degradedTitle}</div>
-        <div class="result-desc">${esc(data.summary || degradedDesc)}</div>
-        ${problemFixHtml}
-        ${warningsHtml}
-        ${feedbackHtml}
-        <button class="btn btn-ghost btn-big" onclick="location.reload()" style="margin-top:14px;">${T.scanAgain}</button>
-      `;
-    } else {
-      // Not fixed — show problem/fix short sentences
-      let problemFixHtml = '';
-      if (data.problem) {
-        problemFixHtml += `<div style="margin:10px 0;padding:10px 14px;background:var(--red-bg);border:1px solid var(--red-border);border-radius:8px;text-align:left;font-size:13px;">`;
-        problemFixHtml += `<div style="font-weight:600;margin-bottom:4px;">${isZh ? '问题' : 'Problem'}:</div><div>${esc(data.problem)}</div>`;
-        problemFixHtml += `</div>`;
+      // Single fixCommand
+      else if (fixCmd2) {
+        if (rec === 'fix') {
+          var fixArea = document.createElement('div');
+          fixArea.className = 'wc-actions';
+          var fixBtn = document.createElement('button');
+          fixBtn.className = 'wc-action-btn wc-action-primary';
+          fixBtn.textContent = T.quickFix;
+          (function(cmd, btn) {
+            btn.addEventListener('click', function() { copyCmd(cmd, btn, T.quickFix); });
+          })(fixCmd2, fixBtn);
+          fixArea.appendChild(fixBtn);
+          card.appendChild(fixArea);
+        } else {
+          var codeArea = document.createElement('div');
+          codeArea.className = 'wc-code-area';
+          codeArea.setAttribute('translate', 'no');
+          codeArea.innerHTML = '<code class="wc-code">' + esc(fixCmd2) + '</code>';
+          var cpyBtn = document.createElement('button');
+          cpyBtn.className = 'wc-copy';
+          cpyBtn.textContent = '📋';
+          cpyBtn.title = isZh ? '复制命令' : 'Copy command';
+          (function(cmd, btn) {
+            btn.addEventListener('click', function() {
+              navigator.clipboard.writeText(cmd).then(function() {
+                mp('warning_fix_copy', { command: cmd });
+                btn.textContent = '✓'; btn.classList.add('copied');
+                setTimeout(function() { btn.textContent = '📋'; btn.classList.remove('copied'); }, 2000);
+              });
+            });
+          })(fixCmd2, cpyBtn);
+          codeArea.appendChild(cpyBtn);
+          card.appendChild(codeArea);
+        }
       }
-      div.innerHTML = `
-        <div class="result-icon">😔</div>
-        <div class="result-title">${T.notFixed}</div>
-        <div class="result-desc">${esc(data.summary || T.notFixedDesc)}</div>
-        ${problemFixHtml}
-        ${warningsHtml}
-        ${feedbackHtml}
-        <button class="btn btn-ghost btn-big" onclick="location.reload()" style="margin-top:14px;">${T.tryAgain}</button>
-      `;
+
+      section.appendChild(card);
     }
 
-    feed.appendChild(div);
-    scrollBottom();
+    return section;
   }
 
-  // ─── SSE connection ───────────────────────────────────────────────────────
+  // ═══ Feedback ═════════════════════════════════════════════════════════════
+  function createFeedback() {
+    var submitted = false;
+    var div = document.createElement('div');
+    div.className = 'fb-card';
+    div.innerHTML = '<div class="fb-q">' + T.wasHelpful + '</div>'
+      + '<div class="fb-btns" id="fb-btns">'
+      +   '<button class="btn btn-ghost fb-btn" data-val="yes">' + T.feedbackYes + '</button>'
+      +   '<button class="btn btn-ghost fb-btn" data-val="no">' + T.feedbackNo + '</button>'
+      + '</div>'
+      + '<div class="fb-done" id="fb-done"></div>';
 
-  let currentStepIndex = -1;
+    div.querySelectorAll('.fb-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        if (submitted) return;
+        submitted = true;
+        var val = btn.dataset.val;
+        mp('feedback', { value: val });
+        fetch('/api/feedback', { method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ feedback: val, sessionId: sessionId, sbSessionId: sbSessionId }) }).catch(function(){});
 
-  let scanBlockAdded = false;
+        var btns = div.querySelector('#fb-btns');
+        btns.style.transition = 'opacity .22s ease, transform .22s ease';
+        btns.style.opacity = '0'; btns.style.transform = 'translateY(-4px)';
 
+        setTimeout(function() {
+          btns.style.display = 'none';
+          var done = div.querySelector('#fb-done');
+          var contactHtml = val === 'no'
+            ? '<div class="fb-contact">' + T.contact + '<br>WeChat: <b>oliver56666</b> · <a href="https://github.com/jjj5666/clawaid/issues" target="_blank">GitHub Issues</a></div>'
+            : '';
+          done.innerHTML = '<span class="fb-emoji">' + (val === 'yes' ? '🎉' : '🙏') + '</span>'
+            + '<div class="fb-text">' + (val === 'yes' ? T.thanksYes : T.thanksNo) + '</div>'
+            + contactHtml;
+          done.classList.add('visible');
+        }, 240);
+      });
+    });
+
+    return div;
+  }
+
+  // ═══ Result Pages ═════════════════════════════════════════════════════════
+  function showResult(data) {
+    finishScanBlock();
+
+    var warnings = Array.isArray(data.warnings) ? data.warnings : [];
+    var variant;
+    if      (data.fixed)                            variant = 'fixed';
+    else if (data.degraded)                         variant = 'degraded';
+    else if (data.healthy && warnings.length === 0) variant = 'healthy-clean';
+    else if (data.healthy)                          variant = 'healthy-warnings';
+    else                                            variant = 'not-fixed';
+
+    var card = document.createElement('div');
+    card.className = 'result-card';
+
+    if (variant === 'fixed') {
+      triggerConfetti();
+      var problemText = data.problem || null;
+      var fixText = data.fix || null;
+      var metaHtml = '';
+      if (problemText || fixText) {
+        metaHtml = '<div class="result-meta">';
+        if (problemText) {
+          metaHtml += '<div class="rmr"><span class="rmr-label">' + T.problem + ':</span><span class="rmr-value">' + esc(problemText) + '</span></div>';
+        }
+        if (fixText) {
+          metaHtml += '<div class="rmr"><span class="rmr-label">' + T.fixedLabel + ':</span><span class="rmr-value">' + esc(fixText) + '</span></div>';
+        }
+        metaHtml += '</div>';
+      }
+      card.innerHTML = '<span class="result-icon">✅</span>'
+        + '<div class="result-title">' + T.fixed + '</div>'
+        + metaHtml;
+      var ws = createWarnings(warnings, T.findingsTitle);
+      if (ws) card.appendChild(ws);
+      card.appendChild(createFeedback());
+
+    } else if (variant === 'healthy-clean') {
+      card.innerHTML = '<span class="result-icon">💚</span>'
+        + '<div class="result-title">' + T.allClear + '</div>';
+
+    } else if (variant === 'healthy-warnings') {
+      card.innerHTML = '<span class="result-icon">💚</span>'
+        + '<div class="result-title">' + T.allClear + '</div>';
+      var ws2 = createWarnings(warnings, T.suggestionsTitle);
+      if (ws2) card.appendChild(ws2);
+      card.appendChild(createFeedback());
+
+    } else if (variant === 'degraded') {
+      card.innerHTML = '<span class="result-icon">⚠️</span>'
+        + '<div class="result-title">' + T.degradedTitle + '</div>'
+        + ((data.problem || data.summary)
+          ? '<div class="problem-box problem-box-amber"><div class="problem-box-label">' + T.problem + '</div><div>' + esc(data.problem || data.summary) + '</div></div>'
+          : '');
+      var ws3 = createWarnings(warnings, null);
+      if (ws3) card.appendChild(ws3);
+      var contact = document.createElement('div');
+      contact.className = 'contact-block';
+      contact.innerHTML = T.contact + ' WeChat: <b>oliver56666</b> · <a href="https://github.com/jjj5666/clawaid/issues" target="_blank">GitHub Issues</a>';
+      card.appendChild(contact);
+      card.appendChild(createFeedback());
+
+    } else {
+      // not-fixed
+      card.innerHTML = '<span class="result-icon">😔</span>'
+        + '<div class="result-title">' + T.notFixed + '</div>'
+        + ((data.problem || data.summary)
+          ? '<div class="problem-box problem-box-red"><div class="problem-box-label">' + T.problem + '</div><div>' + esc(data.problem || data.summary) + '</div></div>'
+          : '');
+      var contact2 = document.createElement('div');
+      contact2.className = 'contact-block';
+      contact2.innerHTML = T.contact + ' WeChat: <b>oliver56666</b> · <a href="https://github.com/jjj5666/clawaid/issues" target="_blank">GitHub Issues</a>';
+      card.appendChild(contact2);
+    }
+
+    // Scan again / try again
+    var again = document.createElement('button');
+    again.className = 'btn btn-ghost btn-full';
+    again.style.marginTop = '16px';
+    again.textContent = variant === 'not-fixed' ? T.tryAgain : T.scanAgain;
+    again.addEventListener('click', function() { location.reload(); });
+    card.appendChild(again);
+
+    feed.appendChild(card);
+    scrollDown();
+  }
+
+  // ═══ Error Card ═══════════════════════════════════════════════════════════
+  function showErrorCard(msg) {
+    var card = document.createElement('div');
+    card.className = 'result-card';
+    card.innerHTML = '<span class="result-icon">❌</span>'
+      + '<div class="result-title">' + T.error + '</div>'
+      + '<div style="font-size:14px;color:var(--text-secondary);margin-bottom:18px;">' + esc(msg || 'Unknown error') + '</div>';
+    var btn = document.createElement('button');
+    btn.className = 'btn btn-ghost btn-full';
+    btn.textContent = T.retry;
+    btn.addEventListener('click', function() { location.reload(); });
+    card.appendChild(btn);
+    feed.appendChild(card);
+    scrollDown();
+  }
+
+  // ═══ Paywall ══════════════════════════════════════════════════════════════
+  function showPaywall(data) {
+    var STRIPE_URL = 'https://buy.stripe.com/8x26oJ6WrdNnd9T4hI0oM01';
+    var priceStr = data.price || '$1.99';
+    var credits = data.credits || 5;
+
+    var div = document.createElement('div');
+    div.className = 'card pw-card';
+    div.innerHTML = '<div class="pw-hd">'
+      + '<span class="pw-emoji">🩺</span>'
+      + '<div class="pw-title">' + T.pwFreeUsed + '</div>'
+      + '<div class="pw-sub">' + T.pwGetPack + '</div>'
+      + '</div>'
+      + '<div class="pw-price-box">'
+      + '<div class="pw-price" translate="no">' + esc(priceStr) + '</div>'
+      + '<div class="pw-price-sub">' + T.pwFixesPer(credits) + '</div>'
+      + '</div>'
+      + '<a href="'+STRIPE_URL+'" target="_blank" class="btn btn-primary btn-full" id="pw-buy" style="text-decoration:none;margin-bottom:0;">' + T.pwBuyNow + '</a>'
+      + '<div class="pw-auto-detect" id="pw-auto">'
+      + '<div class="spin spin-sm" style="vertical-align:middle;margin-right:6px;"></div>'
+      + '<span>' + T.pwWaiting + '</span>'
+      + '</div>'
+      + '<hr class="pw-divider">'
+      + '<details style="margin-bottom:8px;">'
+      + '<summary style="font-size:13px;color:var(--text-secondary);cursor:pointer;user-select:none;margin-bottom:12px;">' + T.pwHaveToken + '</summary>'
+      + '<input class="pw-input" id="pw-token" type="text" placeholder="' + T.pwTokenHint + '" autocomplete="off" />'
+      + '<button class="btn btn-ghost btn-full" id="pw-activate" style="margin-top:6px;">' + T.pwActivate + '</button>'
+      + '</details>'
+      + '<div class="pw-msg" id="pw-msg"></div>'
+      + '<div class="pw-contact">' + T.pwNeedHelp + ' WeChat: <b>oliver56666</b></div>';
+    feed.appendChild(div);
+
+    // Fetch fingerprint for buy URL
+    fetch('/api/fingerprint').then(function(r){return r.json();}).then(function(d) {
+      var btn = document.getElementById('pw-buy');
+      if (btn && d.fingerprint) btn.href = STRIPE_URL + '?client_reference_id=' + encodeURIComponent(d.fingerprint);
+    }).catch(function(){});
+
+    // Auto-poll after buy
+    var pollTimer = null, pollCount = 0, MAX_POLLS = 60;
+    function startPolling() {
+      var detect = document.getElementById('pw-auto');
+      if (detect) detect.style.display = 'block';
+      pollCount = 0;
+      pollTimer = setInterval(function() {
+        pollCount++;
+        if (pollCount > MAX_POLLS) {
+          clearInterval(pollTimer);
+          if (detect) detect.innerHTML = '<span style="color:var(--text-muted);">' + T.pwAutoTimeout + '</span>';
+          return;
+        }
+        fetch('/api/poll-token').then(function(r){return r.json();}).then(function(r) {
+          if (r.found && r.token) {
+            clearInterval(pollTimer);
+            mp('auto_activate_success');
+            if (detect) detect.innerHTML = '<span style="color:var(--green);">' + T.pwPaySuccess + '</span>';
+            fetch('/api/redeem', { method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({token:r.token}) }).catch(function(){});
+            setTimeout(function() { location.reload(); }, 1500);
+          }
+        }).catch(function(){});
+      }, 5000);
+    }
+
+    document.getElementById('pw-buy').addEventListener('click', function() {
+      mp('buy_clicked');
+      setTimeout(startPolling, 3000);
+    });
+
+    // Manual token
+    var activateBtn = document.getElementById('pw-activate');
+    var tokenInput = document.getElementById('pw-token');
+    var msgEl = document.getElementById('pw-msg');
+
+    function doActivate() {
+      var token = tokenInput.value.trim();
+      if (!token) { msgEl.style.color='var(--red)'; msgEl.textContent=T.pwEnterToken; return; }
+      mp('token_redeem_attempt');
+      msgEl.style.color='var(--text-muted)'; msgEl.textContent=T.pwChecking;
+      fetch('/api/redeem', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({token:token}) })
+        .then(function(r){return r.json();})
+        .then(function(r) {
+          if (r.valid) {
+            if (pollTimer) clearInterval(pollTimer);
+            mp('token_redeem_success');
+            msgEl.style.color='var(--green)'; msgEl.textContent=T.pwSuccess;
+            setTimeout(function() { location.reload(); }, 1500);
+          } else {
+            mp('token_redeem_fail');
+            msgEl.style.color='var(--red)'; msgEl.textContent=T.pwInvalid;
+          }
+        })
+        .catch(function() { msgEl.style.color='var(--red)'; msgEl.textContent=T.pwNetErr; });
+    }
+    activateBtn.addEventListener('click', doActivate);
+    tokenInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') doActivate(); });
+    scrollDown();
+  }
+
+  // ═══ Description Input ════════════════════════════════════════════════════
+  function showDescInput(data) {
+    var screenshotData = null;
+
+    var div = document.createElement('div');
+    div.className = 'card input-card';
+    div.id = 'desc-input-card';
+    div.innerHTML = '<div class="input-title">' + T.whatsWrong + '</div>'
+      + '<div class="input-hint">' + T.descHint + '</div>'
+      + '<div class="input-textarea-wrap">'
+      +   '<textarea class="input-textarea" id="desc-text" placeholder="' + T.descPlaceholder + '"></textarea>'
+      +   '<button class="input-camera" id="desc-cam" title="' + (isZh ? '添加截图' : 'Add screenshot') + '">📷</button>'
+      +   '<input type="file" id="ss-input" accept="image/*" style="display:none;" />'
+      + '</div>'
+      + '<div class="ss-preview" id="ss-preview">'
+      +   '<img id="ss-thumb" src="" alt="" />'
+      +   '<span class="ss-preview-name">' + (isZh ? '截图已附加' : 'Screenshot attached') + '</span>'
+      +   '<button class="ss-preview-rm" id="ss-rm" title="Remove">✕</button>'
+      + '</div>'
+      + '<div class="btn-row">'
+      +   '<button class="btn btn-primary" id="btn-send" disabled>' + T.sendDiagnose + '</button>'
+      +   '<button class="btn btn-green" id="btn-skip">' + T.justScan + '</button>'
+      + '</div>';
+    feed.appendChild(div);
+    scrollDown();
+
+    var textarea = document.getElementById('desc-text');
+    var camBtn = document.getElementById('desc-cam');
+    var fileInput = document.getElementById('ss-input');
+    var prevRow = document.getElementById('ss-preview');
+    var thumb = document.getElementById('ss-thumb');
+    var rmBtn = document.getElementById('ss-rm');
+    var sendBtn = document.getElementById('btn-send');
+    var skipBtn = document.getElementById('btn-skip');
+
+    function updateSend() { sendBtn.disabled = textarea.value.trim().length === 0; }
+    textarea.addEventListener('input', updateSend);
+
+    function handleFile(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      if (file.size > 5 * 1024 * 1024) { showToast(isZh ? '图片过大（最大 5MB）' : 'Image too large (max 5MB)'); return; }
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        screenshotData = e.target.result;
+        thumb.src = screenshotData;
+        prevRow.classList.add('visible');
+        camBtn.classList.add('has-img');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    camBtn.addEventListener('click', function(e) { e.preventDefault(); fileInput.click(); });
+    fileInput.addEventListener('change', function(e) { if (e.target.files[0]) handleFile(e.target.files[0]); });
+    rmBtn.addEventListener('click', function() {
+      screenshotData = null; prevRow.classList.remove('visible');
+      thumb.src = ''; camBtn.classList.remove('has-img'); fileInput.value = '';
+    });
+
+    var wrap = div.querySelector('.input-textarea-wrap');
+    wrap.addEventListener('dragover', function(e) { e.preventDefault(); textarea.style.borderColor = 'var(--accent)'; });
+    wrap.addEventListener('dragleave', function() { textarea.style.borderColor = ''; });
+    wrap.addEventListener('drop', function(e) {
+      e.preventDefault(); textarea.style.borderColor = '';
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+
+    function onPaste(e) {
+      var items = e.clipboardData && e.clipboardData.items;
+      if (!items) return;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith('image/')) { handleFile(items[i].getAsFile()); break; }
+      }
+    }
+    document.addEventListener('paste', onPaste);
+
+    function submit(desc) {
+      document.removeEventListener('paste', onPaste);
+      div.remove();
+      fetch('/api/input', { method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ sessionId: sessionId, field: 'userDescription', value: desc || '', screenshot: screenshotData || undefined }) });
+    }
+
+    sendBtn.addEventListener('click', function() {
+      mp('user_input', { type: 'description', has_screenshot: !!screenshotData });
+      submit(textarea.value.trim());
+    });
+    skipBtn.addEventListener('click', function() {
+      mp('user_input', { type: 'skip' });
+      submit('');
+    });
+    textarea.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && textarea.value.trim()) {
+        mp('user_input', { type: 'description', has_screenshot: !!screenshotData });
+        submit(textarea.value.trim());
+      }
+    });
+    textarea.focus();
+  }
+
+  // ═══ SSE ══════════════════════════════════════════════════════════════════
   function startDiagnosis() {
     startScreen.classList.add('hidden');
     feed.classList.remove('hidden');
@@ -596,36 +1290,41 @@
     currentStepIndex = -1;
     scanBlockAdded = false;
 
-    const langParam = isZh ? 'zh' : 'en';
-    eventSource = new EventSource('/api/diagnose?lang=' + langParam);
+    var lang = isZh ? 'zh' : 'en';
+    eventSource = new EventSource('/api/diagnose?lang=' + lang);
 
     eventSource.onmessage = function(e) {
-      let msg;
-      try { msg = JSON.parse(e.data); } catch { return; }
-      sessionId = msg.sessionId || sessionId;
+      var msg;
+      try { msg = JSON.parse(e.data); } catch(x) { return; }
+      if (msg.sessionId) sessionId = msg.sessionId;
       onEvent(msg.type, msg.data || {});
     };
 
     eventSource.onerror = function() {
-      // Only show error if we haven't completed
-      if (!['fixed','not_fixed','healthy'].includes(document.body.dataset.state || '')) {
-        const err = document.createElement('div');
-        err.className = 'result';
-        err.innerHTML = `
-          <div class="result-icon">⚠️</div>
-          <div class="result-title">Connection lost</div>
-          <div class="result-desc">The server may have stopped.</div>
-          <button class="btn btn-ghost btn-big" onclick="location.reload()">🔄 Retry</button>
-        `;
-        feed.appendChild(err);
+      var terminal = ['fixed','not_fixed','healthy','degraded','paywall','error'];
+      if (terminal.indexOf(document.body.dataset.state || '') === -1) {
+        var card = document.createElement('div');
+        card.className = 'result-card';
+        card.innerHTML = '<span class="result-icon">⚠️</span>'
+          + '<div class="result-title">' + T.connLost + '</div>'
+          + '<div style="font-size:14px;color:var(--text-secondary);margin-bottom:18px;">' + T.serverStopped + '</div>';
+        var btn = document.createElement('button');
+        btn.className = 'btn btn-ghost btn-full';
+        btn.textContent = T.retry;
+        btn.addEventListener('click', function() { location.reload(); });
+        card.appendChild(btn);
+        feed.appendChild(card);
+        scrollDown();
       }
+      if (eventSource) { eventSource.close(); eventSource = null; }
     };
   }
 
   function onEvent(type, data) {
     switch (type) {
+
       case 'session_start':
-        sessionId = data.sessionId;
+        sessionId = data.sessionId || sessionId;
         break;
 
       case 'state_change':
@@ -634,352 +1333,78 @@
           addScanBlock();
           scanBlockAdded = true;
         }
-        if (data.state === 'running') finishScanBlock();
-        break;
-
-      case 'progress': {
-        // Append to scan block detail while scanning
-        const detail = document.getElementById('scan-detail');
-        if (detail) {
-          const line = document.createElement('div');
-          line.style.cssText = 'font-size:12px; color:var(--text2); padding:2px 0;';
-          line.textContent = data.message || '';
-          detail.appendChild(line);
+        if (data.state === 'running') {
+          finishScanBlock();
         }
         break;
-      }
+
+      case 'progress':
+        updateScanProgress(data.message);
+        break;
 
       case 'step_start': {
         currentStepIndex = data.index;
-        const step = data.step;
+        var step = data.step || {};
+        stepTypes[data.index] = step.type || 'read';
         mp('diagnosis_step', { step_index: data.index, type: step.type, risk: step.risk || 'low' });
-        if (step.type === 'done') {
-          // Show result, don't add a step card
-        } else {
-          addStepCard(step, data.index);
+
+        if (step.type === 'read') {
+          if (!document.getElementById('scan-block')) {
+            addScanBlock();
+            scanBlockAdded = true;
+          }
+          addReadStep(step, data.index);
+        } else if (step.type === 'fix') {
+          addFixCard(step, data.index);
         }
         break;
       }
 
       case 'step_done': {
-        finishStepCard(data.index, data.output, data.skipped);
+        var idx = data.index;
+        var sType = stepTypes[idx] || 'read';
+        if (sType === 'read') {
+          doneReadStep(idx, data.skipped);
+        } else if (sType === 'fix') {
+          finishFixCard(idx, data.output, data.skipped);
+        }
         break;
       }
 
-      case 'confirm_needed': {
-        addConfirmBar(data.step, currentStepIndex);
+      case 'confirm_needed':
+        addConfirmBar(data.step || {}, currentStepIndex);
         break;
-      }
 
       case 'complete': {
         if (eventSource) { eventSource.close(); eventSource = null; }
-        finishScanBlock();
-        const outcome = data.healthy ? 'healthy' : data.fixed ? 'fixed' : data.degraded ? 'degraded' : 'not_fixed';
+        sbSessionId = data.sbSessionId || null;
+        var outcome = data.fixed ? 'fixed'
+          : data.degraded ? 'degraded'
+          : data.healthy  ? 'healthy'
+          : 'not_fixed';
         mp('scan_complete', { outcome: outcome, steps: currentStepIndex + 1 });
         showResult(data);
         break;
       }
 
-      case 'paywall': {
+      case 'paywall':
         if (eventSource) { eventSource.close(); eventSource = null; }
         mp('paywall_hit');
         showPaywall(data);
         break;
-      }
 
-      case 'request_input': {
-        if (data.field === 'userDescription') showDescriptionInput(data);
+      case 'request_input':
+        if (data.field === 'userDescription') showDescInput(data);
         break;
-      }
 
-      case 'error': {
-        const err = document.createElement('div');
-        err.className = 'result';
-        err.innerHTML = `
-          <div class="result-icon">❌</div>
-          <div class="result-title">Error</div>
-          <div class="result-desc">${esc(data.message || 'Unknown error')}</div>
-          <button class="btn btn-ghost btn-big" onclick="location.reload()">🔄 Retry</button>
-        `;
-        feed.appendChild(err);
-        scrollBottom();
+      case 'error':
+        showErrorCard(data.message);
+        scrollDown();
         break;
-      }
     }
   }
 
-  // ─── Paywall / API key ────────────────────────────────────────────────────
-
-  function showPaywall(data) {
-    const price = data.price || data;
-    const priceStr = (price && price.price) || '$1.99';
-    const isCN = price && price.isChinese;
-    const credits = (price && price.credits) || 5;
-
-    const STRIPE_BASE_URL = 'https://buy.stripe.com/8x26oJ6WrdNnd9T4hI0oM01';
-
-    const div = document.createElement('div');
-    div.className = 'start-card';
-    div.id = 'paywall-card';
-
-    // Emoji + headline
-    let html = `
-      <div style="text-align:center; margin-bottom:16px;">
-        <div style="font-size:36px; margin-bottom:6px;">🩺</div>
-        <div style="font-size:16px; font-weight:600; color:var(--text); margin-bottom:4px;">${isZh ? '免费次数已用完' : 'Free scans used up'}</div>
-        <div style="font-size:13px; color:var(--text2);">${isZh ? '购买修复包继续使用' : 'Get a fix pack to continue'}</div>
-      </div>
-      <div style="text-align:center; margin-bottom:16px;">
-        <div style="font-size:32px; font-weight:700; color:var(--blue);">${esc(priceStr)}</div>
-        <div style="font-size:13px; color:var(--muted);">${isZh ? credits + ' 次修复 · 修不好不扣次' : credits + ' fixes · only charged on success'}</div>
-      </div>
-    `;
-
-    // Primary buy button — Stripe (works for everyone). URL updated dynamically with fingerprint below.
-    html += `<a href="${STRIPE_BASE_URL}" target="_blank" class="btn btn-primary btn-big" id="pw-buy-btn" style="text-decoration:none; margin-bottom:10px;">${isZh ? '💳 立即购买' : '💳 Buy Now'}</a>`;
-
-    // Auto-detection notice (hidden until user clicks Buy)
-    html += `<div id="pw-auto-detect" style="display:none; text-align:center; padding:10px; margin-bottom:10px; background:var(--blue-bg); border:1px solid var(--blue-border); border-radius:8px; font-size:13px; color:var(--blue);">
-      <div class="spinner" style="display:inline-block; margin-right:8px; vertical-align:middle;"></div>
-      <span>${isZh ? '等待支付完成，完成后自动激活...' : 'Waiting for payment — will activate automatically...'}</span>
-    </div>`;
-
-    // Divider
-    html += `<hr style="border:none; border-top:1px solid var(--border); margin:14px 0;">`;
-
-    // Token redemption section (collapsed by default, for users who already have a token)
-    html += `
-      <details style="margin-bottom:8px;">
-        <summary style="font-size:13px; color:var(--text2); cursor:pointer; margin-bottom:8px;">${isZh ? '已有激活码？点击输入' : 'Already have a token? Click here'}</summary>
-        <input class="input-field" id="pw-token" type="text" placeholder="${isZh ? '激活码 CA-XXXX 或购买邮箱' : 'Token CA-XXXX or purchase email'}" />
-        <button class="btn btn-ghost btn-big" id="pw-activate" style="margin-top:6px;">${isZh ? '🔑 激活' : '🔑 Activate'}</button>
-      </details>
-      <div id="pw-msg" style="font-size:12px; text-align:center; margin-top:6px; min-height:16px;"></div>
-    `;
-
-    // Contact
-    html += `
-      <div style="text-align:center; margin-top:14px; font-size:12px; color:var(--muted); line-height:1.5;">
-        ${isZh ? '有问题？' : 'Need help?'} WeChat: <b>oliver56666</b>
-      </div>
-    `;
-
-    div.innerHTML = html;
-    feed.appendChild(div);
-
-    // Fetch fingerprint and update buy button URL to include client_reference_id
-    // This lets Stripe webhook bind the token to this machine
-    fetch('/api/fingerprint').then(function(r) { return r.json(); }).then(function(d) {
-      var btn = document.getElementById('pw-buy-btn');
-      if (btn && d.fingerprint) {
-        btn.href = STRIPE_BASE_URL + '?client_reference_id=' + encodeURIComponent(d.fingerprint);
-      }
-    }).catch(function() {});
-
-    // ── Auto-detection: poll for token after user clicks Buy ──
-    let pollTimer = null;
-    let pollCount = 0;
-    const MAX_POLLS = 60; // 5 minutes max (every 5 seconds)
-
-    function startPolling() {
-      const autoDetect = document.getElementById('pw-auto-detect');
-      if (autoDetect) autoDetect.style.display = 'block';
-      pollCount = 0;
-
-      pollTimer = setInterval(async () => {
-        pollCount++;
-        if (pollCount > MAX_POLLS) {
-          clearInterval(pollTimer);
-          if (autoDetect) autoDetect.innerHTML = `<span style="color:var(--muted);">${isZh ? '自动检测超时，请手动输入激活码' : 'Auto-detect timed out. Please enter your token manually.'}</span>`;
-          return;
-        }
-        try {
-          const r = await (await fetch('/api/poll-token')).json();
-          // If a token was found for this fingerprint (Stripe payment completed), activate
-          if (r.found && r.token) {
-            clearInterval(pollTimer);
-            mp('auto_activate_success');
-            if (autoDetect) autoDetect.innerHTML = `<span style="color:var(--green);">✅ ${isZh ? '支付成功！自动激活中...' : 'Payment received! Activating...'}</span>`;
-            // Redeem the token to cache it locally
-            fetch('/api/redeem', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: r.token }) }).catch(() => {});
-            setTimeout(() => location.reload(), 1500);
-            return;
-          }
-        } catch { /* silent */ }
-      }, 5000);
-    }
-
-    document.getElementById('pw-buy-btn').addEventListener('click', () => {
-      mp('buy_clicked');
-      // Start polling after a short delay (give user time to complete payment)
-      setTimeout(startPolling, 3000);
-    });
-
-    // Manual token activation
-    document.getElementById('pw-activate').addEventListener('click', async () => {
-      const token = document.getElementById('pw-token').value.trim();
-      const msg = document.getElementById('pw-msg');
-      if (!token) { msg.style.color = 'var(--red)'; msg.textContent = isZh ? '请输入激活码或邮箱' : 'Enter your token or email.'; return; }
-      mp('token_redeem_attempt');
-      msg.style.color = 'var(--muted)'; msg.textContent = isZh ? '验证中...' : 'Checking...';
-      try {
-        const r = await (await fetch('/api/redeem', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })).json();
-        if (r.valid) {
-          if (pollTimer) clearInterval(pollTimer);
-          mp('token_redeem_success');
-          msg.style.color = 'var(--green)';
-          msg.textContent = isZh ? '✅ 激活成功！重新扫描中...' : '✅ Activated! Restarting scan...';
-          setTimeout(() => location.reload(), 1500);
-        } else {
-          mp('token_redeem_fail');
-          msg.style.color = 'var(--red)';
-          msg.textContent = isZh ? '❌ 无效的激活码或邮箱' : '❌ Invalid token or email.';
-        }
-      } catch { msg.style.color = 'var(--red)'; msg.textContent = isZh ? '❌ 网络错误' : '❌ Network error.'; }
-    });
-
-    document.getElementById('pw-token').addEventListener('keydown', e => {
-      if (e.key === 'Enter') document.getElementById('pw-activate').click();
-    });
-
-    scrollBottom();
-  }
-
-  // ─── User description dialog ──────────────────────────────────────────
-
-  function showDescriptionInput(data) {
-    let screenshotData = null;
-
-    const div = document.createElement('div');
-    div.className = 'start-card';
-    div.id = 'desc-input-card';
-    div.innerHTML = `
-      <p style="font-size:15px; font-weight:500; color:var(--text); margin-bottom:4px;">${T.whatsWrong}</p>
-      <p style="font-size:13px; color:var(--text2); margin-bottom:12px;">${T.descHint}</p>
-      <div class="desc-input-wrap">
-        <div class="desc-textarea-wrap">
-          <textarea class="desc-textarea" id="desc-text" placeholder="${T.descPlaceholder}"></textarea>
-          <button class="desc-camera-btn" id="desc-camera-btn" title="Add screenshot">📷</button>
-          <input type="file" id="screenshot-input" accept="image/*" style="display:none;" />
-        </div>
-        <div id="screenshot-preview-row" style="display:none;" class="screenshot-preview-row">
-          <img id="screenshot-thumb" src="" />
-          <span id="screenshot-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Screenshot attached</span>
-          <button class="spr-remove" id="screenshot-remove" title="Remove">✕</button>
-        </div>
-      </div>
-      <div class="btn-row" style="margin-top:10px;">
-        <button class="btn btn-primary" id="btn-desc-submit" disabled>${T.sendDiagnose}</button>
-        <button class="btn btn-green" id="btn-desc-skip">${T.justScan}</button>
-      </div>
-    `;
-    feed.appendChild(div);
-    scrollBottom();
-
-    const textarea = document.getElementById('desc-text');
-    const cameraBtn = document.getElementById('desc-camera-btn');
-    const fileInput = document.getElementById('screenshot-input');
-    const previewRow = document.getElementById('screenshot-preview-row');
-    const thumb = document.getElementById('screenshot-thumb');
-    const removeBtn = document.getElementById('screenshot-remove');
-    const submitBtn = document.getElementById('btn-desc-submit');
-
-    // Update submit button enabled state based on textarea content
-    function updateSubmitState() {
-      submitBtn.disabled = textarea.value.trim().length === 0;
-    }
-    textarea.addEventListener('input', updateSubmitState);
-    updateSubmitState();
-
-    function handleFile(file) {
-      if (!file || !file.type.startsWith('image/')) return;
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Image too large (max 5MB)');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        screenshotData = e.target.result;
-        thumb.src = screenshotData;
-        previewRow.style.display = 'flex';
-        cameraBtn.classList.add('has-image');
-      };
-      reader.readAsDataURL(file);
-    }
-
-    cameraBtn.addEventListener('click', function(e) {
-      e.preventDefault();
-      fileInput.click();
-    });
-
-    fileInput.addEventListener('change', function(e) {
-      if (e.target.files[0]) handleFile(e.target.files[0]);
-    });
-
-    removeBtn.addEventListener('click', function() {
-      screenshotData = null;
-      previewRow.style.display = 'none';
-      thumb.src = '';
-      cameraBtn.classList.remove('has-image');
-      fileInput.value = '';
-    });
-
-    // Drag & drop on the whole textarea area
-    const textareaWrap = div.querySelector('.desc-textarea-wrap');
-    textareaWrap.addEventListener('dragover', function(e) { e.preventDefault(); textarea.style.borderColor = 'var(--blue)'; });
-    textareaWrap.addEventListener('dragleave', function() { textarea.style.borderColor = ''; });
-    textareaWrap.addEventListener('drop', function(e) {
-      e.preventDefault(); textarea.style.borderColor = '';
-      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-    });
-
-    // Paste support
-    document.addEventListener('paste', function onPaste(e) {
-      const items = e.clipboardData && e.clipboardData.items;
-      if (items) {
-        for (let i = 0; i < items.length; i++) {
-          if (items[i].type.startsWith('image/')) {
-            handleFile(items[i].getAsFile());
-            break;
-          }
-        }
-      }
-    }, { once: false });
-
-    function submit(description) {
-      div.remove();
-      fetch('/api/input', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-          field: 'userDescription',
-          value: description || '',
-          screenshot: screenshotData || undefined,
-        })
-      });
-    }
-
-    submitBtn.addEventListener('click', function() {
-      mp('user_input', { type: 'description', has_screenshot: !!screenshotData });
-      submit(textarea.value.trim());
-    });
-    document.getElementById('btn-desc-skip').addEventListener('click', function() {
-      mp('user_input', { type: 'skip' });
-      submit('');
-    });
-    textarea.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-        if (textarea.value.trim()) submit(textarea.value.trim());
-      }
-    });
-    textarea.focus();
-  }
-
-  // showApiKeyInput removed — AI runs on our backend, no user API key needed
-
-  // ─── Start ────────────────────────────────────────────────────────────────
-
+  // ═══ Boot ═════════════════════════════════════════════════════════════════
   document.getElementById('btn-start').addEventListener('click', function() {
     mp('scan_start');
     startDiagnosis();
