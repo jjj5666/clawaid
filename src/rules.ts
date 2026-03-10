@@ -142,154 +142,8 @@ const portConflict: Rule = (obs) => {
   return [];
 };
 
-// ─── High Rules ──────────────────────────────────────────────────────────────
-
-const zombieGateway: Rule = (obs) => {
-  const status = obs.gatewayStatus || '';
-  const lower = status.toLowerCase();
-
-  const isRunning = lower.includes('running') && !lower.includes('not running');
-  const probeFailed = lower.includes('rpc probe: failed') || lower.includes('timeout');
-
-  if (isRunning && probeFailed) {
-    return [{
-      id: 'zombie-gateway',
-      severity: 'high',
-      title: 'Gateway process is alive but unresponsive (zombie)',
-      description:
-        'The gateway process is listed as running, but the RPC health probe failed or timed out. ' +
-        'The gateway is in a zombie state and needs to be restarted.',
-      fix: 'openclaw gateway restart',
-    }];
-  }
-  return [];
-};
-
-const badModel: Rule = (obs) => {
-  const logs = obs.recentLogs || '';
-
-  // Only look at errors in the last 10 minutes of logs
-  // Log lines typically start with a timestamp like "2026-03-09T15:30:05" or "15:30:05"
-  const now = new Date();
-  const tenMinAgo = new Date(now.getTime() - 10 * 60 * 1000);
-  const lines = logs.split('\n');
-
-  let recentErrors = 0;
-  let recentSuccesses = 0;
-  let lastErrorTime = 0;
-  let lastSuccessTime = 0;
-  let modelName = '';
-
-  for (const line of lines) {
-    // Try to extract timestamp from line
-    const tsMatch = line.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})|(\d{2}:\d{2}:\d{2})/);
-    if (tsMatch) {
-      let lineTime: Date | null = null;
-      if (tsMatch[1]) {
-        lineTime = new Date(tsMatch[1]);
-      } else if (tsMatch[2]) {
-        // Time only — assume today
-        const [h, m, s] = tsMatch[2].split(':').map(Number);
-        lineTime = new Date(now);
-        lineTime.setHours(h, m, s, 0);
-      }
-
-      if (lineTime && lineTime >= tenMinAgo) {
-        if (/400\s*(Bad Request)?/i.test(line) || /model[\s_-]?not[\s_-]?found/i.test(line)) {
-          recentErrors++;
-          lastErrorTime = lineTime.getTime();
-          // Try to extract model name
-          const mm = line.match(/model[:\s]+["']?([a-zA-Z0-9\/_.-]+)["']?\s*(not found|is not available|does not exist)/i);
-          if (mm) modelName = mm[1];
-        }
-        if (/200|completion|success|ok/i.test(line) && !/error|fail|400|404/i.test(line)) {
-          recentSuccesses++;
-          lastSuccessTime = lineTime.getTime();
-        }
-      }
-    }
-  }
-
-  // If there are recent successes AFTER the last error, the issue is likely fixed
-  if (lastSuccessTime > lastErrorTime && recentSuccesses > 0) {
-    return [];
-  }
-
-  if (recentErrors >= 2) {
-    return [{
-      id: 'bad-model',
-      severity: 'high',
-      title: 'AI model errors detected' + (modelName ? ` (${modelName})` : ''),
-      description:
-        `Found ${recentErrors} "400 Bad Request" or "model not found" errors in the last 10 minutes. ` +
-        (modelName
-          ? `The model "${modelName}" may be unavailable, deprecated, or misspelled.`
-          : 'The configured default model may be unavailable, deprecated, or misspelled.'),
-      fix: 'openclaw models list --all  # then: openclaw models set <working-model-id>',
-    }];
-  }
-  return [];
-};
-
-const gatewayAuthConflict: Rule = (obs) => {
-  const config = obs.configContent || '';
-
-  // Check if config has gateway.auth section with both token and password but no mode
-  // Look for the auth section pattern
-  const authSectionMatch = config.match(/["']?auth["']?\s*:\s*\{([^}]*)\}/s);
-  if (authSectionMatch) {
-    const authSection = authSectionMatch[1];
-    const hasToken = /["']?token["']?\s*:/i.test(authSection);
-    const hasPassword = /["']?password["']?\s*:/i.test(authSection);
-    const hasMode = /["']?mode["']?\s*:/i.test(authSection);
-
-    if (hasToken && hasPassword && !hasMode) {
-      return [{
-        id: 'gateway-auth-conflict',
-        severity: 'high',
-        title: 'Gateway auth conflict: both token and password configured',
-        description:
-          'The gateway auth section has both "token" and "password" but no explicit "mode". ' +
-          'In OpenClaw v3.7, this is a breaking change — the gateway won\'t know which auth method to use ' +
-          'and may reject all connections.',
-        fix: 'openclaw config set gateway.auth.mode token',
-      }];
-    }
-  }
-  return [];
-};
-
-// ─── Functional-layer Rules (does the system actually WORK, not just "run") ──
-
-const recentAuthFailure: Rule = (obs) => {
-  const logs = obs.recentLogs || '';
-  const lines = logs.split('\n');
-  // Look for 401/403 errors in recent logs
-  const authErrorLines = lines.filter(l =>
-    /\b(401|403)\b/.test(l) &&
-    /invalid.*(key|auth|token)|unauthorized|forbidden|authentication.*fail/i.test(l)
-  );
-  if (authErrorLines.length >= 2) {
-    // Try to extract provider name
-    let provider = '';
-    for (const line of authErrorLines) {
-      const m = line.match(/(openrouter|anthropic|openai|google|moonshot|deepseek|siliconflow|groq|mistral|together)/i);
-      if (m) { provider = m[1]; break; }
-    }
-    return [{
-      id: 'recent-auth-failure',
-      severity: 'high',
-      title: 'API authentication errors detected' + (provider ? ` (${provider})` : ''),
-      description:
-        `Found ${authErrorLines.length} authentication errors (401/403) in recent logs. ` +
-        (provider
-          ? `The "${provider}" provider's API key may be invalid, expired, or missing.`
-          : 'One or more provider API keys may be invalid, expired, or missing.') +
-        ' This means AI requests are failing right now.',
-    }];
-  }
-  return [];
-};
+// v3: Only 6 rules — high-confidence, deterministic checks.
+// Everything uncertain goes to AI with full data. Rules are accelerators, not gatekeepers.
 
 const nodeTooOld: Rule = (obs) => {
   const nodeVer = obs.nodeVersion || '';
@@ -311,136 +165,18 @@ const nodeTooOld: Rule = (obs) => {
   return [];
 };
 
-const providerMissingKey: Rule = (obs) => {
-  const config = obs.configContent || '';
+const tokenMismatch: Rule = (obs) => {
   const logs = obs.recentLogs || '';
-  // Only flag if a provider has empty apiKey AND recent logs show failures for that provider
-  const findings: RuleFinding[] = [];
-  
-  // Find providers with empty or placeholder keys in config
-  const providerPattern = /"(\w+)"\s*:\s*\{[^}]*"apiKey"\s*:\s*""\s*[^}]*\}/g;
-  let m;
-  while ((m = providerPattern.exec(config)) !== null) {
-    const provName = m[1];
-    // Check if this provider appears in recent error logs
-    if (new RegExp(provName, 'i').test(logs) && /error|fail|401|403/i.test(logs)) {
-      findings.push({
-        id: 'provider-missing-key',
-        severity: 'high',
-        title: `Provider "${provName}" has empty API key`,
-        description:
-          `The "${provName}" provider is configured but has an empty API key, ` +
-          'and recent logs show errors from this provider. Requests to this provider will always fail.',
-      });
-    }
-  }
-  return findings;
-};
-
-const recentTimeoutLoop: Rule = (obs) => {
-  const logs = obs.recentLogs || '';
-  const lines = logs.split('\n');
-  const timeoutLines = lines.filter(l => /timeout|ETIMEDOUT|ECONNREFUSED|ECONNRESET/i.test(l));
-  if (timeoutLines.length >= 4) {
+  if (/token_mismatch/i.test(logs)) {
     return [{
-      id: 'recent-timeout-loop',
+      id: 'token-mismatch',
       severity: 'high',
-      title: 'Repeated connection timeouts detected',
+      title: 'WebUI token mismatch detected',
       description:
-        `Found ${timeoutLines.length} timeout/connection errors in recent logs. ` +
-        'This usually means a network issue, proxy misconfiguration, or the AI provider is unreachable. ' +
-        'The system may be in a backoff loop.',
+        'Logs show token_mismatch errors — the WebUI is using a stale token. ' +
+        'This often happens after a force restart.',
+      fix: 'openclaw gateway restart',
     }];
-  }
-  return [];
-};
-
-const fallbackNotAvailable: Rule = (obs) => {
-  const logs = obs.recentLogs || '';
-  // Look for fallback failures in logs
-  const fallbackErrors = logs.split('\n').filter(l =>
-    /fallback.*fail|fallback.*error|all.*fallback.*exhaust|no.*fallback.*available/i.test(l)
-  );
-  if (fallbackErrors.length >= 2) {
-    return [{
-      id: 'fallback-not-available',
-      severity: 'high',
-      title: 'Fallback models are failing',
-      description:
-        'Recent logs show multiple fallback model failures. When the primary model fails, ' +
-        'the fallback chain is also broken. The system has no working recovery path.',
-    }];
-  }
-  return [];
-};
-
-// ─── Warning Rules ───────────────────────────────────────────────────────────
-
-const versionMismatch: Rule = (obs) => {
-  const desktopVer = obs.desktopAppVersion || '';
-  const cliVer = obs.openclawVersion || '';
-
-  // If desktop app is not installed (error reading plist, "does not exist", etc.), don't report
-  if (/not exist|does not|error|command not found/i.test(desktopVer)) {
-    return [];
-  }
-
-  // Extract version numbers (e.g., "3.7.1" or "2026.2.22")
-  const desktopMatch = desktopVer.match(/(\d+)\.(\d+)\.?(\d*)/);
-  const cliMatch = cliVer.match(/(\d+)\.(\d+)\.?(\d*)/);
-
-  if (desktopMatch && cliMatch) {
-    const dMajor = parseInt(desktopMatch[1], 10);
-    const dMinor = parseInt(desktopMatch[2], 10);
-    const cMajor = parseInt(cliMatch[1], 10);
-    const cMinor = parseInt(cliMatch[2], 10);
-
-    // Flag if major versions differ, or minor versions differ by 2+
-    const majorDiff = Math.abs(dMajor - cMajor);
-    const minorDiff = Math.abs(dMinor - cMinor);
-
-    if (majorDiff > 0 || minorDiff >= 2) {
-      return [{
-        id: 'version-mismatch',
-        severity: 'warning',
-        title: 'Desktop app and CLI version mismatch',
-        description:
-          `Desktop app version (${desktopVer.trim()}) and CLI version (${cliVer.trim()}) differ significantly. ` +
-          'This can cause compatibility issues. Consider updating the older one.',
-      }];
-    }
-  }
-  return [];
-};
-
-const whatsappAllowlistEmpty: Rule = (obs) => {
-  const config = obs.configContent || '';
-
-  // Only check if WhatsApp is actually configured as a channel
-  // Skip if the channel doesn't exist or is disabled
-  const hasWhatsappChannel = /["']?whatsapp["']?\s*:\s*\{/i.test(config);
-  if (!hasWhatsappChannel) return [];
-
-  // Check if disabled
-  const whatsappSection = config.match(/["']?whatsapp["']?\s*:\s*\{([^}]*)\}/s);
-  if (whatsappSection && /["']?enabled["']?\s*:\s*false/i.test(whatsappSection[1])) return [];
-
-  // Check for groupPolicy: "allowlist" 
-  const hasAllowlist = /["']?groupPolicy["']?\s*:\s*["']allowlist["']/i.test(config);
-  if (hasAllowlist) {
-    // Check if groupAllowFrom is empty/missing
-    const allowFromMatch = config.match(/["']?groupAllowFrom["']?\s*:\s*\[([^\]]*)\]/);
-    if (!allowFromMatch || allowFromMatch[1].trim() === '') {
-      return [{
-        id: 'whatsapp-allowlist-empty',
-        severity: 'warning',
-        title: 'WhatsApp groupPolicy is "allowlist" but no groups are allowed',
-        description:
-          'The WhatsApp channel has groupPolicy set to "allowlist", but groupAllowFrom is empty or missing. ' +
-          'This means the bot will ignore ALL group messages. If you want to receive group messages, ' +
-          'add group IDs to groupAllowFrom, or change groupPolicy to "all".',
-      }];
-    }
   }
   return [];
 };
@@ -448,26 +184,17 @@ const whatsappAllowlistEmpty: Rule = (obs) => {
 // ─── Rule Engine ─────────────────────────────────────────────────────────────
 
 const ALL_RULES: Rule[] = [
-  // Critical
-  toolsProfileMessaging,
-  proxyInPlist,
-  configParseError,
-  gatewayNotRunning,
-  portConflict,
-  nodeTooOld,
-
-  // High — functional layer (does it actually WORK?)
-  zombieGateway,
-  badModel,
-  gatewayAuthConflict,
-  recentAuthFailure,
-  providerMissingKey,
-  recentTimeoutLoop,
-  fallbackNotAvailable,
-
-  // Warning
-  versionMismatch,
-  whatsappAllowlistEmpty,
+  // 6 deterministic rules — 100% confidence, no guessing
+  gatewayNotRunning,     // process not running → start it
+  portConflict,          // EADDRINUSE → kill conflicting process
+  configParseError,      // JSON parse error → fix config
+  nodeTooOld,            // Node < 18 → upgrade
+  proxyInPlist,          // proxy in plist → remove it (may be intentional, but flag it)
+  tokenMismatch,         // token_mismatch in logs → restart gateway
+  // Removed: toolsProfileMessaging, zombieGateway, badModel, gatewayAuthConflict,
+  // recentAuthFailure, providerMissingKey, recentTimeoutLoop, fallbackNotAvailable,
+  // versionMismatch, whatsappAllowlistEmpty
+  // → AI has full data and can detect these better than regex pattern matching
 ];
 
 const SEVERITY_ORDER: Record<string, number> = {
