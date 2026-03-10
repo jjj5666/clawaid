@@ -8,51 +8,16 @@ import { getMachineFingerprint, PaywallError } from './diagnose';
 // ClawAid backend API URL
 const CLAWAID_API = process.env.CLAWAID_API || 'https://api.clawaid.app';
 
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// Lightweight post-fix re-observe: only re-check things that change after a fix
-function reObserve(): string {
-  const parts: string[] = [];
-  const run = (cmd: string): string => {
-    try {
-      return execSync(cmd, {
-        timeout: 10000,
-        encoding: 'utf-8',
-        shell: os.platform() === 'win32' ? 'cmd.exe' : '/bin/sh',
-        env: { ...process.env, PATH: '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:' + (process.env.PATH || '') },
-      }).trim();
-    } catch (err: unknown) {
-      const e = err as { stdout?: string; stderr?: string; message?: string };
-      return ((e.stdout || '') + (e.stderr || '')).trim() || `[error: ${e.message}]`;
-    }
-  };
-
-  parts.push('## Gateway status (post-fix)');
-  parts.push(run('openclaw gateway status 2>&1'));
-
-  parts.push('## Recent logs (post-fix, last 30 lines)');
-  parts.push(run('tail -30 /tmp/openclaw/*.log 2>/dev/null || tail -30 ~/.openclaw/logs/*.log 2>/dev/null || echo "no logs found"'));
-
-  parts.push('## Port 18789 (post-fix)');
-  parts.push(run('lsof -i :18789 2>&1 || echo "port free"'));
-
-  parts.push('## Processes (post-fix)');
-  parts.push(run('ps aux | grep -i "[o]penclaw" 2>&1 || echo "none"'));
-
-  return parts.join('\n\n');
-}
+// v3: No hardcoded reObserve. AI uses read steps to verify fixes itself.
 
 // Package version for telemetry
 const clawaidVersion: string = (() => {
   try { return (require('../package.json') as { version: string }).version; } catch { return 'unknown'; }
 })();
 
-// Max steps before giving up
-const MAX_STEPS = 20;
-// Max consecutive fix attempts before giving up
-const MAX_FIX_ATTEMPTS = 4;
+// v3: Give AI room to iterate. Read steps are cheap, fix steps need confirmation.
+const MAX_STEPS = 30;
+const MAX_FIX_ATTEMPTS = 8;
 
 export type LoopState =
   | 'idle'
@@ -285,24 +250,6 @@ export class DoctorLoop {
         const degraded = (step as any).degraded || false;
         const baseData = { summary: step.summary, warnings, problem, fix, history: this.history, sbSessionId: this.sbSessionId };
 
-        // v3: Final probe — if AI says fixed, verify gateway is actually running
-        if (step.fixed && this.fixAttempts > 0) {
-          const probeResult = reObserve();
-          const probeOk = /running|"status"\s*:\s*"ok"|listening/i.test(probeResult);
-
-          if (!probeOk && (this as any)._probeRetries === undefined) {
-            // Probe failed — tell AI to keep going
-            (this as any)._probeRetries = 1;
-            this.history.push({
-              step: { type: 'read', description: 'Final probe FAILED — gateway not confirmed running', command: '' },
-              output: `AI declared fixed but verification shows:\n${probeResult}\n\nPlease re-evaluate. The fix may not have worked, or there may be additional issues.`,
-              timestamp: Date.now(),
-            });
-            this.progress('⚠️ Fix verification failed, continuing diagnosis...');
-            continue; // back to loop, AI sees the probe failure
-          }
-        }
-
         if (step.fixed) {
           this.setState('fixed');
           // Deduct 1 credit if using a paid token
@@ -367,22 +314,8 @@ export class DoctorLoop {
       const output = this.executeCommand(step.command || '');
       // Include thinking in history so AI can see its own reasoning chain
       const stepWithThinking = { ...step, thinking: (step as any).thinking };
-
-      // v3: After fix steps, wait and re-observe so AI can see the real post-fix state
-      if (step.type === 'fix') {
-        this.progress('⏳ Verifying fix...');
-        await sleep(3000);
-        const postFixState = reObserve();
-        this.history.push({
-          step: stepWithThinking,
-          output: output + '\n\n=== POST-FIX VERIFICATION ===\n' + postFixState,
-          timestamp: Date.now(),
-        });
-        this.emit({ type: 'step_done', data: { step: stepWithThinking, output, postFixState, index: stepIndex } });
-      } else {
-        this.history.push({ step: stepWithThinking, output, timestamp: Date.now() });
-        this.emit({ type: 'step_done', data: { step: stepWithThinking, output, index: stepIndex } });
-      }
+      this.history.push({ step: stepWithThinking, output, timestamp: Date.now() });
+      this.emit({ type: 'step_done', data: { step: stepWithThinking, output, index: stepIndex } });
     }
 
     // Exhausted max steps

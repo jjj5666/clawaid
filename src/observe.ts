@@ -57,71 +57,83 @@ async function runCommand(cmd: string, timeout = 10000): Promise<string> {
   }
 }
 
-async function findRecentLog(): Promise<{ content: string; logPath: string }> {
-  const homeDir = os.homedir();
-  
-  // Check config for custom log path
-  let logDir = '/tmp/openclaw';
-  let customLogPath = '';
-  
+// v3: Read tail of a single file. Returns empty string on error.
+function readTail(filePath: string, lines: number): string {
   try {
-    const configPath = path.join(homeDir, '.openclaw', 'openclaw.json');
-    if (fs.existsSync(configPath)) {
-      const configContent = fs.readFileSync(configPath, 'utf-8');
-      // Simple JSON5 parsing - look for logging.file
-      const logFileMatch = configContent.match(/"?file"?\s*:\s*"([^"]+)"/);
-      if (logFileMatch) {
-        customLogPath = logFileMatch[1].replace('~', homeDir);
-      }
-    }
+    if (!fs.existsSync(filePath)) return '';
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const allLines = content.split('\n');
+    return allLines.slice(-lines).join('\n');
   } catch {
-    // ignore
+    return '';
+  }
+}
+
+// v3: Find the most recent .log file in a directory
+function findLatestLogInDir(dir: string): string | null {
+  try {
+    if (!fs.existsSync(dir)) return null;
+    const stat = fs.statSync(dir);
+    if (stat.isFile()) return dir;
+    if (!stat.isDirectory()) return null;
+    const files = fs.readdirSync(dir)
+      .filter(f => f.endsWith('.log') && !f.includes('canvas-snapshot'))
+      .map(f => ({ fullPath: path.join(dir, f), mtime: fs.statSync(path.join(dir, f)).mtime.getTime() }))
+      .sort((a, b) => b.mtime - a.mtime);
+    return files.length > 0 ? files[0].fullPath : null;
+  } catch {
+    return null;
+  }
+}
+
+interface MultiLogResult {
+  sections: string;
+  primaryLogPath: string;
+}
+
+// v3: Collect tails from ALL known log sources, prioritized
+function collectLogs(): MultiLogResult {
+  const homeDir = os.homedir();
+  const parts: string[] = [];
+  let primaryLogPath = '[none]';
+
+  // 1. Primary: /tmp/openclaw main log (50 lines) — most diagnostic value
+  const tmpDir = '/tmp/openclaw';
+  const mainLog = findLatestLogInDir(tmpDir);
+  if (mainLog) {
+    primaryLogPath = mainLog;
+    const tail = readTail(mainLog, 50);
+    if (tail) parts.push(`### Main log: ${mainLog} (last 50 lines)\n${tail}`);
   }
 
-  // Try to find logs
-  const possiblePaths = [
-    customLogPath,
-    '/tmp/openclaw',
-    path.join(homeDir, '.openclaw', 'logs'),
-    '/var/log/openclaw',
-  ].filter(Boolean);
+  // 2. gateway.err.log (50 lines) — critical errors live here
+  const gwErrLog = path.join(homeDir, '.openclaw', 'logs', 'gateway.err.log');
+  const gwErrTail = readTail(gwErrLog, 50);
+  if (gwErrTail) parts.push(`### Gateway errors: ${gwErrLog} (last 50 lines)\n${gwErrTail}`);
 
-  for (const p of possiblePaths) {
-    if (!p || !fs.existsSync(p)) continue;
-    
-    try {
-      const stat = fs.statSync(p);
-      if (stat.isFile()) {
-        // Direct file path
-        const content = fs.readFileSync(p, 'utf-8');
-        const lines = content.split('\n');
-        const last2000 = lines.slice(-2000).join('\n');
-        return { content: last2000, logPath: p };
-      } else if (stat.isDirectory()) {
-        // Find most recent log file
-        const files = fs.readdirSync(p)
-          .filter(f => f.endsWith('.log'))
-          .map(f => ({
-            name: f,
-            fullPath: path.join(p, f),
-            mtime: fs.statSync(path.join(p, f)).mtime.getTime()
-          }))
-          .sort((a, b) => b.mtime - a.mtime);
-        
-        if (files.length > 0) {
-          const latestLog = files[0].fullPath;
-          const content = fs.readFileSync(latestLog, 'utf-8');
-          const lines = content.split('\n');
-          const last2000 = lines.slice(-2000).join('\n');
-          return { content: last2000, logPath: latestLog };
-        }
-      }
-    } catch {
-      continue;
-    }
+  // 3. gateway.log (20 lines) — runtime events
+  const gwLog = path.join(homeDir, '.openclaw', 'logs', 'gateway.log');
+  const gwLogTail = readTail(gwLog, 20);
+  if (gwLogTail) parts.push(`### Gateway log: ${gwLog} (last 20 lines)\n${gwLogTail}`);
+
+  // 4. node.err.log (20 lines) — node process errors
+  const nodeErrLog = path.join(homeDir, '.openclaw', 'logs', 'node.err.log');
+  const nodeErrTail = readTail(nodeErrLog, 20);
+  if (nodeErrTail) parts.push(`### Node errors: ${nodeErrLog} (last 20 lines)\n${nodeErrTail}`);
+
+  // 5. node.log (20 lines) — node process log
+  const nodeLog = path.join(homeDir, '.openclaw', 'logs', 'node.log');
+  const nodeLogTail = readTail(nodeLog, 20);
+  if (nodeLogTail) parts.push(`### Node log: ${nodeLog} (last 20 lines)\n${nodeLogTail}`);
+
+  if (parts.length === 0) {
+    return { sections: '[no log files found]', primaryLogPath };
   }
 
-  return { content: '[no log files found]', logPath: '[none]' };
+  // Tell AI it can get more
+  parts.push('### Note: These are tails only. Use `read` steps to get more lines if needed, e.g.: `tail -200 <path>`');
+
+  return { sections: parts.join('\n\n'), primaryLogPath };
 }
 
 async function readPlist(): Promise<{ content: string; plistPath: string }> {
@@ -202,7 +214,7 @@ export async function observe(onProgress?: (msg: string) => void): Promise<Obser
   const { content: plistContent, plistPath } = await readPlist();
 
   progress('Finding and reading logs...');
-  const { content: recentLogs, logPath } = await findRecentLog();
+  const { sections: recentLogs, primaryLogPath: logPath } = collectLogs();
 
   progress('Checking Node.js version...');
   const nodeVersion = await runCommand('node -v 2>&1');
@@ -286,47 +298,6 @@ export async function observe(onProgress?: (msg: string) => void): Promise<Obser
   obs.ruleFindings = runRules(obs);
 
   return obs;
-}
-
-function extractLogEssentials(logs: string): string {
-  if (!logs) return '(no logs)';
-  const lines = logs.split('\n');
-
-  // Part 1: Last 50 lines — unfiltered, full context
-  const tail = lines.slice(-50);
-
-  // Part 2: Older lines — extract warn/error signals, deduplicated
-  const olderLines = lines.slice(0, Math.max(0, lines.length - 50));
-  const signalPattern = /error|warn|fail|400|401|403|404|timeout|refused|crash|panic|EADDRINUSE|uncaught|unhandled|FATAL|died|exit code|mismatch|pairing|orphaned|blocked|ENOENT|EACCES|EPERM|deprecat|disconnect|reconnect/i;
-
-  const seen = new Set<string>();
-  const uniqueSignals: string[] = [];
-
-  for (const line of olderLines) {
-    if (!signalPattern.test(line)) continue;
-    // Deduplicate: strip timestamp, compare the rest
-    const normalized = line.replace(/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}[.\d]*Z?\s*/, '').trim();
-    if (normalized.length < 5) continue;
-    if (seen.has(normalized)) continue;
-    seen.add(normalized);
-    uniqueSignals.push(line);
-  }
-
-  const parts: string[] = [];
-
-  if (uniqueSignals.length > 0) {
-    // Keep up to 30 unique signals (most recent ones)
-    const topSignals = uniqueSignals.slice(-30);
-    parts.push(`### Unique warn/error signals from older logs (${topSignals.length} unique of ${uniqueSignals.length} total)`);
-    parts.push(topSignals.join('\n'));
-  }
-
-  parts.push(`### Last 50 lines (unfiltered)`);
-  parts.push(tail.join('\n'));
-
-  const result = parts.join('\n\n');
-  // Hard cap at 20KB (50 lines ≈ 5KB + 30 signals ≈ 3KB, normally ~8KB)
-  return result.length > 20000 ? result.slice(0, 20000) + '\n...[truncated]' : result;
 }
 
 function truncate(text: string, maxChars: number): string {
@@ -416,7 +387,7 @@ ${obs.portCheck}
 ## OpenClaw processes
 ${obs.processCheck}
 
-## Recent logs (${obs.logPath})
-${extractLogEssentials(obs.recentLogs)}
+## Recent logs
+${obs.recentLogs}
 `.trim();
 }
