@@ -210,6 +210,29 @@ app.post('/api/event', (req: Request, res: Response) => {
   res.json({ ok: true });
 });
 
+// Waitlist proxy
+app.post('/api/waitlist', (req: Request, res: Response) => {
+  const { email } = req.body || {};
+  const fingerprint = require('./diagnose').getMachineFingerprint();
+  const body = JSON.stringify({ email, fingerprint });
+  const url = new URL(`${CLAWAID_API}/waitlist`);
+  const lib = url.protocol === 'http:' ? require('http') : require('https');
+  const fReq = lib.request({
+    hostname: url.hostname,
+    port: url.port ? parseInt(url.port) : (url.protocol === 'http:' ? 80 : 443),
+    path: url.pathname,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+  }, (fRes: any) => {
+    let d = '';
+    fRes.on('data', (c: string) => { d += c; });
+    fRes.on('end', () => { try { res.json(JSON.parse(d)); } catch { res.json({ ok: true }); } });
+  });
+  fReq.on('error', () => res.json({ ok: true }));
+  fReq.write(body);
+  fReq.end();
+});
+
 // Poll endpoint — frontend checks if a token was created for this machine's fingerprint
 // Used after Stripe payment: frontend polls until a token is found, then auto-activates
 app.get('/api/poll-token', (_req: Request, res: Response) => {

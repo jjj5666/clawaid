@@ -1190,56 +1190,77 @@
   // ═══ Paywall ══════════════════════════════════════════════════════════════
   function showPaywall(data) {
     var STRIPE_URL = 'https://buy.stripe.com/8x26oJ6WrdNnd9T4hI0oM01';
-    var credits = data.credits || 5;
-    // Chinese users often use proxies (for OpenClaw API access), so CF-IPCountry
-    // may incorrectly report US/JP/etc. Use frontend language detection as override.
     var payMethod = data.payMethod || (data.isChinese ? 'xunhupay' : 'stripe');
     if (isZh && payMethod !== 'xunhupay') payMethod = 'xunhupay';
     var isCN = payMethod === 'xunhupay';
-    var priceStr = isCN ? '¥9.9' : (data.price || '$1.99');
+    var pricing = data.pricing || {};
+    var fixPrice = (pricing.fixOnce && pricing.fixOnce.price) || (isCN ? '¥4.99' : '$0.99');
+    var subPrice = (pricing.subscription && pricing.subscription.price) || (isCN ? '¥49.99/月' : '$9.99/mo');
 
-    var buyBtnHtml;
-    if (isCN) {
-      buyBtnHtml = '<button class="btn btn-primary btn-full" id="pw-buy" style="margin-bottom:0;">💳 ' + (isZh ? '微信支付' : 'WeChat Pay') + '</button>'
-        + '<div id="pw-xhp-loading" style="display:none;text-align:center;padding:12px;color:var(--text-muted);font-size:13px;">' + (isZh ? '正在创建订单...' : 'Creating order...') + '</div>'
-        + '<div id="pw-xhp-qr" style="display:none;text-align:center;padding:12px;">'
-        + '<p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">' + (isZh ? '扫码支付 ' : 'Scan to pay ') + esc(priceStr) + '</p>'
-        + '<img id="pw-xhp-qr-img" src="" style="max-width:200px;border-radius:8px;border:1px solid var(--border);" />'
-        + '</div>';
-    } else {
-      buyBtnHtml = '<a href="'+STRIPE_URL+'" target="_blank" class="btn btn-primary btn-full" id="pw-buy" style="text-decoration:none;margin-bottom:0;">' + T.pwBuyNow + '</a>';
+    // v3: Show AI's pending fix diagnosis
+    var diagnosisHtml = '';
+    var pendingFix = data.pendingFix;
+    if (pendingFix && pendingFix.description) {
+      diagnosisHtml = '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">'
+        + '<div style="font-weight:700;font-size:14px;margin-bottom:8px;">'
+        + (isZh ? '🔍 已找到问题：' : '🔍 Issue found:')
+        + '</div>'
+        + '<div style="display:flex;align-items:flex-start;gap:8px;">'
+        + '<span style="flex-shrink:0;">⚠️</span>'
+        + '<div style="font-size:13px;">' + esc(pendingFix.description) + '</div>'
+        + '</div></div>';
     }
 
-    // v3: Show findings from rule engine so user sees value
-    var findingsHtml = '';
+    // Also show rule findings if available
     var findings = data.findings || [];
-    if (findings.length > 0) {
+    if (!pendingFix && findings.length > 0) {
       var items = findings.map(function(f) {
         return '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">'
           + '<span style="flex-shrink:0;">⚠️</span>'
-          + '<div><div style="font-weight:600;font-size:13px;">' + esc(f.title) + '</div>'
-          + '<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">' + esc(f.description).slice(0,120) + '</div></div>'
+          + '<div><div style="font-weight:600;font-size:13px;">' + esc(f.title) + '</div></div>'
           + '</div>';
       }).join('');
-      findingsHtml = '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">'
+      diagnosisHtml = '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">'
         + '<div style="font-weight:700;font-size:14px;margin-bottom:8px;">'
-        + (isZh ? '🔍 扫描发现以下问题：' : '🔍 Issues found during scan:')
+        + (isZh ? '🔍 扫描发现以下问题：' : '🔍 Issues found:')
         + '</div>' + items + '</div>';
     }
+
+    // Fix-once button
+    var buyBtnHtml;
+    if (isCN) {
+      buyBtnHtml = '<button class="btn btn-primary btn-full" id="pw-buy" style="margin-bottom:0;">🔧 ' + esc(fixPrice) + ' — ' + (isZh ? '本次彻底解决' : 'Fix everything now') + '</button>'
+        + '<div style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:4px;">' + (isZh ? '所有问题一次修完 · 修不好退款' : 'Fix all issues · refund if not fixed') + '</div>'
+        + '<div id="pw-xhp-loading" style="display:none;text-align:center;padding:12px;color:var(--text-muted);font-size:13px;">' + (isZh ? '正在创建订单...' : 'Creating order...') + '</div>'
+        + '<div id="pw-xhp-qr" style="display:none;text-align:center;padding:12px;">'
+        + '<p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">' + (isZh ? '扫码支付 ' : 'Scan to pay ') + esc(fixPrice) + '</p>'
+        + '<img id="pw-xhp-qr-img" src="" style="max-width:200px;border-radius:8px;border:1px solid var(--border);" />'
+        + '</div>';
+    } else {
+      buyBtnHtml = '<a href="'+STRIPE_URL+'" target="_blank" class="btn btn-primary btn-full" id="pw-buy" style="text-decoration:none;margin-bottom:0;">🔧 ' + esc(fixPrice) + ' — Fix everything now</a>'
+        + '<div style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:4px;">Fix all issues · refund if not fixed</div>';
+    }
+
+    // Waitlist button
+    var waitlistHtml = '<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">'
+      + '<button class="btn btn-ghost btn-full" id="pw-waitlist" style="margin-bottom:4px;">🛡️ ' + esc(subPrice) + ' — ' + (isZh ? '持续守护' : 'Always Protected') + '</button>'
+      + '<div style="text-align:center;font-size:12px;color:var(--text-muted);">' + (isZh ? '7×24 保障 OpenClaw 持续健康 · 加入等待名单' : '24/7 health monitoring · join waitlist') + '</div>'
+      + '<div id="pw-waitlist-form" style="display:none;margin-top:8px;">'
+      + '<input class="pw-input" id="pw-waitlist-email" type="email" placeholder="' + (isZh ? '输入邮箱加入等待名单' : 'Email to join waitlist') + '" />'
+      + '<button class="btn btn-ghost btn-full" id="pw-waitlist-submit" style="margin-top:6px;">' + (isZh ? '加入等待名单' : 'Join Waitlist') + '</button>'
+      + '<div id="pw-waitlist-msg" style="text-align:center;font-size:12px;margin-top:4px;"></div>'
+      + '</div></div>';
 
     var div = document.createElement('div');
     div.className = 'card pw-card';
     div.innerHTML = '<div class="pw-hd">'
       + '<span class="pw-emoji">🩺</span>'
-      + '<div class="pw-title">' + T.pwFreeUsed + '</div>'
-      + '<div class="pw-sub">' + T.pwGetPack + '</div>'
+      + '<div class="pw-title">' + (isZh ? '免费诊断完成' : 'Free scan complete') + '</div>'
+      + '<div class="pw-sub">' + (isZh ? '解锁修复，让 ClawAid 帮你搞定' : 'Unlock fixes to resolve your issues') + '</div>'
       + '</div>'
-      + findingsHtml
-      + '<div class="pw-price-box">'
-      + '<div class="pw-price" translate="no">' + esc(priceStr) + '</div>'
-      + '<div class="pw-price-sub">' + T.pwFixesPer(credits) + '</div>'
-      + '</div>'
+      + diagnosisHtml
       + buyBtnHtml
+      + waitlistHtml
       + '<div class="pw-auto-detect" id="pw-auto">'
       + '<div class="spin spin-sm" style="vertical-align:middle;margin-right:6px;"></div>'
       + '<span>' + T.pwWaiting + '</span>'
@@ -1356,6 +1377,39 @@
     }
     activateBtn.addEventListener('click', doActivate);
     tokenInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') doActivate(); });
+
+    // Waitlist
+    var wlBtn = document.getElementById('pw-waitlist');
+    var wlForm = document.getElementById('pw-waitlist-form');
+    if (wlBtn && wlForm) {
+      wlBtn.addEventListener('click', function() {
+        wlForm.style.display = wlForm.style.display === 'none' ? 'block' : 'none';
+        ev('waitlist_clicked');
+      });
+      var wlSubmit = document.getElementById('pw-waitlist-submit');
+      var wlEmail = document.getElementById('pw-waitlist-email');
+      var wlMsg = document.getElementById('pw-waitlist-msg');
+      if (wlSubmit) {
+        wlSubmit.addEventListener('click', function() {
+          var email = wlEmail ? wlEmail.value.trim() : '';
+          if (!email || email.indexOf('@') < 0) {
+            if (wlMsg) { wlMsg.style.color = 'var(--red)'; wlMsg.textContent = isZh ? '请输入有效邮箱' : 'Please enter a valid email'; }
+            return;
+          }
+          wlSubmit.disabled = true;
+          fetch('/api/waitlist', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email: email }) })
+            .then(function() {
+              if (wlMsg) { wlMsg.style.color = 'var(--green)'; wlMsg.textContent = isZh ? '✅ 已加入等待名单！' : '✅ You\'re on the list!'; }
+              ev('waitlist_joined', { email: email });
+            })
+            .catch(function() {
+              if (wlMsg) { wlMsg.style.color = 'var(--red)'; wlMsg.textContent = isZh ? '网络错误，请重试' : 'Network error, try again'; }
+              wlSubmit.disabled = false;
+            });
+        });
+      }
+    }
+
     scrollDown();
   }
 

@@ -82,6 +82,7 @@ export class DoctorLoop {
   private pendingConfirm?: { step: AgentStep; resolve: (confirmed: boolean) => void };
   private pendingDescription?: { resolve: (value: { description: string; screenshot?: string }) => void };
   private sbSessionId?: string;
+  private sessionPaid = false; // v3: once paid, all fixes in this session are free
 
   constructor(callback: EventCallback) {
     this.callback = callback;
@@ -222,9 +223,14 @@ export class DoctorLoop {
       } catch (err) {
         if (err instanceof PaywallError) {
           this.setState('paywall');
-          // v3: Include rule findings so paywall page can show what was found
           const findings = this.observation?.ruleFindings || [];
-          this.emit({ type: 'paywall', data: { price: err.price, currency: err.currency, isChinese: err.isChinese, credits: err.credits, payMethod: err.payMethod, findings } });
+          this.emit({ type: 'paywall', data: {
+            price: err.price, currency: err.currency, isChinese: err.isChinese,
+            credits: err.credits, payMethod: err.payMethod,
+            findings,
+            pendingFix: (err as any).pendingFix || null,
+            pricing: (err as any).pricing || null,
+          }});
           this.sendEvent('session_end', { reason: 'paywall', duration_ms: Date.now() - loopStartTime, steps_completed: stepsCompleted, outcome: 'paywall' });
           return;
         }
@@ -384,6 +390,7 @@ export class DoctorLoop {
       fingerprint,
       lang: this.lang,
       ...(this.token ? { token: this.token } : {}),
+      ...(this.sessionPaid ? { sessionPaid: true } : {}),
       ...(isFirst ? {
         sessionStart: true,
         userDescription: this.userDescription || undefined,
@@ -415,11 +422,13 @@ export class DoctorLoop {
             const parsed = JSON.parse(data);
             if (parsed.type === 'paywall') {
               reject(new PaywallError({
-                price: parsed.price?.price || '$1.99',
-                currency: parsed.price?.currency || 'USD',
+                price: parsed.price?.fixOnce?.price || parsed.price?.price || '$0.99',
+                currency: parsed.price?.fixOnce?.currency || parsed.price?.currency || 'USD',
                 isChinese: parsed.price?.isChinese || false,
-                credits: parsed.price?.credits || 5,
+                credits: parsed.price?.credits || 1,
                 payMethod: parsed.price?.payMethod,
+                pendingFix: parsed.pendingFix || null,
+                pricing: parsed.price || null,
               }));
               return;
             }

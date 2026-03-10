@@ -23,8 +23,10 @@ export class PaywallError extends Error {
   readonly isChinese: boolean;
   readonly credits: number;
   readonly payMethod: string;
+  readonly pendingFix: unknown;
+  readonly pricing: unknown;
 
-  constructor(opts: { price: string; currency: string; isChinese: boolean; credits: number; payMethod?: string }) {
+  constructor(opts: { price: string; currency: string; isChinese: boolean; credits: number; payMethod?: string; pendingFix?: unknown; pricing?: unknown }) {
     super('PaywallError');
     this.name = 'PaywallError';
     this.price = opts.price;
@@ -32,6 +34,8 @@ export class PaywallError extends Error {
     this.isChinese = opts.isChinese;
     this.credits = opts.credits;
     this.payMethod = opts.payMethod || (opts.isChinese ? 'xunhupay' : 'stripe');
+    this.pendingFix = opts.pendingFix || null;
+    this.pricing = opts.pricing || null;
   }
 }
 
