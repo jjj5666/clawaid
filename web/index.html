@@ -1086,8 +1086,23 @@
   // ═══ Paywall ══════════════════════════════════════════════════════════════
   function showPaywall(data) {
     var STRIPE_URL = 'https://buy.stripe.com/8x26oJ6WrdNnd9T4hI0oM01';
-    var priceStr = data.price || '$1.99';
-    var credits = data.credits || 5;
+    var priceData = data.price || data;
+    var priceStr = (typeof priceData === 'object') ? priceData.price : (data.price || '$1.99');
+    var credits = (typeof priceData === 'object') ? (priceData.credits || 5) : (data.credits || 5);
+    var payMethod = (typeof priceData === 'object') ? (priceData.payMethod || 'stripe') : 'stripe';
+    var isCN = payMethod === 'xunhupay';
+
+    var buyBtnHtml;
+    if (isCN) {
+      buyBtnHtml = '<button class="btn btn-primary btn-full" id="pw-buy" style="margin-bottom:0;">💳 ' + (isZh ? '微信支付' : 'WeChat Pay') + '</button>'
+        + '<div id="pw-xhp-loading" style="display:none;text-align:center;padding:12px;color:var(--text-muted);font-size:13px;">' + (isZh ? '正在创建订单...' : 'Creating order...') + '</div>'
+        + '<div id="pw-xhp-qr" style="display:none;text-align:center;padding:12px;">'
+        + '<p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">' + (isZh ? '扫码支付 ' : 'Scan to pay ') + esc(priceStr) + '</p>'
+        + '<img id="pw-xhp-qr-img" src="" style="max-width:200px;border-radius:8px;border:1px solid var(--border);" />'
+        + '</div>';
+    } else {
+      buyBtnHtml = '<a href="'+STRIPE_URL+'" target="_blank" class="btn btn-primary btn-full" id="pw-buy" style="text-decoration:none;margin-bottom:0;">' + T.pwBuyNow + '</a>';
+    }
 
     var div = document.createElement('div');
     div.className = 'card pw-card';
@@ -1100,7 +1115,7 @@
       + '<div class="pw-price" translate="no">' + esc(priceStr) + '</div>'
       + '<div class="pw-price-sub">' + T.pwFixesPer(credits) + '</div>'
       + '</div>'
-      + '<a href="'+STRIPE_URL+'" target="_blank" class="btn btn-primary btn-full" id="pw-buy" style="text-decoration:none;margin-bottom:0;">' + T.pwBuyNow + '</a>'
+      + buyBtnHtml
       + '<div class="pw-auto-detect" id="pw-auto">'
       + '<div class="spin spin-sm" style="vertical-align:middle;margin-right:6px;"></div>'
       + '<span>' + T.pwWaiting + '</span>'
@@ -1115,14 +1130,18 @@
       + '<div class="pw-contact">' + T.pwNeedHelp + ' WeChat: <b>oliver56666</b></div>';
     feed.appendChild(div);
 
-    // Fetch fingerprint for buy URL
+    // Fetch fingerprint for buy URL (Stripe) or xunhupay order creation
+    var _pwFingerprint = '';
     fetch('/api/fingerprint').then(function(r){return r.json();}).then(function(d) {
-      var btn = document.getElementById('pw-buy');
-      if (btn && d.fingerprint) btn.href = STRIPE_URL + '?client_reference_id=' + encodeURIComponent(d.fingerprint);
+      _pwFingerprint = d.fingerprint || '';
+      if (!isCN) {
+        var btn = document.getElementById('pw-buy');
+        if (btn && d.fingerprint) btn.href = STRIPE_URL + '?client_reference_id=' + encodeURIComponent(d.fingerprint);
+      }
     }).catch(function(){});
 
-    // Auto-poll after buy
-    var pollTimer = null, pollCount = 0, MAX_POLLS = 60;
+    // Auto-poll after buy (works for both Stripe and Xunhupay)
+    var pollTimer = null, pollCount = 0, MAX_POLLS = 120;
     function startPolling() {
       var detect = document.getElementById('pw-auto');
       if (detect) detect.style.display = 'block';
@@ -1147,9 +1166,42 @@
       }, 5000);
     }
 
-    document.getElementById('pw-buy').addEventListener('click', function() {
+    document.getElementById('pw-buy').addEventListener('click', function(e) {
       mp('buy_clicked');
-      setTimeout(startPolling, 3000);
+      if (isCN) {
+        e.preventDefault();
+        // Create xunhupay order
+        var btn = document.getElementById('pw-buy');
+        var loading = document.getElementById('pw-xhp-loading');
+        var qrDiv = document.getElementById('pw-xhp-qr');
+        btn.style.display = 'none';
+        loading.style.display = 'block';
+
+        fetch('https://api.clawaid.app/create-order/xunhupay', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fingerprint: _pwFingerprint }),
+        }).then(function(r){return r.json();}).then(function(data) {
+          loading.style.display = 'none';
+          if (data.error) { btn.style.display = 'block'; alert(data.error); return; }
+          if (/Mobi|Android/i.test(navigator.userAgent) && data.url) {
+            window.location.href = data.url;
+          } else if (data.url_qrcode) {
+            document.getElementById('pw-xhp-qr-img').src = data.url_qrcode;
+            qrDiv.style.display = 'block';
+          } else if (data.url) {
+            window.location.href = data.url;
+          }
+          startPolling();
+        }).catch(function(err) {
+          loading.style.display = 'none';
+          btn.style.display = 'block';
+          alert('创建订单失败: ' + (err.message || ''));
+        });
+      } else {
+        // Stripe — just start polling after click
+        setTimeout(startPolling, 3000);
+      }
     });
 
     // Manual token
