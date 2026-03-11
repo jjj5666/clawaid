@@ -81,6 +81,7 @@ export class DoctorLoop {
   private fixAttempts = 0;
   private pendingConfirm?: { step: AgentStep; resolve: (confirmed: boolean) => void };
   private pendingDescription?: { resolve: (value: { description: string; screenshot?: string }) => void };
+  private pendingFeedback?: { resolve: (value: { resolved: boolean; feedback?: string; screenshot?: string }) => void };
   private sbSessionId?: string;
   private sessionPaid = false; // v3: once paid, all fixes in this session are free
 
@@ -139,7 +140,9 @@ export class DoctorLoop {
 
   private emit(event: LoopEvent) { this.callback(event); }
   private setState(s: LoopState) { this.state = s; this.emit({ type: 'state_change', data: { state: s } }); }
-  private progress(msg: string) { this.emit({ type: 'progress', data: { message: msg } }); }
+  private progress(event: string | { id: string; label: string; status: string; detail?: string }) {
+    this.emit({ type: 'progress', data: typeof event === 'string' ? { message: event } : event });
+  }
 
   async start() {
     // Ask user to describe their problem (or skip)
@@ -176,6 +179,16 @@ export class DoctorLoop {
         this.pendingDescription.resolve({ description: value, screenshot: extra?.screenshot });
         this.pendingDescription = undefined;
       }
+    } else if (field === 'userFeedback') {
+      if (this.pendingFeedback) {
+        this.pendingFeedback.resolve({ resolved: false, feedback: value, screenshot: extra?.screenshot });
+        this.pendingFeedback = undefined;
+      }
+    } else if (field === 'userConfirmResolved') {
+      if (this.pendingFeedback) {
+        this.pendingFeedback.resolve({ resolved: true });
+        this.pendingFeedback = undefined;
+      }
     }
   }
 
@@ -203,7 +216,7 @@ export class DoctorLoop {
     const mockScenario = (global as Record<string, unknown>).__clawaid_mock as string | undefined;
     const obs = mockScenario
       ? loadMockObservation(mockScenario)
-      : await observe((msg) => this.progress(msg));
+      : await observe((event) => this.progress(event));
 
     this.observation = obs;
     this.observationText = formatObservation(obs);
@@ -218,9 +231,10 @@ export class DoctorLoop {
 
       // Ask AI for next step
       let step: AgentStep;
-      this.progress(stepIndex === 0 ? '🤖 AI is analyzing your system...' : '🤖 AI is thinking...');
+      this.progress({ id: 'ai-analyze', label: 'AI analyzing system data', status: 'pending' });
       try {
         step = await this.callStep(stepIndex === 0);
+        this.progress({ id: 'ai-analyze', label: 'AI analyzing system data', status: 'done' });
       } catch (err) {
         if (err instanceof PaywallError) {
           this.setState('paywall');
@@ -257,30 +271,65 @@ export class DoctorLoop {
         const degraded = (step as any).degraded || false;
         const baseData = { summary: step.summary, warnings, problem, fix, history: this.history, sbSessionId: this.sbSessionId };
 
-        if (step.fixed) {
-          this.setState('fixed');
-          // Deduct 1 credit if using a paid token
-          if (this.token) {
-            this.callComplete(this.token).catch(() => {});
+        // Emit complete event to show results in UI
+        const outcome = step.fixed ? 'fixed' : (degraded ? 'degraded' : (this.fixAttempts === 0 ? 'healthy' : 'not_fixed'));
+        this.emit({ type: 'complete', data: { ...baseData, fixed: step.fixed || false, degraded, healthy: outcome === 'healthy' } });
+
+        // Ask user to confirm: resolved or not?
+        this.setState('waiting');
+        this.emit({
+          type: 'request_input',
+          data: {
+            field: 'userFeedback',
+            instructions: step.fixed
+              ? 'ClawAid thinks the issue is fixed. Is your OpenClaw working now?'
+              : (outcome === 'healthy'
+                ? 'ClawAid found no issues. Is your OpenClaw working as expected?'
+                : 'ClawAid could not fully fix the issue. Want to provide more details so it can try again?'),
+            allowSkip: true,
+            allowScreenshot: true,
+            showResolvedButton: true,
           }
-          this.emit({ type: 'complete', data: { ...baseData, fixed: true } });
-          this.sendEvent('session_end', { reason: 'done', duration_ms: Date.now() - loopStartTime, steps_completed: stepsCompleted, outcome: 'fixed' });
-        } else if (degraded) {
-          // System runs but has functional issues (auth errors, model failures, etc.)
-          this.setState('degraded');
-          this.emit({ type: 'complete', data: { ...baseData, fixed: false, degraded: true } });
-          this.sendEvent('session_end', { reason: 'done', duration_ms: Date.now() - loopStartTime, steps_completed: stepsCompleted, outcome: 'degraded' });
-        } else if (this.fixAttempts === 0 && !step.fixed) {
-          // Healthy — no fixes were needed
-          this.setState('healthy');
-          this.emit({ type: 'complete', data: { ...baseData, fixed: false, healthy: true } });
-          this.sendEvent('session_end', { reason: 'done', duration_ms: Date.now() - loopStartTime, steps_completed: stepsCompleted, outcome: 'healthy' });
+        });
+
+        // Wait for user feedback
+        const feedback = await new Promise<{ resolved: boolean; feedback?: string; screenshot?: string }>((resolve) => {
+          this.pendingFeedback = { resolve };
+          // Auto-resolve after 5 minutes if user doesn't respond
+          setTimeout(() => {
+            if (this.pendingFeedback) {
+              this.pendingFeedback.resolve({ resolved: true });
+              this.pendingFeedback = undefined;
+            }
+          }, 300000);
+        });
+
+        if (feedback.resolved) {
+          // User confirmed resolved (or timed out)
+          if (step.fixed) {
+            this.setState('fixed');
+            if (this.token) { this.callComplete(this.token).catch(() => {}); }
+          } else if (degraded) {
+            this.setState('degraded');
+          } else if (this.fixAttempts === 0) {
+            this.setState('healthy');
+          } else {
+            this.setState('not_fixed');
+          }
+          this.sendEvent('session_end', { reason: 'done', duration_ms: Date.now() - loopStartTime, steps_completed: stepsCompleted, outcome });
+          return;
         } else {
-          this.setState('not_fixed');
-          this.emit({ type: 'complete', data: { ...baseData, fixed: false } });
-          this.sendEvent('session_end', { reason: 'done', duration_ms: Date.now() - loopStartTime, steps_completed: stepsCompleted, outcome: 'not_fixed' });
+          // User says NOT resolved — inject feedback and continue the loop
+          this.setState('running');
+          const feedbackText = feedback.feedback || 'User says the issue is not resolved.';
+          this.userDescription = `[PREVIOUS DIAGNOSIS FAILED] User feedback: ${feedbackText}\n\nOriginal problem: ${this.userDescription}`;
+          if (feedback.screenshot) this.userScreenshot = feedback.screenshot;
+          // Add AI's done step to history so it knows what it tried
+          this.history.push({ step, output: `[User feedback: NOT RESOLVED] ${feedbackText}`, timestamp: Date.now() });
+          this.sendEvent('user_feedback', { resolved: false, feedback: feedbackText });
+          // Continue the loop — AI will see the feedback in history
+          continue;
         }
-        return;
       }
 
       // Announce step to UI

@@ -7,10 +7,11 @@ import { RuleFinding, runRules, formatRuleFindings } from './rules';
 
 const execAsync = promisify(exec);
 
+export type ProgressEvent = string | { id: string; label: string; status: 'pending' | 'done' | 'error'; detail?: string };
+
 export interface ObservationResult {
   timestamp: string;
   openclawStatus: string;
-  gatewayStatus: string;
   gatewayStatusJson: string;
   configContent: string;
   configPath: string;
@@ -141,7 +142,7 @@ function collectLogs(): MultiLogResult {
 async function readPlist(): Promise<{ content: string; plistPath: string }> {
   const homeDir = os.homedir();
   const plistPath = path.join(homeDir, 'Library', 'LaunchAgents', 'ai.openclaw.gateway.plist');
-  
+
   try {
     if (fs.existsSync(plistPath)) {
       const content = fs.readFileSync(plistPath, 'utf-8');
@@ -150,14 +151,14 @@ async function readPlist(): Promise<{ content: string; plistPath: string }> {
   } catch {
     // ignore
   }
-  
+
   return { content: '[plist not found]', plistPath };
 }
 
 async function readConfig(): Promise<{ content: string; configPath: string }> {
   const homeDir = os.homedir();
   const configPath = path.join(homeDir, '.openclaw', 'openclaw.json');
-  
+
   try {
     if (fs.existsSync(configPath)) {
       const content = fs.readFileSync(configPath, 'utf-8');
@@ -166,7 +167,7 @@ async function readConfig(): Promise<{ content: string; configPath: string }> {
   } catch {
     // ignore
   }
-  
+
   return { content: '[config file not found - OpenClaw may not be configured]', configPath };
 }
 
@@ -183,121 +184,163 @@ export function loadMockObservation(scenario: string): ObservationResult {
   return obs;
 }
 
-export async function observe(onProgress?: (msg: string) => void): Promise<ObservationResult> {
+export async function observe(onProgress?: (msg: ProgressEvent) => void): Promise<ObservationResult> {
   const errors: string[] = [];
   const homeDir = os.homedir();
 
-  const progress = (msg: string) => {
-    if (onProgress) onProgress(msg);
+  const emit = (event: ProgressEvent) => {
+    if (onProgress) onProgress(event);
   };
 
-  progress('Checking OpenClaw status...');
-  const openclawStatusRaw = await runCommand('openclaw status 2>&1');
-  const openclawStatus = truncate(openclawStatusRaw, 2000);
+  // Run all observation groups in parallel, each emitting structured progress
+  const [
+    statusResult,
+    gatewayResult,
+    doctorResult,
+    configResult,
+    logsResult,
+    devicesResult,
+    versionsResult,
+    sessionsResult,
+  ] = await Promise.all([
 
-  progress('Checking gateway status...');
-  const gatewayStatus = await runCommand('openclaw gateway status 2>&1');
-  const gatewayStatusJson = await runCommand('openclaw gateway status --json 2>&1');
+    // Group: status — openclaw status, version, desktop app, port/process checks
+    (async () => {
+      emit({ id: 'status', label: 'OpenClaw status', status: 'pending' });
+      const [openclawStatusRaw, openclawVersion, desktopAppVersion, desktopAppRunning, portCheck, processCheck] = await Promise.all([
+        runCommand('openclaw status 2>&1'),
+        runCommand('openclaw --version 2>&1'),
+        runCommand('defaults read /Applications/OpenClaw.app/Contents/Info.plist CFBundleShortVersionString 2>&1'),
+        runCommand('pgrep -f "OpenClaw.app" 2>&1'),
+        runCommand('lsof -i :18789 2>&1 || echo "[lsof not available or port not in use]"'),
+        runCommand('ps aux | grep -i "[o]penclaw"'),
+      ]);
+      emit({ id: 'status', label: 'OpenClaw status', status: 'done' });
+      return { openclawStatus: truncate(openclawStatusRaw, 2000), openclawVersion, desktopAppVersion, desktopAppRunning, portCheck, processCheck };
+    })(),
 
-  progress('Running official openclaw doctor...');
-  const officialDoctorRaw = await runCommand('openclaw doctor 2>&1', 30000);
-  const officialDoctorOutput = truncate(officialDoctorRaw, 3000);
+    // Group: gateway — gateway status JSON only
+    (async () => {
+      emit({ id: 'gateway', label: 'Gateway health', status: 'pending' });
+      const gatewayStatusJson = await runCommand('openclaw gateway status --json 2>&1');
+      emit({ id: 'gateway', label: 'Gateway health', status: 'done' });
+      return { gatewayStatusJson };
+    })(),
 
-  progress('Reading config file...');
-  const { content: configContent, configPath } = await readConfig();
+    // Group: doctor — official openclaw doctor
+    (async () => {
+      emit({ id: 'doctor', label: 'Doctor check', status: 'pending' });
+      const officialDoctorRaw = await runCommand('openclaw doctor 2>&1', 30000);
+      emit({ id: 'doctor', label: 'Doctor check', status: 'done' });
+      return { officialDoctorOutput: truncate(officialDoctorRaw, 3000) };
+    })(),
 
-  progress('Checking port 18789...');
-  const portCheck = await runCommand('lsof -i :18789 2>&1 || echo "[lsof not available or port not in use]"');
+    // Group: config — config file + launch agent plist (file reads, fast)
+    (async () => {
+      emit({ id: 'config', label: 'Config & launch agent', status: 'pending' });
+      const [{ content: configContent, configPath }, { content: plistContent, plistPath }] = await Promise.all([
+        readConfig(),
+        readPlist(),
+      ]);
+      emit({ id: 'config', label: 'Config & launch agent', status: 'done' });
+      return { configContent, configPath, plistContent, plistPath };
+    })(),
 
-  progress('Checking OpenClaw processes...');
-  const processCheck = await runCommand('ps aux | grep -i "[o]penclaw"');
+    // Group: logs — collect all log files (file reads, fast)
+    (async () => {
+      emit({ id: 'logs', label: 'System logs', status: 'pending' });
+      const { sections: recentLogs, primaryLogPath: logPath } = collectLogs();
+      emit({ id: 'logs', label: 'System logs', status: 'done' });
+      return { recentLogs, logPath };
+    })(),
 
-  progress('Reading launch agent plist...');
-  const { content: plistContent, plistPath } = await readPlist();
+    // Group: devices — device pairing list
+    (async () => {
+      emit({ id: 'devices', label: 'Device pairing', status: 'pending' });
+      const devicesList = await runCommand('openclaw devices list 2>&1');
+      emit({ id: 'devices', label: 'Device pairing', status: 'done' });
+      return { devicesList };
+    })(),
 
-  progress('Finding and reading logs...');
-  const { sections: recentLogs, primaryLogPath: logPath } = collectLogs();
+    // Group: versions — node, npm, system info, latest openclaw version
+    (async () => {
+      emit({ id: 'versions', label: 'Version check', status: 'pending' });
+      const [nodeVersion, npmVersion, systemInfo, latestVersion] = await Promise.all([
+        runCommand('node -v 2>&1'),
+        runCommand('npm -v 2>&1'),
+        runCommand('sw_vers 2>/dev/null || uname -a'),
+        runCommand('npm view openclaw version 2>&1'),
+      ]);
+      emit({ id: 'versions', label: 'Version check', status: 'done' });
+      return { nodeVersion, npmVersion, systemInfo, latestVersion };
+    })(),
 
-  progress('Checking Node.js version...');
-  const nodeVersion = await runCommand('node -v 2>&1');
-  const npmVersion = await runCommand('npm -v 2>&1');
-
-  progress('Checking OpenClaw version...');
-  const openclawVersion = await runCommand('openclaw --version 2>&1');
-
-  progress('Checking OpenClaw desktop app...');
-  const desktopAppVersion = await runCommand('defaults read /Applications/OpenClaw.app/Contents/Info.plist CFBundleShortVersionString 2>&1');
-  const desktopAppRunning = await runCommand('pgrep -f "OpenClaw.app" 2>&1');
-
-  progress('Gathering system info...');
-  const systemInfo = await runCommand('sw_vers 2>/dev/null || uname -a');
-
-  // v3: new data sources
-  progress('Checking device pairing...');
-  const devicesList = await runCommand('openclaw devices list 2>&1');
-
-  progress('Checking session integrity...');
-  const sessionDir = path.join(homeDir, '.openclaw', 'sessions');
-  let sessionIntegrity = 'no sessions directory';
-  try {
-    if (fs.existsSync(sessionDir)) {
-      const sessionFiles = fs.readdirSync(sessionDir).filter(f => f.endsWith('.json')).slice(-5);
-      if (sessionFiles.length === 0) {
-        sessionIntegrity = 'sessions directory exists but no .json files';
-      } else {
-        const checks: string[] = [];
-        for (const sf of sessionFiles) {
-          try {
-            const content = fs.readFileSync(path.join(sessionDir, sf), 'utf-8');
-            // Quick integrity check: valid JSON + no orphaned messages
-            JSON.parse(content);
-            const hasOrphaned = /orphaned/i.test(content);
-            checks.push(`${sf}: ${hasOrphaned ? 'ORPHANED MESSAGES DETECTED' : 'ok'}`);
-          } catch {
-            checks.push(`${sf}: PARSE ERROR`);
+    // Group: sessions — session file integrity check
+    (async () => {
+      emit({ id: 'sessions', label: 'Session integrity', status: 'pending' });
+      const sessionDir = path.join(homeDir, '.openclaw', 'sessions');
+      let sessionIntegrity = 'no sessions directory';
+      try {
+        if (fs.existsSync(sessionDir)) {
+          const sessionFiles = fs.readdirSync(sessionDir).filter(f => f.endsWith('.json')).slice(-5);
+          if (sessionFiles.length === 0) {
+            sessionIntegrity = 'sessions directory exists but no .json files';
+          } else {
+            const checks: string[] = [];
+            for (const sf of sessionFiles) {
+              try {
+                const content = fs.readFileSync(path.join(sessionDir, sf), 'utf-8');
+                // Quick integrity check: valid JSON + no orphaned messages
+                JSON.parse(content);
+                const hasOrphaned = /orphaned/i.test(content);
+                checks.push(`${sf}: ${hasOrphaned ? 'ORPHANED MESSAGES DETECTED' : 'ok'}`);
+              } catch {
+                checks.push(`${sf}: PARSE ERROR`);
+              }
+            }
+            sessionIntegrity = checks.join('\n');
           }
         }
-        sessionIntegrity = checks.join('\n');
+      } catch {
+        sessionIntegrity = 'error checking sessions';
       }
-    }
-  } catch {
-    sessionIntegrity = 'error checking sessions';
-  }
+      emit({ id: 'sessions', label: 'Session integrity', status: 'done' });
+      return { sessionIntegrity };
+    })(),
+  ]);
 
-  progress('Checking version gap...');
-  const latestVersion = await runCommand('npm view openclaw version 2>&1');
-  const versionGap = `current: ${openclawVersion} | latest: ${latestVersion}`;
+  const versionGap = `current: ${statusResult.openclawVersion} | latest: ${versionsResult.latestVersion}`;
 
   const obs: ObservationResult = {
     timestamp: new Date().toISOString(),
-    openclawStatus,
-    gatewayStatus,
-    gatewayStatusJson,
-    configContent,
-    configPath,
-    portCheck,
-    processCheck,
-    plistContent,
-    plistPath,
-    recentLogs,
-    logPath,
-    nodeVersion,
-    npmVersion,
-    openclawVersion,
-    systemInfo,
+    openclawStatus: statusResult.openclawStatus,
+    gatewayStatusJson: gatewayResult.gatewayStatusJson,
+    configContent: configResult.configContent,
+    configPath: configResult.configPath,
+    portCheck: statusResult.portCheck,
+    processCheck: statusResult.processCheck,
+    plistContent: configResult.plistContent,
+    plistPath: configResult.plistPath,
+    recentLogs: logsResult.recentLogs,
+    logPath: logsResult.logPath,
+    nodeVersion: versionsResult.nodeVersion,
+    npmVersion: versionsResult.npmVersion,
+    openclawVersion: statusResult.openclawVersion,
+    systemInfo: versionsResult.systemInfo,
     homeDir,
-    officialDoctorOutput,
-    desktopAppVersion,
-    desktopAppRunning,
-    devicesList,
-    sessionIntegrity,
+    officialDoctorOutput: doctorResult.officialDoctorOutput,
+    desktopAppVersion: statusResult.desktopAppVersion,
+    desktopAppRunning: statusResult.desktopAppRunning,
+    devicesList: devicesResult.devicesList,
+    sessionIntegrity: sessionsResult.sessionIntegrity,
     versionGap,
     errors,
   };
 
   // Run deterministic rule checks
-  progress('Running rule checks...');
+  emit({ id: 'rules', label: 'Rule engine', status: 'pending' });
   obs.ruleFindings = runRules(obs);
+  emit({ id: 'rules', label: 'Rule engine', status: 'done' });
 
   return obs;
 }
@@ -327,8 +370,8 @@ export function formatObservation(obs: ObservationResult): string {
   // Detect Windows platform from system info or paths
   const isWindows = os.platform() === 'win32'
     || /windows|win32|win64|\\Users\\/i.test(obs.systemInfo + obs.homeDir + obs.configPath)
-    || /Scheduled Task/i.test(obs.gatewayStatus + obs.officialDoctorOutput)
-    || /ENOENT.*zsh|spawnSync.*zsh/i.test(obs.gatewayStatus + obs.officialDoctorOutput);
+    || /Scheduled Task/i.test(obs.officialDoctorOutput)
+    || /ENOENT.*zsh|spawnSync.*zsh/i.test(obs.officialDoctorOutput);
 
   const platformWarning = isWindows ? `
 ## ⚠️ PLATFORM: WINDOWS

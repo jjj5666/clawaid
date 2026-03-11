@@ -93,7 +93,7 @@ const configParseError: Rule = (obs) => {
 };
 
 const gatewayNotRunning: Rule = (obs) => {
-  const status = obs.gatewayStatus || '';
+  const status = obs.gatewayStatusJson || '';
   const lower = status.toLowerCase();
 
   if (lower.includes('not running') && !lower.includes('config')) {
@@ -110,7 +110,7 @@ const gatewayNotRunning: Rule = (obs) => {
 };
 
 const portConflict: Rule = (obs) => {
-  const status = obs.gatewayStatus || '';
+  const status = obs.gatewayStatusJson || '';
   const logs = obs.recentLogs || '';
   const combined = status + '\n' + logs;
 

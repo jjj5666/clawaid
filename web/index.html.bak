@@ -8,45 +8,45 @@
   <title>ClawAid</title>
 
   <style>
-    /* ═══ CSS Variables — Dark by default ══════════════════════════════════ */
+    /* ═══ CSS Variables ═══════════════════════════════════════════════════════ */
     :root {
-      --bg:            #0a0a0c;
-      --surface:       #141417;
-      --surface-alt:   #1c1c20;
-      --border:        #252529;
-      --border-strong: #333339;
-      --text:          #f0f0f2;
-      --text-secondary:#8a8a96;
-      --text-muted:    #4a4a54;
+      --bg:            #f8f8fa;
+      --surface:       #ffffff;
+      --surface-alt:   #f4f5f7;
+      --border:        #e8e8ec;
+      --border-strong: #d1d1d6;
+      --text:          #1a1a1a;
+      --text-secondary:#6b6b76;
+      --text-muted:    #9b9ba4;
 
-      --accent:        #818cf8;
-      --accent-hover:  #6366f1;
-      --accent-bg:     rgba(99,102,241,.14);
-      --accent-border: rgba(129,140,248,.28);
+      --accent:        #4f46e5;
+      --accent-hover:  #4338ca;
+      --accent-bg:     #eef2ff;
+      --accent-border: #c7d2fe;
 
-      --green:         #34d399;
-      --green-bg:      rgba(52,211,153,.1);
-      --green-border:  rgba(52,211,153,.22);
+      --green:         #059669;
+      --green-bg:      #ecfdf5;
+      --green-border:  #a7f3d0;
 
-      --red:           #f87171;
-      --red-bg:        rgba(248,113,113,.1);
-      --red-border:    rgba(248,113,113,.22);
+      --red:           #dc2626;
+      --red-bg:        #fef2f2;
+      --red-border:    #fecaca;
 
-      --amber:         #fbbf24;
-      --amber-bg:      rgba(251,191,36,.1);
-      --amber-border:  rgba(251,191,36,.22);
+      --amber:         #d97706;
+      --amber-bg:      #fffbeb;
+      --amber-border:  #fde68a;
 
-      --blue:          #60a5fa;
-      --blue-bg:       rgba(96,165,250,.1);
-      --blue-border:   rgba(96,165,250,.22);
+      --blue:          #2563eb;
+      --blue-bg:       #eff6ff;
+      --blue-border:   #bfdbfe;
 
       --radius:        14px;
       --radius-sm:     10px;
       --radius-xs:     6px;
 
-      --shadow-sm:     0 1px 2px rgba(0,0,0,.4), 0 1px 4px rgba(0,0,0,.3);
-      --shadow:        0 2px 8px rgba(0,0,0,.5), 0 1px 4px rgba(0,0,0,.4);
-      --shadow-lg:     0 4px 20px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.5);
+      --shadow-sm:     0 1px 2px rgba(0,0,0,.04), 0 1px 3px rgba(0,0,0,.03);
+      --shadow:        0 2px 6px rgba(0,0,0,.06), 0 1px 4px rgba(0,0,0,.04);
+      --shadow-lg:     0 4px 16px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.04);
 
       --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei',
               'PingFang SC', 'Noto Sans SC', sans-serif;
@@ -55,52 +55,10 @@
       --transition: 0.18s ease;
     }
 
-    /* Light mode override */
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg:            #f8f8fa;
-        --surface:       #ffffff;
-        --surface-alt:   #f4f5f7;
-        --border:        #e8e8ec;
-        --border-strong: #d1d1d6;
-        --text:          #1a1a1a;
-        --text-secondary:#6b6b76;
-        --text-muted:    #9b9ba4;
-
-        --accent:        #4f46e5;
-        --accent-hover:  #4338ca;
-        --accent-bg:     #eef2ff;
-        --accent-border: #c7d2fe;
-
-        --green:         #059669;
-        --green-bg:      #ecfdf5;
-        --green-border:  #a7f3d0;
-
-        --red:           #dc2626;
-        --red-bg:        #fef2f2;
-        --red-border:    #fecaca;
-
-        --amber:         #d97706;
-        --amber-bg:      #fffbeb;
-        --amber-border:  #fde68a;
-
-        --blue:          #2563eb;
-        --blue-bg:       #eff6ff;
-        --blue-border:   #bfdbfe;
-
-        --shadow-sm:     0 1px 2px rgba(0,0,0,.04), 0 1px 3px rgba(0,0,0,.03);
-        --shadow:        0 2px 6px rgba(0,0,0,.06), 0 1px 4px rgba(0,0,0,.04);
-        --shadow-lg:     0 4px 16px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.04);
-      }
-      #toast { background: #1a1a1a; color: #fff; }
-      .fix-cmd, .fix-output, .wc-code, .ai-step-output { background: #111113; }
-      .wc-ignore { background: #141416; }
-    }
-
-    /* ═══ Reset ═════════════════════════════════════════════════════════════ */
+    /* ═══ Reset ═══════════════════════════════════════════════════════════════ */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ═══ Base ══════════════════════════════════════════════════════════════ */
+    /* ═══ Base ════════════════════════════════════════════════════════════════ */
     body {
       font-family: var(--font);
       background: var(--bg);
@@ -115,18 +73,18 @@
     a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
-    /* ═══ Layout ════════════════════════════════════════════════════════════ */
+    /* ═══ Layout ══════════════════════════════════════════════════════════════ */
     .wrap { max-width: 520px; margin: 0 auto; }
     .hidden { display: none !important; }
-    #feed { display: flex; flex-direction: column; gap: 10px; }
+    #feed { display: flex; flex-direction: column; gap: 12px; }
 
-    /* ═══ Header ════════════════════════════════════════════════════════════ */
+    /* ═══ Header ══════════════════════════════════════════════════════════════ */
     .hdr { text-align: center; margin-bottom: 28px; }
     .hdr-logo { font-size: 48px; line-height: 1; display: block; margin-bottom: 10px; }
     .hdr h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
     .hdr-sub { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
 
-    /* ═══ Cards ═════════════════════════════════════════════════════════════ */
+    /* ═══ Cards ═══════════════════════════════════════════════════════════════ */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -135,13 +93,13 @@
       animation: fadeUp .24s ease both;
     }
 
-    /* ═══ Start Screen ══════════════════════════════════════════════════════ */
+    /* ═══ Start Screen ═══════════════════════════════════════════════════════ */
     .start-card { padding: 28px 24px; }
     .start-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 12px; }
     .start-card ul { padding-left: 20px; font-size: 13px; color: var(--text-secondary); line-height: 2; margin-bottom: 20px; }
     .start-card ul li { list-style: disc; }
 
-    /* ═══ Buttons ═══════════════════════════════════════════════════════════ */
+    /* ═══ Buttons ═════════════════════════════════════════════════════════════ */
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 6px;
       padding: 9px 18px; font-size: 13px; font-weight: 600; font-family: var(--font);
@@ -154,24 +112,22 @@
 
     .btn-primary { background: var(--accent); color: #fff; }
     .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
-    .btn-green { background: var(--green); color: #0a0a0c; }
-    .btn-green:hover:not(:disabled) { background: #2dd48a; }
-    .btn-amber { background: var(--amber); color: #0a0a0c; }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-green:hover:not(:disabled) { background: #047857; }
+    .btn-amber { background: var(--amber); color: #fff; }
     .btn-ghost {
-      background: var(--surface-alt); color: var(--text);
+      background: var(--surface); color: var(--text);
       border: 1px solid var(--border);
     }
-    .btn-ghost:hover:not(:disabled) { background: var(--border); border-color: var(--border-strong); }
-    .btn-red { background: var(--red); color: #0a0a0c; }
-    .btn-red:hover:not(:disabled) { background: #f66; }
+    .btn-ghost:hover:not(:disabled) { background: var(--surface-alt); border-color: var(--border-strong); }
 
     .btn-full { width: 100%; padding: 13px 20px; font-size: 15px; border-radius: var(--radius); }
-    .btn-primary.btn-full { box-shadow: 0 1px 3px rgba(99,102,241,.3); }
+    .btn-primary.btn-full { box-shadow: 0 1px 3px rgba(79,70,229,.25); }
 
-    /* ═══ Spinner ═══════════════════════════════════════════════════════════ */
+    /* ═══ Spinner ═════════════════════════════════════════════════════════════ */
     .spin {
       width: 16px; height: 16px;
-      border: 2px solid var(--border-strong);
+      border: 2px solid var(--border);
       border-top-color: var(--accent);
       border-radius: 50%;
       animation: spin .65s linear infinite;
@@ -179,7 +135,7 @@
     }
     .spin-sm { width: 13px; height: 13px; border-width: 1.5px; }
 
-    /* ═══ Scan Block ════════════════════════════════════════════════════════ */
+    /* ═══ Scan Block ═════════════════════════════════════════════════════════ */
     .scan-block {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -190,38 +146,42 @@
     }
     .scan-hd {
       display: flex; align-items: center; gap: 14px;
-      padding: 14px 18px;
+      padding: 16px 20px;
     }
-    .scan-emoji { font-size: 20px; flex-shrink: 0; }
+    .scan-emoji { font-size: 24px; flex-shrink: 0; }
     .scan-body { flex: 1; min-width: 0; }
-    .scan-title { font-size: 13px; font-weight: 600; }
-    .scan-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+    .scan-title { font-size: 14px; font-weight: 600; }
+    .scan-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .scan-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
     .scan-toggle {
-      font-size: 11px; color: var(--accent); background: none; border: none;
+      font-size: 12px; color: var(--accent); background: none; border: none;
       cursor: pointer; padding: 2px 0; white-space: nowrap;
     }
     .scan-toggle:hover { text-decoration: underline; }
-    .scan-details { border-top: 1px solid var(--border); padding: 8px 18px 12px; display: none; }
+    .scan-details { border-top: 1px solid var(--border); padding: 10px 20px 14px; display: none; }
     .scan-details.open { display: block; }
+    .schk { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 12px; color: var(--text-secondary); }
+    .schk-icon { width: 16px; text-align: center; flex-shrink: 0; font-size: 13px; }
+    .schk-icon.done { color: var(--green); }
+    .schk-icon.pending { color: var(--text-muted); }
+    .schk-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    /* ═══ Scan Checklist ════════════════════════════════════════════════════ */
+    /* ═══ Scan Checklist ══════════════════════════════════════════════════════ */
+    .scan-checklist { }
     .scl-item {
       display: flex; align-items: center; gap: 10px;
-      padding: 4px 18px; font-size: 12px;
+      padding: 5px 20px; font-size: 12px;
       animation: fadeIn .22s ease both;
     }
-    .scan-checklist { display: none; }
-    .scan-checklist.open { display: block; }
-    .scl-item:first-child { padding-top: 8px; border-top: 1px solid var(--border); }
-    .scl-item:last-child  { padding-bottom: 10px; }
-    .scl-icon { width: 20px; text-align: center; flex-shrink: 0; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+    .scl-item:first-child { padding-top: 10px; border-top: 1px solid var(--border); }
+    .scl-item:last-child  { padding-bottom: 12px; }
+    .scl-icon { width: 20px; text-align: center; flex-shrink: 0; font-size: 13px; display: flex; align-items: center; justify-content: center; }
     .scl-label { flex: 1; color: var(--text-secondary); }
     .scl-label.pending { color: var(--accent); }
     .scl-label.error   { color: var(--red); }
     .scl-time { font-size: 11px; color: var(--text-muted); min-width: 34px; text-align: right; }
 
-    /* ═══ AI Phase Card ═════════════════════════════════════════════════════ */
+    /* ═══ AI Phase Card ════════════════════════════════════════════════════ */
     .ai-phase-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -232,43 +192,29 @@
     }
     .ai-phase-hd {
       display: flex; align-items: center; gap: 14px;
-      padding: 14px 18px;
+      padding: 16px 20px;
     }
-    .ai-phase-emoji { font-size: 20px; flex-shrink: 0; animation: pulse-glow 2s ease-in-out infinite; }
+    .ai-phase-emoji { font-size: 24px; flex-shrink: 0; animation: pulse-glow 2s ease-in-out infinite; }
     .ai-phase-emoji.done { animation: none; }
     .ai-phase-body { flex: 1; min-width: 0; }
-    .ai-phase-title { font-size: 13px; font-weight: 600; }
-    .ai-phase-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+    .ai-phase-title { font-size: 14px; font-weight: 600; }
+    .ai-phase-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
     .ai-phase-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
     .ai-phase-steps {
       border-top: 1px solid var(--border);
-      padding: 4px 0;
+      padding: 6px 0;
     }
 
-    /* ═══ AI Step Item ═══════════════════════════════════════════════════════ */
+    /* ═══ AI Step Item (READ / FIX / DONE inside phase card) ═══════════════ */
     .ai-step {
-      position: relative;
       display: flex; align-items: flex-start; gap: 12px;
-      padding: 8px 18px;
+      padding: 8px 20px;
       font-size: 13px;
       animation: fadeIn .22s ease both;
     }
-    /* vertical timeline line between steps */
-    .ai-step::before {
-      content: '';
-      position: absolute;
-      left: 26px; top: 28px; bottom: -8px;
-      width: 1px;
-      background: var(--border);
-      pointer-events: none;
-    }
-    .ai-step:last-child::before { display: none; }
-
     .ai-step-icon {
       width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; margin-top: 1px; font-size: 14px;
-      position: relative; z-index: 1;
-      background: var(--surface);
+      flex-shrink: 0; margin-top: 1px;
     }
     .ai-step-body { flex: 1; min-width: 0; }
     .ai-step-desc { font-weight: 500; color: var(--text); line-height: 1.4; }
@@ -291,28 +237,22 @@
       cursor: pointer; padding: 2px 0; margin-top: 4px; font-family: var(--font);
     }
     .ai-step-toggle:hover { color: var(--accent); }
-    .ai-step-thinking {
-      font-size: 12px; color: var(--text-muted); margin-top: 4px; cursor: pointer;
-      user-select: none; line-height: 1.5;
-    }
-    .ai-step-thinking .thinking-full { display: none; white-space: pre-wrap; }
-    .ai-step-thinking.expanded .thinking-preview { display: none; }
-    .ai-step-thinking.expanded .thinking-full { display: block; }
+    .ai-step-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
     .ai-step-time { font-size: 11px; color: var(--text-muted); flex-shrink: 0; margin-top: 2px; min-width: 30px; text-align: right; }
-
-    /* ═══ Fix Step Confirm Bar ══════════════════════════════════════════════ */
-    .confirm-bar {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 18px 8px 52px;
-      background: var(--amber-bg);
-      border-top: 1px solid var(--amber-border);
-      animation: fadeIn .18s ease both;
+    @keyframes pulse-glow {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.1); opacity: .8; }
     }
-    .confirm-bar.risk-high { background: var(--red-bg); border-top-color: var(--red-border); }
-    .confirm-label { font-size: 12px; color: var(--text); flex: 1; }
-    .confirm-bar .btn { padding: 5px 14px; font-size: 12px; border-radius: 100px; }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .4; transform: scale(.7); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-    /* ═══ Fix Step Card (collapsible, shows thinking etc.) ══════════════════ */
+    /* ═══ Fix Step Cards ══════════════════════════════════════════════════════ */
     .fix-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -336,10 +276,10 @@
       font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px;
       text-transform: uppercase; letter-spacing: .3px;
     }
-    .badge-fix    { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
-    .badge-medium { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
-    .badge-high   { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-border); }
-    .badge-done   { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+    .badge-fix    { background: var(--amber-bg); color: var(--amber); }
+    .badge-medium { background: var(--amber-bg); color: var(--amber); }
+    .badge-high   { background: var(--red-bg);   color: var(--red); }
+    .badge-done   { background: var(--green-bg); color: var(--green); }
 
     .fix-status { font-size: 16px; flex-shrink: 0; }
     .fix-detail { display: none; border-top: 1px solid var(--border); padding: 14px 18px; }
@@ -376,24 +316,16 @@
       margin-bottom: 10px; white-space: pre-wrap; word-break: break-word; line-height: 1.55;
     }
 
-    /* ═══ Resolution Confirm (after complete) ═══════════════════════════════ */
-    .resolution-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 28px 24px;
-      text-align: center;
-      animation: fadeUp .32s ease both;
+    /* ═══ Confirm Bar ════════════════════════════════════════════════════════ */
+    .confirm-bar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 18px; background: var(--amber-bg);
+      border-top: 1px solid var(--amber-border);
     }
-    .resolution-emoji { font-size: 36px; display: block; margin-bottom: 12px; }
-    .resolution-q { font-size: 17px; font-weight: 600; margin-bottom: 22px; letter-spacing: -0.2px; }
-    .resolution-btns { display: flex; gap: 12px; }
-    .resolution-btns .btn { flex: 1; padding: 13px 16px; font-size: 14px; border-radius: var(--radius-sm); }
-    .resolution-feedback { margin-top: 20px; text-align: left; animation: fadeIn .2s ease both; }
-    .resolution-feedback-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500; }
+    .confirm-bar.risk-high { background: var(--red-bg); border-top-color: var(--red-border); }
+    .confirm-label { font-size: 13px; color: var(--text); flex: 1; font-weight: 500; }
 
-    /* ═══ Result Cards ══════════════════════════════════════════════════════ */
+    /* ═══ Result Cards ════════════════════════════════════════════════════════ */
     .result-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -432,7 +364,7 @@
     }
     .contact-block b { color: var(--text); }
 
-    /* ═══ Warning Cards ═════════════════════════════════════════════════════ */
+    /* ═══ Warning Cards ══════════════════════════════════════════════════════ */
     .warnings-section { text-align: left; margin-bottom: 18px; }
     .warnings-heading {
       font-size: 11px; font-weight: 700; text-transform: uppercase;
@@ -473,7 +405,7 @@
       font-family: var(--font); border: 1px solid var(--border);
     }
     .wc-action-primary { background: var(--amber-bg); border-color: var(--amber-border); color: var(--amber); }
-    .wc-action-primary:hover { background: var(--amber-bg); opacity: .85; }
+    .wc-action-primary:hover { background: #fef3c7; }
     .wc-action-secondary { background: var(--surface); color: var(--text-secondary); }
     .wc-action-secondary:hover { background: var(--surface-alt); }
     .wc-action-btn.copied { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
@@ -493,7 +425,7 @@
     .wc-copy:hover { background: var(--surface-alt); }
     .wc-copy.copied { color: var(--green); border-color: var(--green-border); }
 
-    /* ═══ Feedback ══════════════════════════════════════════════════════════ */
+    /* ═══ Feedback ════════════════════════════════════════════════════════════ */
     .fb-card {
       background: var(--surface-alt); border: 1px solid var(--border);
       border-radius: var(--radius-sm); padding: 18px 20px; text-align: center;
@@ -509,7 +441,7 @@
     .fb-contact { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
     .fb-contact b { color: var(--text-secondary); }
 
-    /* ═══ Feedback Gate ═════════════════════════════════════════════════════ */
+    /* ═══ Feedback Gate ════════════════════════════════════════════════════════ */
     .feedback-gate {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -530,8 +462,8 @@
     }
     .fb-gate-btn:hover { transform: translateY(-1px); }
     .fb-gate-btn:active { transform: translateY(0) scale(.98); }
-    .fb-gate-btn-yes { background: var(--green); color: #0a0a0c; box-shadow: 0 2px 8px rgba(52,211,153,.25); }
-    .fb-gate-btn-yes:hover { opacity: .9; }
+    .fb-gate-btn-yes { background: var(--green); color: #fff; box-shadow: 0 2px 8px rgba(5,150,105,.25); }
+    .fb-gate-btn-yes:hover { background: #047857; }
     .fb-gate-btn-no { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
     .fb-gate-btn-no:hover { background: var(--surface-alt); }
     .fb-gate-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
@@ -540,13 +472,13 @@
     .fb-gate-detail textarea {
       width: 100%; padding: 10px 12px; font-size: 13px; font-family: var(--font);
       border: 1px solid var(--border); border-radius: var(--radius-sm);
-      resize: vertical; min-height: 72px; background: var(--surface-alt); color: var(--text);
+      resize: vertical; min-height: 72px; background: var(--surface); color: var(--text);
       transition: border-color var(--transition), box-shadow var(--transition);
     }
-    .fb-gate-detail textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(129,140,248,.15); }
+    .fb-gate-detail textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
     .fb-gate-detail-row { display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end; }
 
-    /* ═══ Description Input ═════════════════════════════════════════════════ */
+    /* ═══ Description Input ═══════════════════════════════════════════════════ */
     .input-card { padding: 24px 22px; }
     .input-title { font-size: 17px; font-weight: 600; margin-bottom: 5px; }
     .input-hint { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.55; }
@@ -555,10 +487,10 @@
       width: 100%; padding: 12px 14px 38px; font-size: 14px;
       border: 1px solid var(--border); border-radius: var(--radius-sm);
       font-family: var(--font); resize: vertical; min-height: 92px;
-      line-height: 1.55; background: var(--surface-alt); color: var(--text);
+      line-height: 1.55; background: var(--surface); color: var(--text);
       transition: border-color var(--transition), box-shadow var(--transition);
     }
-    .input-textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(129,140,248,.15); }
+    .input-textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
     .input-textarea::placeholder { color: var(--text-muted); }
     .input-camera {
       position: absolute; bottom: 9px; right: 9px;
@@ -583,7 +515,7 @@
     .btn-row { display: flex; gap: 8px; margin-top: 12px; }
     .btn-row .btn { flex: 1; }
 
-    /* ═══ Paywall ═══════════════════════════════════════════════════════════ */
+    /* ═══ Paywall ═════════════════════════════════════════════════════════════ */
     .pw-card { padding: 28px 24px; }
     .pw-hd { text-align: center; margin-bottom: 22px; }
     .pw-emoji { font-size: 40px; display: block; margin-bottom: 10px; }
@@ -603,15 +535,15 @@
     .pw-input {
       width: 100%; padding: 10px 14px; font-size: 14px; font-family: var(--mono);
       border: 1px solid var(--border); border-radius: var(--radius-sm);
-      background: var(--surface-alt); color: var(--text); margin-bottom: 8px;
+      background: var(--surface); color: var(--text); margin-bottom: 8px;
     }
-    .pw-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(129,140,248,.15); }
+    .pw-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
 
-    /* ═══ Toast ═════════════════════════════════════════════════════════════ */
+    /* ═══ Toast ═══════════════════════════════════════════════════════════════ */
     #toast {
       position: fixed; bottom: 28px; left: 50%;
       transform: translateX(-50%) translateY(0);
-      background: #f0f0f2; color: #111;
+      background: #1a1a1a; color: #fff;
       font-size: 13px; font-weight: 500; font-family: var(--font);
       padding: 9px 20px; border-radius: 100px;
       box-shadow: var(--shadow-lg); opacity: 0; pointer-events: none;
@@ -619,7 +551,7 @@
     }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
 
-    /* ═══ Confetti ══════════════════════════════════════════════════════════ */
+    /* ═══ Confetti ════════════════════════════════════════════════════════════ */
     #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 8000; overflow: hidden; }
     .confetti-p { position: absolute; top: -24px; will-change: transform, opacity; }
     @keyframes confetti-fall {
@@ -628,32 +560,57 @@
       100% { transform: translateY(110vh) rotate(800deg) scale(.7); opacity: 0; }
     }
 
-    /* ═══ Footer ════════════════════════════════════════════════════════════ */
+    /* ═══ Footer ══════════════════════════════════════════════════════════════ */
     .footer { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 36px; }
 
-    /* ═══ Animations ════════════════════════════════════════════════════════ */
+    /* ═══ Animations ═════════════════════════════════════════════════════════ */
     @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
-    @keyframes pulse-glow {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.1); opacity: .75; }
-    }
 
-    /* ═══ Anti-garbling ═════════════════════════════════════════════════════ */
+    /* ═══ Anti-garbling ══════════════════════════════════════════════════════ */
     code, .fix-cmd, .fix-output, .wc-code, .pw-input, [translate="no"] {
       font-family: var(--mono) !important;
     }
 
-    /* ═══ Mobile ════════════════════════════════════════════════════════════ */
+    /* ═══ Dark Mode ══════════════════════════════════════════════════════════ */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:            #0c0c0e;
+        --surface:       #18181b;
+        --surface-alt:   #1f1f24;
+        --border:        #2a2a30;
+        --border-strong: #3a3a42;
+        --text:          #f0f0f2;
+        --text-secondary:#8a8a96;
+        --text-muted:    #555560;
+
+        --accent:        #818cf8;
+        --accent-hover:  #6366f1;
+        --accent-bg:     rgba(99,102,241,.12);
+        --accent-border: rgba(129,140,248,.25);
+
+        --green-bg:      rgba(5,150,105,.1);
+        --green-border:  rgba(52,211,153,.2);
+        --red-bg:        rgba(220,38,38,.1);
+        --red-border:    rgba(252,165,165,.15);
+        --amber-bg:      rgba(217,119,6,.1);
+        --amber-border:  rgba(253,230,138,.15);
+        --blue-bg:       rgba(37,99,235,.1);
+        --blue-border:   rgba(147,197,253,.15);
+      }
+      .wc-ignore { background: #141416; }
+      .fix-cmd, .fix-output, .wc-code { background: #111113; }
+      #toast { background: #f0f0f2; color: #111; }
+    }
+
+    /* ═══ Mobile ═════════════════════════════════════════════════════════════ */
     @media (max-width: 480px) {
       body { padding: 22px 12px 72px; }
       .result-card { padding: 26px 20px 20px; }
       .start-card  { padding: 22px 18px; }
       .hdr-logo    { font-size: 42px; }
       .hdr h1      { font-size: 20px; }
-      .resolution-btns { flex-direction: column; }
     }
   </style>
 </head>
@@ -687,7 +644,7 @@
   <!-- Steps feed -->
   <div id="feed" class="hidden"></div>
 
-  <div class="footer">ClawAid v1.1.31</div>
+  <div class="footer">ClawAid v1.1.28</div>
 
 </div>
 
@@ -695,13 +652,14 @@
 (function () {
   'use strict';
 
-  // ═══ State ══════════════════════════════════════════════════════════════
+  // ═══ State ════════════════════════════════════════════════════════════════
   let sessionId = null;
   let sbSessionId = null;
   let eventSource = null;
   let scanBlockAdded = false;
   let currentStepIndex = -1;
   const stepTypes = {};
+  const sCheckEls = {};
   var scanStartTime = 0;
   var scanTimerInterval = null;
   var scanChecklistItems = {};
@@ -710,7 +668,7 @@
   const feed = document.getElementById('feed');
   const startScreen = document.getElementById('start-screen');
 
-  // ═══ i18n ═══════════════════════════════════════════════════════════════
+  // ═══ i18n ═════════════════════════════════════════════════════════════════
   const isZh = /^zh/i.test(navigator.language || '');
 
   const T = {
@@ -720,9 +678,9 @@
     privacyList:     isZh
       ? ['API 密钥在发送前已脱敏', '数据发送到诊断服务，不会存储', '所有命令在你的本机执行']
       : ['API keys are redacted before leaving your machine', 'Data is sent to our diagnostic service — never stored', 'All commands run locally on your machine'],
-    scanning:        isZh ? '正在扫描系统...' : 'Scanning system...',
-    scanned:         isZh ? '✅ 系统扫描完成' : '✅ System scan complete',
-    viewDetails:     isZh ? '展开' : 'Details',
+    scanning:        isZh ? '正在诊断...' : 'Diagnosing...',
+    scanned:         isZh ? '系统检测完成' : 'System checked',
+    viewDetails:     isZh ? '查看详情' : 'View details',
     hideDetails:     isZh ? '收起' : 'Collapse',
     allClear:        isZh ? '一切正常！' : 'All clear!',
     fixed:           isZh ? '已修复！' : 'Fixed!',
@@ -773,13 +731,6 @@
     pwInvalid:       isZh ? '❌ 无效的激活码或邮箱' : '❌ Invalid token or email.',
     pwNetErr:        isZh ? '❌ 网络错误' : '❌ Network error.',
     pwNeedHelp:      isZh ? '有问题？' : 'Need help?',
-    // Resolution confirm
-    resolvedQ:       isZh ? '问题解决了吗？' : 'Did this fix your problem?',
-    resolvedYes:     isZh ? '✅ 解决了' : '✅ Yes, fixed!',
-    resolvedNo:      isZh ? '❌ 没解决' : '❌ No, still broken',
-    feedbackLabel:   isZh ? '能描述一下还有什么问题吗？（可选附截图）' : 'What\'s still happening? (optional screenshot)',
-    feedbackPh:      isZh ? '例如：网关还是无法连接...' : 'e.g. Gateway still won\'t connect...',
-    feedbackSend:    isZh ? '📩 提交反馈' : '📩 Submit feedback',
   };
 
   // Checklist label map — keyed by progress id from observe.ts
@@ -803,11 +754,12 @@
   }
   document.getElementById('btn-start').textContent = T.startScan;
 
-  // ═══ Helpers ════════════════════════════════════════════════════════════
+  // ═══ Helpers ══════════════════════════════════════════════════════════════
   function esc(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
   function ev(name, data) { fetch('/api/event', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ event: name, data: data || {}, ts: Date.now() }) }).catch(function(){}); }
+  // Compat alias
   function mp(name, p) { ev(name, p); }
   function scrollDown() { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }
 
@@ -819,10 +771,10 @@
     toastTimer = setTimeout(function() { t.classList.remove('show'); }, 2400);
   }
 
-  // ═══ Confetti ═══════════════════════════════════════════════════════════
+  // ═══ Confetti ═════════════════════════════════════════════════════════════
   function triggerConfetti() {
     var c = document.getElementById('confetti'); c.innerHTML = '';
-    var colors = ['#818cf8','#34d399','#fbbf24','#f87171','#a78bfa','#38bdf8','#fb923c','#f472b6','#4ade80'];
+    var colors = ['#4f46e5','#059669','#d97706','#dc2626','#7c3aed','#0891b2','#f59e0b','#ec4899','#10b981'];
     for (var i = 0; i < 75; i++) {
       var p = document.createElement('div');
       p.className = 'confetti-p';
@@ -837,7 +789,7 @@
     setTimeout(function() { c.innerHTML = ''; }, 6000);
   }
 
-  // ═══ Scan Block ═════════════════════════════════════════════════════════
+  // ═══ Scan Block ═══════════════════════════════════════════════════════════
   function addScanBlock() {
     var el = document.createElement('div');
     el.className = 'scan-block'; el.id = 'scan-block';
@@ -849,17 +801,18 @@
       + '</div>'
       + '<div class="scan-right">'
       +   '<div id="scan-status"><div class="spin spin-sm"></div></div>'
-      +   '<button class="scan-toggle hidden" id="scan-toggle">' + T.viewDetails + '</button>'
+      +   '<button class="scan-toggle" id="scan-toggle">' + T.viewDetails + '</button>'
       + '</div>'
       + '</div>'
       + '<div id="scan-checklist" class="scan-checklist"></div>'
       + '<div class="scan-details" id="scan-details"></div>';
     feed.appendChild(el);
     document.getElementById('scan-toggle').addEventListener('click', function() {
-      var checklist = document.getElementById('scan-checklist');
-      var open = checklist.classList.toggle('open');
+      var d = document.getElementById('scan-details');
+      var open = d.classList.toggle('open');
       this.textContent = open ? T.hideDetails : T.viewDetails;
     });
+    // Start elapsed time timer
     scanStartTime = Date.now();
     scanChecklistItems = {};
     scanItemStartTimes = {};
@@ -871,19 +824,25 @@
   }
 
   function updateScanProgress(data) {
+    // Legacy string message — ignored, scan-sub is controlled by the timer
     if (!data || !data.id) return;
 
+    var checklist = document.getElementById('scan-checklist');
+
     if (data.id === 'ai-analyze') {
-      if (data.status === 'pending') ensureAiPhaseCard();
+      if (data.status === 'pending') {
+        // Ensure AI phase card exists when AI starts
+        ensureAiPhaseCard();
+      }
       return;
     }
 
-    var checklist = document.getElementById('scan-checklist');
     if (!checklist) return;
 
     var label = checkLabels[data.id] || data.label || data.id;
 
     if (data.status === 'pending') {
+      // Create checklist item
       var item = document.createElement('div');
       item.className = 'scl-item';
       item.id = 'scl-' + data.id;
@@ -902,8 +861,8 @@
         : '';
       var isDone = data.status === 'done';
       var iconHtml = isDone
-        ? '<span style="color:var(--green);font-size:12px">✓</span>'
-        : '<span style="color:var(--red);font-size:12px">✗</span>';
+        ? '<span style="color:var(--green);font-size:13px">✓</span>'
+        : '<span style="color:var(--red);font-size:13px">✗</span>';
       var labelClass = isDone ? 'scl-label' : 'scl-label error';
       existing.innerHTML = '<span class="scl-icon">' + iconHtml + '</span>'
         + '<span class="' + labelClass + '">' + esc(label) + '</span>'
@@ -911,20 +870,7 @@
     }
   }
 
-  function finishScanBlock() {
-    if (scanTimerInterval) { clearInterval(scanTimerInterval); scanTimerInterval = null; }
-    var elapsed = scanStartTime ? ((Date.now() - scanStartTime) / 1000).toFixed(1) + 's' : '';
-    var s = document.getElementById('scan-status');
-    if (s) s.innerHTML = '<span style="font-size:14px;color:var(--green)">✓</span>';
-    var t = document.getElementById('scan-title');
-    if (t) t.textContent = T.scanned;
-    var sub = document.getElementById('scan-sub');
-    if (sub) sub.textContent = elapsed;
-    var tog = document.getElementById('scan-toggle');
-    if (tog) tog.classList.remove('hidden');
-  }
-
-  // ═══ AI Phase Card ════════════════════════════════════════════════════
+  // ═══ AI Phase Card — shows every READ/FIX step in the main feed ════════
   var aiStepStartTimes = {};
 
   function ensureAiPhaseCard() {
@@ -932,11 +878,15 @@
     var card = document.createElement('div');
     card.className = 'ai-phase-card';
     card.id = 'ai-phase-card';
-    var title = isZh ? '🩺 诊断中' : '🩺 Diagnosing';
-    card.innerHTML = '<div class="ai-phase-hd" style="padding:10px 18px;">'
+    var title = isZh ? 'AI 正在诊断...' : 'AI diagnosing...';
+    var sub = isZh ? '分析数据 → 定位问题 → 执行修复' : 'Analyze → Locate → Fix';
+    card.innerHTML = '<div class="ai-phase-hd">'
+      + '<div class="ai-phase-emoji" id="ai-phase-emoji">🧠</div>'
       + '<div class="ai-phase-body">'
-      +   '<div class="ai-phase-title" id="ai-phase-title" style="font-size:13px;font-weight:600;">' + title + ' <span id="ai-phase-status" style="display:inline;"><span class="spin spin-sm" style="vertical-align:middle;margin-left:6px;"></span></span></div>'
+      +   '<div class="ai-phase-title" id="ai-phase-title">' + title + '</div>'
+      +   '<div class="ai-phase-sub" id="ai-phase-sub">' + sub + '</div>'
       + '</div>'
+      + '<div class="ai-phase-right" id="ai-phase-status"><div class="spin spin-sm"></div></div>'
       + '</div>'
       + '<div class="ai-phase-steps" id="ai-phase-steps"></div>';
     feed.appendChild(card);
@@ -944,10 +894,14 @@
   }
 
   function finishAiPhaseCard() {
+    var emoji = document.getElementById('ai-phase-emoji');
+    if (emoji) { emoji.textContent = '🧠'; emoji.classList.add('done'); }
     var st = document.getElementById('ai-phase-status');
-    if (st) st.innerHTML = '<span style="color:var(--green);font-size:13px;margin-left:6px;">✓</span>';
+    if (st) st.innerHTML = '<span style="font-size:16px;color:var(--green)">✓</span>';
     var title = document.getElementById('ai-phase-title');
-    if (title) title.innerHTML = (isZh ? '🩺 诊断完成' : '🩺 Diagnosis complete') + (st ? st.outerHTML : '');
+    if (title) title.textContent = isZh ? 'AI 诊断完成' : 'AI diagnosis complete';
+    var sub = document.getElementById('ai-phase-sub');
+    if (sub) sub.textContent = '';
   }
 
   function addAiStep(step, idx) {
@@ -956,42 +910,21 @@
     if (!container) return;
 
     var isRead = step.type === 'read';
-    var icon = isRead ? '🔍' : '🔧';
-    var desc = step.description || step.command || (isRead ? (isZh ? '读取信息...' : 'Reading...') : (isZh ? '执行修复...' : 'Fixing...'));
+    var icon = isRead ? '<div class="spin spin-sm"></div>' : '🔧';
+    var desc = step.description || step.command || (isRead ? 'Reading...' : 'Fixing...');
     var cmdHtml = step.command ? '<div class="ai-step-cmd" translate="no">$ ' + esc(step.command) + '</div>' : '';
-
-    var thinkingHtml = '';
-    if (step.thinking) {
-      var preview = step.thinking.length > 100 ? esc(step.thinking.slice(0, 100)) + '...' : esc(step.thinking);
-      thinkingHtml = '<div class="ai-step-thinking" id="ai-step-thinking-' + idx + '">'
-        + '<span class="thinking-preview">▸ ' + preview + '</span>'
-        + '<span class="thinking-full">▾ ' + esc(step.thinking) + '</span>'
-        + '</div>';
-    }
 
     var row = document.createElement('div');
     row.className = 'ai-step';
     row.id = 'ai-step-' + idx;
-    row.innerHTML = '<div class="ai-step-icon" id="ai-step-icon-' + idx + '">'
-      + (isRead ? '<div class="spin spin-sm"></div>' : icon)
-      + '</div>'
+    row.innerHTML = '<div class="ai-step-icon" id="ai-step-icon-' + idx + '">' + icon + '</div>'
       + '<div class="ai-step-body">'
       +   '<div class="ai-step-desc' + (isRead ? ' pending' : '') + '" id="ai-step-desc-' + idx + '">' + esc(desc) + '</div>'
-      +   thinkingHtml
       +   cmdHtml
       +   '<div class="ai-step-output" id="ai-step-out-' + idx + '"></div>'
       + '</div>'
       + '<div class="ai-step-time" id="ai-step-time-' + idx + '"></div>';
     container.appendChild(row);
-
-    if (step.thinking) {
-      var thinkEl = document.getElementById('ai-step-thinking-' + idx);
-      if (thinkEl) {
-        thinkEl.addEventListener('click', function() {
-          thinkEl.classList.toggle('expanded');
-        });
-      }
-    }
     aiStepStartTimes[idx] = Date.now();
     scrollDown();
   }
@@ -1000,28 +933,31 @@
     var iconEl = document.getElementById('ai-step-icon-' + idx);
     var descEl = document.getElementById('ai-step-desc-' + idx);
     var timeEl = document.getElementById('ai-step-time-' + idx);
-    var outEl  = document.getElementById('ai-step-out-' + idx);
+    var outEl = document.getElementById('ai-step-out-' + idx);
 
     if (iconEl) {
-      var sType = stepTypes[idx] || 'read';
-      var doneIcon = sType === 'read' ? '🔍' : '🔧';
       if (skipped) {
-        iconEl.innerHTML = '<span style="color:var(--text-muted);font-size:13px">⏭</span>';
+        iconEl.innerHTML = '<span style="color:var(--text-muted)">⏭</span>';
       } else {
-        iconEl.innerHTML = '<span style="color:var(--green);font-size:13px">✓</span>';
+        iconEl.innerHTML = '<span style="color:var(--green);font-size:14px">✓</span>';
       }
     }
     if (descEl) descEl.classList.remove('pending');
     if (timeEl && aiStepStartTimes[idx]) {
-      timeEl.textContent = ((Date.now() - aiStepStartTimes[idx]) / 1000).toFixed(1) + 's';
+      var elapsed = ((Date.now() - aiStepStartTimes[idx]) / 1000).toFixed(1) + 's';
+      timeEl.textContent = elapsed;
     }
+    // Show output preview for FIX steps, or if output contains useful info
     if (outEl && output && !skipped) {
       var trimmed = output.length > 600 ? output.slice(0, 600) + '\n...' : output;
       outEl.textContent = trimmed;
-      var sType2 = stepTypes[idx] || 'read';
-      if (sType2 === 'fix') {
+      // For FIX steps, show output by default; for READ steps, hide behind toggle
+      var stepRow = document.getElementById('ai-step-' + idx);
+      var sType = stepTypes[idx] || 'read';
+      if (sType === 'fix') {
         outEl.classList.add('visible');
       } else if (trimmed.length > 10) {
+        // Add a toggle for READ output
         var toggle = document.createElement('button');
         toggle.className = 'ai-step-toggle';
         toggle.textContent = isZh ? '查看输出 ▾' : 'Show output ▾';
@@ -1034,11 +970,23 @@
     }
   }
 
-  // Legacy compat
+  // Legacy compat — old read step functions now route to AI phase card
   function addReadStep(step, idx) { addAiStep(step, idx); }
   function doneReadStep(idx, skipped) { finishAiStep(idx, null, skipped); }
 
-  // ═══ Fix Step Cards ══════════════════════════════════════════════════
+  function finishScanBlock() {
+    // Stop elapsed timer and freeze the final time
+    if (scanTimerInterval) { clearInterval(scanTimerInterval); scanTimerInterval = null; }
+    var elapsed = scanStartTime ? ((Date.now() - scanStartTime) / 1000).toFixed(1) + 's' : '';
+    var s = document.getElementById('scan-status');
+    if (s) s.innerHTML = '<span style="font-size:16px;color:var(--green)">✓</span>';
+    var t = document.getElementById('scan-title');
+    if (t) t.textContent = T.scanned;
+    var sub = document.getElementById('scan-sub');
+    if (sub) sub.textContent = elapsed;
+  }
+
+  // ═══ Fix Step Cards ═══════════════════════════════════════════════════════
   function addFixCard(step, idx) {
     var card = document.createElement('div');
     card.className = 'fix-card'; card.id = 'step-' + idx;
@@ -1092,14 +1040,17 @@
     }
   }
 
-  // ═══ Confirm Bar ════════════════════════════════════════════════════
+  // ═══ Confirm Bar ══════════════════════════════════════════════════════════
   function addConfirmBar(step, idx) {
+    // Attach to the AI step row, or fallback to old fix card
     var card = document.getElementById('ai-step-' + idx) || document.getElementById('step-' + idx);
     if (!card) return;
     var risk = step.risk || 'medium';
     var bar = document.createElement('div');
     bar.className = 'confirm-bar' + (risk === 'high' ? ' risk-high' : '');
     bar.id = 'cfm-' + idx;
+    bar.style.borderRadius = '0 0 var(--radius-xs) var(--radius-xs)';
+    bar.style.margin = '6px 0 2px';
     bar.innerHTML = '<span class="confirm-label">' + T.allowQ + '</span>'
       + '<button class="btn btn-green" id="cfm-y-'+idx+'">' + T.allow + '</button>'
       + '<button class="btn btn-ghost" id="cfm-n-'+idx+'">' + T.skip + '</button>';
@@ -1122,7 +1073,7 @@
     scrollDown();
   }
 
-  // ═══ Warning Cards ════════════════════════════════════════════════
+  // ═══ Warning Cards ══════════════════════════════════════════════════════
   function dismissWarnCard(card) {
     var h = card.scrollHeight;
     card.style.maxHeight = h + 'px';
@@ -1175,6 +1126,7 @@
       var card = document.createElement('div');
       card.className = 'wc wc-' + rec;
 
+      // Header
       var hd = document.createElement('div');
       hd.className = 'wc-hd';
       hd.innerHTML = '<span class="wc-icon">' + icon + '</span>'
@@ -1192,6 +1144,7 @@
       hd.appendChild(dismissBtn);
       card.appendChild(hd);
 
+      // Reason
       if (reason) {
         var reasonEl = document.createElement('div');
         reasonEl.className = 'wc-reason';
@@ -1199,6 +1152,7 @@
         card.appendChild(reasonEl);
       }
 
+      // Actions array (choice buttons)
       if (actions && Array.isArray(actions) && actions.length > 0) {
         var actionsArea = document.createElement('div');
         actionsArea.className = 'wc-actions';
@@ -1217,7 +1171,9 @@
           actionsArea.appendChild(actBtn);
         }
         card.appendChild(actionsArea);
-      } else if (fixCmd2) {
+      }
+      // Single fixCommand
+      else if (fixCmd2) {
         if (rec === 'fix') {
           var fixArea = document.createElement('div');
           fixArea.className = 'wc-actions';
@@ -1258,7 +1214,7 @@
     return section;
   }
 
-  // ═══ Feedback ═══════════════════════════════════════════════════════
+  // ═══ Feedback ═════════════════════════════════════════════════════════════
   function createFeedback() {
     var submitted = false;
     var div = document.createElement('div');
@@ -1300,13 +1256,16 @@
     return div;
   }
 
-  // ═══ Feedback Gate (legacy, for healthy outcome) ════════════════════
+  // ═══ Feedback Gate (shown before result) ═══════════════════════════════
   function showFeedbackGate(data, outcome) {
     finishScanBlock();
+    // For healthy systems, skip the gate — user didn't have a problem to solve
     if (outcome === 'healthy') {
       showResult(data);
       return;
     }
+    var isZh = /^zh/i.test(navigator.language || '');
+    // Detect from existing T
     var qText = isZh ? '问题解决了吗？' : 'Did this solve your problem?';
     var yesText = isZh ? '✅ 解决了！' : '✅ Yes, fixed!';
     var noText = isZh ? '❌ 没有' : '❌ No';
@@ -1327,7 +1286,7 @@
       +   '<textarea rows="3" placeholder="..."></textarea>'
       +   '<div class="fb-gate-detail-row">'
       +     '<button class="btn btn-ghost fb-gate-skip">' + skipText + '</button>'
-      +     '<button class="btn btn-primary fb-gate-submit">' + submitText + '</button>'
+      +     '<button class="btn btn-accent fb-gate-submit">' + submitText + '</button>'
       +   '</div>'
       + '</div>';
     document.getElementById('feed').appendChild(el);
@@ -1346,6 +1305,7 @@
     });
 
     el.querySelector('.fb-gate-btn-no').addEventListener('click', function() {
+      // Show detail textarea
       el.querySelector('.fb-gate-btns').style.display = 'none';
       el.querySelector('.fb-gate-detail').style.display = 'block';
       var ta = el.querySelector('textarea');
@@ -1366,186 +1326,7 @@
     });
   }
 
-  // ═══ Resolution Confirm (new: after complete) ════════════════════════
-  function showResolutionConfirm(data, outcome) {
-    finishScanBlock();
-
-    // Healthy systems: skip straight to result
-    if (outcome === 'healthy') {
-      showResult(data);
-      return;
-    }
-
-    var _pendingResultData = data;
-    var screenshotData = null;
-
-    var el = document.createElement('div');
-    el.className = 'resolution-card';
-    el.innerHTML = '<span class="resolution-emoji">🩺</span>'
-      + '<div class="resolution-q">' + T.resolvedQ + '</div>'
-      + '<div class="resolution-btns">'
-      +   '<button class="btn btn-green resolution-btn-yes">' + T.resolvedYes + '</button>'
-      +   '<button class="btn btn-ghost resolution-btn-no">' + T.resolvedNo + '</button>'
-      + '</div>'
-      + '<div class="resolution-feedback" id="resolution-fb" style="display:none;">'
-      +   '<div class="resolution-feedback-label">' + T.feedbackLabel + '</div>'
-      +   '<div style="position:relative;margin-bottom:10px;">'
-      +     '<textarea class="input-textarea" id="resolution-fb-text" placeholder="' + T.feedbackPh + '" style="min-height:76px;padding-bottom:12px;"></textarea>'
-      +     '<button class="input-camera" id="resolution-fb-cam" title="' + (isZh ? '添加截图' : 'Add screenshot') + '">📷</button>'
-      +     '<input type="file" id="resolution-fb-file" accept="image/*" style="display:none;" />'
-      +   '</div>'
-      +   '<div class="ss-preview" id="resolution-fb-prev">'
-      +     '<img id="resolution-fb-thumb" src="" alt="" />'
-      +     '<span class="ss-preview-name">' + (isZh ? '截图已附加' : 'Screenshot attached') + '</span>'
-      +     '<button class="ss-preview-rm" id="resolution-fb-rm">✕</button>'
-      +   '</div>'
-      +   '<div style="display:flex;gap:8px;justify-content:flex-end;">'
-      +     '<button class="btn btn-ghost resolution-fb-skip">' + (isZh ? '跳过' : 'Skip') + '</button>'
-      +     '<button class="btn btn-primary resolution-fb-send">' + T.feedbackSend + '</button>'
-      +   '</div>'
-      + '</div>';
-    feed.appendChild(el);
-    scrollDown();
-
-    el.querySelector('.resolution-btn-yes').addEventListener('click', function() {
-      ev('user_confirm_resolved', { value: 'resolved' });
-      fetch('/api/input', { method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ sessionId: sessionId, field: 'userConfirmResolved', value: 'resolved' }) }).catch(function(){});
-      fetch('/api/feedback', { method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ feedback: 'yes', sessionId: sessionId, sbSessionId: sbSessionId }) }).catch(function(){});
-      el.remove();
-      showResult(_pendingResultData);
-    });
-
-    el.querySelector('.resolution-btn-no').addEventListener('click', function() {
-      el.querySelector('.resolution-btns').style.display = 'none';
-      var fbArea = document.getElementById('resolution-fb');
-      fbArea.style.display = 'block';
-      var ta = document.getElementById('resolution-fb-text');
-      setTimeout(function() { ta && ta.focus(); }, 100);
-    });
-
-    // Screenshot for feedback
-    var camBtn = document.getElementById('resolution-fb-cam');
-    var fileInput = document.getElementById('resolution-fb-file');
-    var prevRow = document.getElementById('resolution-fb-prev');
-    var thumb = document.getElementById('resolution-fb-thumb');
-    var rmBtn = document.getElementById('resolution-fb-rm');
-
-    function handleFbFile(file) {
-      if (!file || !file.type.startsWith('image/')) return;
-      if (file.size > 5 * 1024 * 1024) { showToast(isZh ? '图片过大（最大 5MB）' : 'Image too large (max 5MB)'); return; }
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        screenshotData = e.target.result;
-        thumb.src = screenshotData;
-        prevRow.classList.add('visible');
-        camBtn.classList.add('has-img');
-      };
-      reader.readAsDataURL(file);
-    }
-
-    if (camBtn) camBtn.addEventListener('click', function(e) { e.preventDefault(); fileInput.click(); });
-    if (fileInput) fileInput.addEventListener('change', function(e) { if (e.target.files[0]) handleFbFile(e.target.files[0]); });
-    if (rmBtn) rmBtn.addEventListener('click', function() {
-      screenshotData = null; prevRow.classList.remove('visible');
-      thumb.src = ''; camBtn.classList.remove('has-img'); fileInput.value = '';
-    });
-
-    function sendFeedback(text) {
-      var val = text || '';
-      ev('user_feedback', { has_text: val.length > 0, has_screenshot: !!screenshotData });
-      fetch('/api/input', { method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ sessionId: sessionId, field: 'userFeedback', value: val, screenshot: screenshotData || undefined }) }).catch(function(){});
-      fetch('/api/feedback', { method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ feedback: 'no', detail: val || undefined, sessionId: sessionId, sbSessionId: sbSessionId }) }).catch(function(){});
-      el.remove();
-      showResult(_pendingResultData);
-    }
-
-    el.querySelector('.resolution-fb-skip').addEventListener('click', function() {
-      sendFeedback('');
-    });
-    el.querySelector('.resolution-fb-send').addEventListener('click', function() {
-      var ta = document.getElementById('resolution-fb-text');
-      sendFeedback(ta ? ta.value.trim() : '');
-    });
-  }
-
-  // ═══ User Feedback Input (for request_input field=userFeedback) ════
-  function showFeedbackInput(data) {
-    var screenshotData = null;
-
-    var div = document.createElement('div');
-    div.className = 'card input-card';
-    div.id = 'feedback-input-card';
-    var titleText = isZh ? '请描述问题' : 'Tell us what\'s still wrong';
-    var hintText = isZh ? '你的反馈将帮助 AI 继续诊断。' : 'Your feedback helps the AI continue diagnosing.';
-    div.innerHTML = '<div class="input-title">' + titleText + '</div>'
-      + '<div class="input-hint">' + hintText + '</div>'
-      + '<div class="input-textarea-wrap">'
-      +   '<textarea class="input-textarea" id="fb-input-text" placeholder="' + T.feedbackPh + '"></textarea>'
-      +   '<button class="input-camera" id="fb-input-cam" title="' + (isZh ? '添加截图' : 'Add screenshot') + '">📷</button>'
-      +   '<input type="file" id="fb-input-file" accept="image/*" style="display:none;" />'
-      + '</div>'
-      + '<div class="ss-preview" id="fb-input-prev">'
-      +   '<img id="fb-input-thumb" src="" alt="" />'
-      +   '<span class="ss-preview-name">' + (isZh ? '截图已附加' : 'Screenshot attached') + '</span>'
-      +   '<button class="ss-preview-rm" id="fb-input-rm">✕</button>'
-      + '</div>'
-      + '<div class="btn-row">'
-      +   '<button class="btn btn-primary" id="fb-input-send">' + T.feedbackSend + '</button>'
-      +   '<button class="btn btn-ghost" id="fb-input-skip">' + (isZh ? '跳过' : 'Skip') + '</button>'
-      + '</div>';
-    feed.appendChild(div);
-    scrollDown();
-
-    var camBtn = document.getElementById('fb-input-cam');
-    var fileInput = document.getElementById('fb-input-file');
-    var prevRow = document.getElementById('fb-input-prev');
-    var thumb = document.getElementById('fb-input-thumb');
-    var rmBtn = document.getElementById('fb-input-rm');
-    var sendBtn = document.getElementById('fb-input-send');
-    var skipBtn = document.getElementById('fb-input-skip');
-    var textarea = document.getElementById('fb-input-text');
-
-    function handleFile(file) {
-      if (!file || !file.type.startsWith('image/')) return;
-      if (file.size > 5 * 1024 * 1024) { showToast(isZh ? '图片过大（最大 5MB）' : 'Image too large (max 5MB)'); return; }
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        screenshotData = e.target.result;
-        thumb.src = screenshotData; prevRow.classList.add('visible');
-        camBtn.classList.add('has-img');
-      };
-      reader.readAsDataURL(file);
-    }
-
-    camBtn.addEventListener('click', function(e) { e.preventDefault(); fileInput.click(); });
-    fileInput.addEventListener('change', function(e) { if (e.target.files[0]) handleFile(e.target.files[0]); });
-    rmBtn.addEventListener('click', function() {
-      screenshotData = null; prevRow.classList.remove('visible');
-      thumb.src = ''; camBtn.classList.remove('has-img'); fileInput.value = '';
-    });
-
-    function submit(text) {
-      div.remove();
-      fetch('/api/input', { method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ sessionId: sessionId, field: 'userFeedback', value: text || '', screenshot: screenshotData || undefined }) });
-    }
-
-    sendBtn.addEventListener('click', function() {
-      ev('user_input', { type: 'feedback', has_screenshot: !!screenshotData });
-      submit(textarea.value.trim());
-    });
-    skipBtn.addEventListener('click', function() {
-      ev('user_input', { type: 'feedback_skip' });
-      submit('');
-    });
-    textarea.focus();
-  }
-
-  // ═══ Result Pages ════════════════════════════════════════════════════
+  // ═══ Result Pages ═════════════════════════════════════════════════════════
   function showResult(data) {
     finishScanBlock();
 
@@ -1620,6 +1401,7 @@
       card.appendChild(contact2);
     }
 
+    // Scan again / try again
     var again = document.createElement('button');
     again.className = 'btn btn-ghost btn-full';
     again.style.marginTop = '16px';
@@ -1631,7 +1413,7 @@
     scrollDown();
   }
 
-  // ═══ Error Card ══════════════════════════════════════════════════════
+  // ═══ Error Card ═══════════════════════════════════════════════════════════
   function showErrorCard(msg) {
     var card = document.createElement('div');
     card.className = 'result-card';
@@ -1647,19 +1429,257 @@
     scrollDown();
   }
 
-  // ═══ Paywall (v4: free — shown if server sends event for legacy reasons) ══
+  // ═══ Paywall (v4: ClawAid is now completely FREE — this should never be shown) ══
   function showPaywall(data) {
+    // v4: ClawAid is completely free. If this function is called, show a friendly message.
     var freeMsg = isZh
       ? '<div style="text-align:center;padding:40px 20px;"><div style="font-size:48px;margin-bottom:16px;">🎉</div><h2 style="margin-bottom:12px;">ClawAid 完全免费！</h2><p style="color:var(--text-secondary);">请重新运行 <code>npx clawaid@latest</code> 获取最新版本</p></div>'
       : '<div style="text-align:center;padding:40px 20px;"><div style="font-size:48px;margin-bottom:16px;">🎉</div><h2 style="margin-bottom:12px;">ClawAid is Completely Free!</h2><p style="color:var(--text-secondary);">Please run <code>npx clawaid@latest</code> to get the latest version</p></div>';
+    resultEl.innerHTML = freeMsg;
+    return; // Skip all payment UI below
+
+    // === Legacy payment code kept for reference (unreachable) ===
+    var STRIPE_URL = 'https://buy.stripe.com/bJe8wReoT7oZ9XH7tU0oM02';
+    var payMethod = data.payMethod || (data.isChinese ? 'xunhupay' : 'stripe');
+    if (isZh && payMethod !== 'xunhupay') payMethod = 'xunhupay';
+    var isCN = payMethod === 'xunhupay';
+    var pricing = data.pricing || {};
+    var fixPrice = (pricing.fixOnce && pricing.fixOnce.price) || (isCN ? '¥4.99' : '$0.99');
+    var subPrice = (pricing.subscription && pricing.subscription.price) || (isCN ? '¥49.99/月' : '$9.99/mo');
+
+    // v3: Show AI's pending fix diagnosis
+    var diagnosisHtml = '';
+    var pendingFix = data.pendingFix;
+    if (pendingFix && pendingFix.description) {
+      var cmdHtml = '';
+      if (pendingFix.command) {
+        cmdHtml = '<div style="margin-top:8px;padding:8px 10px;background:var(--surface-alt);border-radius:6px;font-family:var(--mono);font-size:11px;color:var(--text-secondary);word-break:break-all;">'
+          + '🔧 ' + (isZh ? '修复方案：' : 'Fix: ') + '<code>' + esc(pendingFix.command) + '</code></div>';
+      }
+      diagnosisHtml = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">'
+        + '<div style="font-weight:700;font-size:14px;margin-bottom:8px;">'
+        + (isZh ? '🔍 已找到问题：' : '🔍 Issue found:')
+        + '</div>'
+        + '<div style="display:flex;align-items:flex-start;gap:8px;">'
+        + '<span style="flex-shrink:0;">⚠️</span>'
+        + '<div style="font-size:13px;">' + esc(pendingFix.description) + '</div>'
+        + '</div>'
+        + cmdHtml
+        + '</div>';
+    }
+
+    // Also show rule findings if available
+    var findings = data.findings || [];
+    if (!pendingFix && findings.length > 0) {
+      var items = findings.map(function(f) {
+        return '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">'
+          + '<span style="flex-shrink:0;">⚠️</span>'
+          + '<div><div style="font-weight:600;font-size:13px;">' + esc(f.title) + '</div></div>'
+          + '</div>';
+      }).join('');
+      diagnosisHtml = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">'
+        + '<div style="font-weight:700;font-size:14px;margin-bottom:8px;">'
+        + (isZh ? '🔍 扫描发现以下问题：' : '🔍 Issues found:')
+        + '</div>' + items + '</div>';
+    }
+
+    // Fix-once button
+    var buyBtnHtml;
+    if (isCN) {
+      buyBtnHtml = '<button class="btn btn-primary btn-full" id="pw-buy" style="margin-bottom:0;">🔧 ' + esc(fixPrice) + ' — ' + (isZh ? '本次彻底解决' : 'Fix everything now') + '</button>'
+        + '<div style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:4px;">' + (isZh ? '所有问题一次修完 · 修不好带截图找客服退款' : 'Fix all issues · screenshot + refund if not fixed') + '</div>'
+        + '<div id="pw-xhp-loading" style="display:none;text-align:center;padding:12px;color:var(--text-muted);font-size:13px;">' + (isZh ? '正在创建订单...' : 'Creating order...') + '</div>'
+        + '<div id="pw-xhp-qr" style="display:none;text-align:center;padding:12px;">'
+        + '<p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">' + (isZh ? '扫码支付 ' : 'Scan to pay ') + esc(fixPrice) + '</p>'
+        + '<img id="pw-xhp-qr-img" src="" style="max-width:200px;border-radius:8px;border:1px solid var(--border);" />'
+        + '</div>';
+    } else {
+      buyBtnHtml = '<a href="'+STRIPE_URL+'" target="_blank" class="btn btn-primary btn-full" id="pw-buy" style="text-decoration:none;margin-bottom:0;">🔧 ' + esc(fixPrice) + ' — Fix everything now</a>'
+        + '<div style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:4px;">Fix all issues · screenshot + refund if not fixed</div>';
+    }
+
+    // Waitlist button
+    var waitlistHtml = '<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">'
+      + '<button class="btn btn-ghost btn-full" id="pw-waitlist" style="margin-bottom:4px;">🛡️ ' + esc(subPrice) + ' — ' + (isZh ? '持续守护' : 'Always Protected') + '</button>'
+      + '<div style="text-align:center;font-size:12px;color:var(--text-muted);line-height:1.5;">' + (isZh ? 'OpenClaw 生命周期管家：安装 · 升级 · 修复 · API管理 · 记忆管理<br>7×24 持续健康保障 · 加入等待名单' : 'OpenClaw lifecycle butler: install · upgrade · fix · API mgmt · memory mgmt<br>24/7 health monitoring · join waitlist') + '</div>'
+      + '<div id="pw-waitlist-form" style="display:none;margin-top:8px;">'
+      + '<input class="pw-input" id="pw-waitlist-email" type="email" placeholder="' + (isZh ? '输入邮箱加入等待名单' : 'Email to join waitlist') + '" />'
+      + '<button class="btn btn-ghost btn-full" id="pw-waitlist-submit" style="margin-top:6px;">' + (isZh ? '加入等待名单' : 'Join Waitlist') + '</button>'
+      + '<div id="pw-waitlist-msg" style="text-align:center;font-size:12px;margin-top:4px;"></div>'
+      + '</div></div>';
+
     var div = document.createElement('div');
     div.className = 'card pw-card';
-    div.innerHTML = freeMsg;
+    div.innerHTML = '<div class="pw-hd">'
+      + '<span class="pw-emoji">🩺</span>'
+      + '<div class="pw-title">' + (isZh ? '🎯 问题已定位，修复方案已就绪' : '🎯 Issue identified, fix ready') + '</div>'
+      + '<div class="pw-sub">' + (isZh ? '付费解锁 → AI 自动执行修复 → 30秒搞定（自己排查可能要 1-2 小时）' : 'Pay to unlock → AI auto-fixes → 30s done (vs 1-2 hours manual debugging)') + '</div>'
+      + '</div>'
+      + diagnosisHtml
+      + buyBtnHtml
+      + waitlistHtml
+      + '<div class="pw-auto-detect" id="pw-auto">'
+      + '<div class="spin spin-sm" style="vertical-align:middle;margin-right:6px;"></div>'
+      + '<span>' + T.pwWaiting + '</span>'
+      + '</div>'
+      + '<hr class="pw-divider">'
+      + '<details style="margin-bottom:8px;">'
+      + '<summary style="font-size:13px;color:var(--text-secondary);cursor:pointer;user-select:none;margin-bottom:12px;">' + T.pwHaveToken + '</summary>'
+      + '<input class="pw-input" id="pw-token" type="text" placeholder="' + T.pwTokenHint + '" autocomplete="off" />'
+      + '<button class="btn btn-ghost btn-full" id="pw-activate" style="margin-top:6px;">' + T.pwActivate + '</button>'
+      + '</details>'
+      + '<div class="pw-msg" id="pw-msg"></div>'
+      + '<div class="pw-contact">' + (isZh ? '修不好？截图发微信 <b>oliver56666</b> 退款' : 'Not fixed? Screenshot + email <b>ollie56666@gmail.com</b> for refund') + '</div>';
     feed.appendChild(div);
+
+    // Fetch fingerprint for buy URL (Stripe) or xunhupay order creation
+    var _pwFingerprint = '';
+    var _fpReady = false;
+    // Disable buy button until fingerprint is loaded
+    var _buyBtn = document.getElementById('pw-buy');
+    if (_buyBtn && !isCN) { _buyBtn.style.opacity = '0.5'; _buyBtn.style.pointerEvents = 'none'; }
+    fetch('/api/fingerprint').then(function(r){return r.json();}).then(function(d) {
+      _pwFingerprint = d.fingerprint || '';
+      _fpReady = true;
+      if (!isCN) {
+        var btn = document.getElementById('pw-buy');
+        if (btn && d.fingerprint) {
+          btn.href = STRIPE_URL + '?client_reference_id=' + encodeURIComponent(d.fingerprint);
+          btn.style.opacity = '1';
+          btn.style.pointerEvents = 'auto';
+        }
+      }
+    }).catch(function(){ _fpReady = true; });
+
+    // Auto-poll after buy (works for both Stripe and Xunhupay)
+    var pollTimer = null, pollCount = 0, MAX_POLLS = 120;
+    function startPolling() {
+      var detect = document.getElementById('pw-auto');
+      if (detect) detect.style.display = 'block';
+      pollCount = 0;
+      pollTimer = setInterval(function() {
+        pollCount++;
+        if (pollCount > MAX_POLLS) {
+          clearInterval(pollTimer);
+          if (detect) detect.innerHTML = '<span style="color:var(--text-muted);">' + T.pwAutoTimeout + '</span>';
+          return;
+        }
+        fetch('/api/poll-token').then(function(r){return r.json();}).then(function(r) {
+          if (r.found && r.token) {
+            clearInterval(pollTimer);
+            mp('auto_activate_success');
+            if (detect) detect.innerHTML = '<span style="color:var(--green);">' + T.pwPaySuccess + '</span>';
+            fetch('/api/redeem', { method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({token:r.token}) }).catch(function(){});
+            setTimeout(function() { location.reload(); }, 1500);
+          }
+        }).catch(function(){});
+      }, 5000);
+    }
+
+    document.getElementById('pw-buy').addEventListener('click', function(e) {
+      mp('buy_clicked');
+      if (isCN) {
+        e.preventDefault();
+        // Create xunhupay order
+        var btn = document.getElementById('pw-buy');
+        var loading = document.getElementById('pw-xhp-loading');
+        var qrDiv = document.getElementById('pw-xhp-qr');
+        btn.style.display = 'none';
+        loading.style.display = 'block';
+
+        fetch('https://api.clawaid.app/create-order/xunhupay', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fingerprint: _pwFingerprint }),
+        }).then(function(r){return r.json();}).then(function(data) {
+          loading.style.display = 'none';
+          if (data.error) { btn.style.display = 'block'; alert(data.error); return; }
+          if (/Mobi|Android/i.test(navigator.userAgent) && data.url) {
+            window.location.href = data.url;
+          } else if (data.url_qrcode) {
+            document.getElementById('pw-xhp-qr-img').src = data.url_qrcode;
+            qrDiv.style.display = 'block';
+          } else if (data.url) {
+            window.location.href = data.url;
+          }
+          startPolling();
+        }).catch(function(err) {
+          loading.style.display = 'none';
+          btn.style.display = 'block';
+          alert('创建订单失败: ' + (err.message || ''));
+        });
+      } else {
+        // Stripe — just start polling after click
+        setTimeout(startPolling, 3000);
+      }
+    });
+
+    // Manual token
+    var activateBtn = document.getElementById('pw-activate');
+    var tokenInput = document.getElementById('pw-token');
+    var msgEl = document.getElementById('pw-msg');
+
+    function doActivate() {
+      var token = tokenInput.value.trim();
+      if (!token) { msgEl.style.color='var(--red)'; msgEl.textContent=T.pwEnterToken; return; }
+      mp('token_redeem_attempt');
+      msgEl.style.color='var(--text-muted)'; msgEl.textContent=T.pwChecking;
+      fetch('/api/redeem', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({token:token}) })
+        .then(function(r){return r.json();})
+        .then(function(r) {
+          if (r.valid) {
+            if (pollTimer) clearInterval(pollTimer);
+            mp('token_redeem_success');
+            msgEl.style.color='var(--green)'; msgEl.textContent=T.pwSuccess;
+            setTimeout(function() { location.reload(); }, 1500);
+          } else {
+            mp('token_redeem_fail');
+            msgEl.style.color='var(--red)'; msgEl.textContent=T.pwInvalid;
+          }
+        })
+        .catch(function() { msgEl.style.color='var(--red)'; msgEl.textContent=T.pwNetErr; });
+    }
+    activateBtn.addEventListener('click', doActivate);
+    tokenInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') doActivate(); });
+
+    // Waitlist
+    var wlBtn = document.getElementById('pw-waitlist');
+    var wlForm = document.getElementById('pw-waitlist-form');
+    if (wlBtn && wlForm) {
+      wlBtn.addEventListener('click', function() {
+        wlForm.style.display = wlForm.style.display === 'none' ? 'block' : 'none';
+        ev('waitlist_clicked');
+      });
+      var wlSubmit = document.getElementById('pw-waitlist-submit');
+      var wlEmail = document.getElementById('pw-waitlist-email');
+      var wlMsg = document.getElementById('pw-waitlist-msg');
+      if (wlSubmit) {
+        wlSubmit.addEventListener('click', function() {
+          var email = wlEmail ? wlEmail.value.trim() : '';
+          if (!email || email.indexOf('@') < 0) {
+            if (wlMsg) { wlMsg.style.color = 'var(--red)'; wlMsg.textContent = isZh ? '请输入有效邮箱' : 'Please enter a valid email'; }
+            return;
+          }
+          wlSubmit.disabled = true;
+          fetch('/api/waitlist', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email: email }) })
+            .then(function() {
+              if (wlMsg) { wlMsg.style.color = 'var(--green)'; wlMsg.textContent = isZh ? '✅ 已加入等待名单！' : '✅ You\'re on the list!'; }
+              ev('waitlist_joined', { email: email });
+            })
+            .catch(function() {
+              if (wlMsg) { wlMsg.style.color = 'var(--red)'; wlMsg.textContent = isZh ? '网络错误，请重试' : 'Network error, try again'; }
+              wlSubmit.disabled = false;
+            });
+        });
+      }
+    }
+
     scrollDown();
   }
 
-  // ═══ Description Input ══════════════════════════════════════════════
+  // ═══ Description Input ════════════════════════════════════════════════════
   function showDescInput(data) {
     var screenshotData = null;
 
@@ -1758,9 +1778,10 @@
     textarea.focus();
   }
 
-  // ═══ SSE ════════════════════════════════════════════════════════════
+  // ═══ SSE ══════════════════════════════════════════════════════════════════
   var _sseRetries = 0;
   var _sseMaxRetries = 3;
+  var _sseLastDataAt = 0;
 
   function startDiagnosis() {
     startScreen.classList.add('hidden');
@@ -1776,9 +1797,11 @@
   function connectSSE() {
     var lang = isZh ? 'zh' : 'en';
     eventSource = new EventSource('/api/diagnose?lang=' + lang);
+    _sseLastDataAt = Date.now();
 
     eventSource.onmessage = function(e) {
-      _sseRetries = 0;
+      _sseLastDataAt = Date.now();
+      _sseRetries = 0; // reset retries on any successful message
       var msg;
       try { msg = JSON.parse(e.data); } catch(x) { return; }
       if (msg.sessionId) sessionId = msg.sessionId;
@@ -1789,17 +1812,27 @@
       var terminal = ['fixed','not_fixed','healthy','degraded','paywall','error'];
       var currentState = document.body.dataset.state || '';
 
+      // If we're in a terminal state, just clean up — no retry needed
       if (terminal.indexOf(currentState) !== -1) {
         if (eventSource) { eventSource.close(); eventSource = null; }
         return;
+      }
+
+      // SSE can fire transient errors (browser reconnecting) — don't panic immediately.
+      // If EventSource is CONNECTING (readyState=0), the browser is auto-reconnecting.
+      if (eventSource && eventSource.readyState === 0) {
+        // Browser is reconnecting on its own — but this creates a NEW /api/diagnose
+        // call which starts a new session. We need to close and handle manually.
       }
 
       if (eventSource) { eventSource.close(); eventSource = null; }
 
       _sseRetries++;
       if (_sseRetries <= _sseMaxRetries) {
+        // Retry after a short delay (exponential backoff: 2s, 4s, 8s)
         var delay = Math.min(2000 * Math.pow(2, _sseRetries - 1), 8000);
         setTimeout(function() {
+          // Only reconnect if still not in a terminal state
           if (terminal.indexOf(document.body.dataset.state || '') === -1) {
             connectSSE();
           }
@@ -1807,6 +1840,7 @@
         return;
       }
 
+      // Exhausted retries — show connection lost
       var card = document.createElement('div');
       card.className = 'result-card';
       card.innerHTML = '<span class="result-icon">⚠️</span>'
@@ -1851,12 +1885,16 @@
         var step = data.step || {};
         stepTypes[data.index] = step.type || 'read';
         ev('step_viewed', { step_number: data.index, type: step.type, risk: step.risk || 'low' });
+
+        // All steps (READ + FIX) go into the AI phase card
         addAiStep(step, data.index);
         break;
       }
 
       case 'step_done': {
         var idx = data.index;
+        var sType = stepTypes[idx] || 'read';
+        var stepData = data.step || {};
         finishAiStep(idx, data.output, data.skipped);
         break;
       }
@@ -1877,7 +1915,7 @@
           : 'not_fixed';
         var durMs = _scanStartTime ? Date.now() - _scanStartTime : 0;
         ev('scan_complete', { outcome: outcome, steps: currentStepIndex + 1, duration_ms: durMs });
-        showResolutionConfirm(data, outcome);
+        showFeedbackGate(data, outcome);
         break;
       }
 
@@ -1890,7 +1928,6 @@
 
       case 'request_input':
         if (data.field === 'userDescription') showDescInput(data);
-        else if (data.field === 'userFeedback') showFeedbackInput(data);
         break;
 
       case 'error':
@@ -1900,7 +1937,7 @@
     }
   }
 
-  // ═══ Session tracking ════════════════════════════════════════════════
+  // ═══ Session tracking ═══════════════════════════════════════════════════
   var _scanStartTime = null;
   var _currentStep = 0;
   var _confirmShownAt = 0;
@@ -1916,7 +1953,7 @@
     }));
   });
 
-  // ═══ Boot ════════════════════════════════════════════════════════════
+  // ═══ Boot ═════════════════════════════════════════════════════════════════
   document.getElementById('btn-start').addEventListener('click', function() {
     _scanStartTime = Date.now();
     ev('scan_start');
