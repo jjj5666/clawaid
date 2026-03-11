@@ -1,7 +1,7 @@
 {
   "name": "clawaid",
   "version": "1.1.34",
-  "description": "AI-powered diagnostic and repair tool for OpenClaw",
+  "description": "Fix OpenClaw in one command. AI auto-diagnoses gateway crashes, config errors, network issues, model failures — and repairs them. 94% fix rate.",
   "main": "dist/index.js",
   "bin": {
     "clawaid": "dist/index.js"
@@ -22,13 +22,27 @@
     "openclaw-broken",
     "openclaw-debug",
     "openclaw-troubleshoot",
+    "openclaw-not-working",
+    "openclaw-error",
+    "openclaw-help",
+    "openclaw-doctor",
+    "openclaw-network",
+    "openclaw-proxy",
+    "openclaw-model-error",
+    "openclaw-http-400",
+    "openclaw-startup",
+    "openclaw-update",
+    "fix-openclaw",
     "diagnostics",
     "repair",
+    "troubleshooting",
     "ai",
     "clawaid",
     "gateway-fix",
+    "gateway-crash",
     "launchagent",
-    "plist"
+    "plist",
+    "config-repair"
   ],
   "author": "clawaid",
   "license": "MIT",
