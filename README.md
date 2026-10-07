@@ -1,5 +1,7 @@
 # 🦞🩹 ClawAid — Fix OpenClaw in One Command
 
+> **Status: no longer maintained.** The hosted analysis service behind `npx clawaid` is offline, so the tool no longer works. To repair an OpenClaw install, use OpenClaw's built-in `openclaw doctor`.
+
 **OpenClaw broken? Gateway crashed? Config corrupted? AI not responding?**
 
 ClawAid is an AI-powered diagnostic and repair tool for [OpenClaw](https://github.com/openclaw/openclaw). It auto-detects what's wrong and fixes it — no manual debugging needed.
@@ -27,8 +29,6 @@ That's it. Opens a web UI in your browser. No config, no API key, no account nee
 | **`openclaw: command not found`** — PATH issues | ✅ Auto-fix |
 | **Telegram / Discord / WhatsApp** channel won't connect | ✅ Auto-fix |
 
-**94% fix rate** across 19,000+ users in 15 countries.
-
 ## How It Works
 
 1. **Scans** your OpenClaw installation — logs, config, processes, network (read-only, zero risk)
@@ -52,14 +52,6 @@ That's it. Opens a web UI in your browser. No config, no API key, no account nee
 - "openclaw proxy error" / "openclaw network issue"
 - "openclaw telegram not connecting"
 
-## Troubleshooting Guides
-
-Detailed step-by-step guides for manual fixes:
-
-- [OpenClaw Not Working — Complete Guide](https://clawaid.app/fix/openclaw-not-working)
-- [Fix: Gateway Not Starting](https://clawaid.app/fix/gateway-not-starting)
-- [Fix: Config Errors](https://clawaid.app/fix/config-errors)
-
 ## Privacy & Security
 
 - API keys are **automatically redacted** before any data leaves your machine
@@ -74,7 +66,6 @@ Detailed step-by-step guides for manual fixes:
 
 ## Links
 
-- **Website:** [clawaid.app](https://clawaid.app)
 - **GitHub:** [github.com/jjj5666/clawaid](https://github.com/jjj5666/clawaid)
 - **OpenClaw:** [github.com/openclaw/openclaw](https://github.com/openclaw/openclaw)
 - **OpenClaw Discord:** [discord.com/invite/clawd](https://discord.com/invite/clawd)

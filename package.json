@@ -1,7 +1,7 @@
 {
   "name": "clawaid",
   "version": "1.1.35",
-  "description": "Fix OpenClaw in one command. AI auto-diagnoses gateway crashes, config errors, network issues, model failures — and repairs them. 94% fix rate.",
+  "description": "Fix OpenClaw in one command. AI auto-diagnoses gateway crashes, config errors, network issues, model failures — and repairs them.",
   "main": "dist/index.js",
   "bin": {
     "clawaid": "dist/index.js"
